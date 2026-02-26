@@ -1,0 +1,16 @@
+<section class="messages"
+         x-data="{ showAlerts: true }"
+         x-show="showAlerts"
+         x-transition>
+    <div class="messages__container">
+        {% for message in messages %}
+            <div class="message message--{{ message.tags }} message--dismissible">
+                {{ message }}
+                <button type="button"
+                        class="message__close"
+                        @click="showAlerts = false"
+                        aria-label="Cerrar">&times;</button>
+            </div>
+        {% endfor %}
+    </div>
+</section>

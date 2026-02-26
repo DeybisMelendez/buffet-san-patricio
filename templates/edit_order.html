@@ -1,53 +1,81 @@
 {% extends "layout.html" %}
+{% load static %}
 {% block title %}Editar Comanda #{{ order.id }}{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+{% endblock %}
 {% block body %}
-<main class="container" x-data="{ confirm: false, modal: false }">
-  <h1>Editar Comanda #{{ order.id }}</h1>
-
-  <form method="post">
-    {% csrf_token %}
-
-    <label for="table">Mesa</label>
-    <select name="table" id="table" required>
-      <option value="">-- Seleccionar Mesa --</option>
-      {% for table in tables %}
-        <option value="{{ table.id }}" {% if order.table and order.table.id == table.id %}selected{% endif %}>
-          Mesa {{ table.name }}
-        </option>
-      {% endfor %}
-    </select>
-
-    <label for="user">Mesero</label>
-    <select name="user" id="user" required>
-      <option value="">-- Seleccionar Mesero --</option>
-      {% for user in users %}
-        <option value="{{ user.id }}" {% if order.user and order.user.id == user.id %}selected{% endif %}>
-          {{ user.username }}
-        </option>
-      {% endfor %}
-    </select>
-
-    <label>
-      <input type="checkbox" name="is_paid" {% if order.is_paid %}checked{% endif %}>
-      Marcar como pagado
-    </label>
-
-    <footer style="margin-top: 1rem; display: flex; gap: 1rem;">
-      <a href="{% url 'order_detail' order.id %}" role="button" class="secondary">← Cancelar</a>
-      <button @click.prevent="modal=true">💾 Guardar Cambios</button>
-    </footer>
-    <dialog x-bind:open="modal" x-show="modal">
-        <article @click.outside="modal=false">
-            <h2>Confirmar cambios</h2>
-            <p>¿Deseas guardar los cambios realizados en esta comanda?</p>
-            <footer>
-                <button class="secondary" @click.prevent="modal = false">
-                    Cancelar
-                </button>
-                <button>Confirmar</button>
-            </footer>
-        </article>
-    </dialog>
-  </form>
-</main>
+    <div class="card" x-data="{ modal: false }">
+        <div class="card__header">
+            <h1 class="card__title">Editar Comanda #{{ order.id }}</h1>
+        </div>
+        <div class="card__body">
+            <form method="post" class="form">
+                {% csrf_token %}
+                <div class="form__group">
+                    <label for="table" class="form__label">Mesa</label>
+                    <select name="table" id="table" class="form__control form__select" required>
+                        <option value="">-- Seleccionar Mesa --</option>
+                        {% for table in tables %}
+                            <option value="{{ table.id }}"
+                                    {% if order.table and order.table.id == table.id %}selected{% endif %}>
+                                Mesa {{ table.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form__group">
+                    <label for="user" class="form__label">Mesero</label>
+                    <select name="user" id="user" class="form__control form__select" required>
+                        <option value="">-- Seleccionar Mesero --</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}"
+                                    {% if order.user and order.user.id == user.id %}selected{% endif %}>
+                                {{ user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form__group">
+                    <label class="form__checkbox">
+                        <input type="checkbox"
+                               name="is_paid"
+                               class="form__checkbox-input"
+                               {% if order.is_paid %}checked{% endif %}>
+                        <span class="form__checkbox-label">Marcar como pagado</span>
+                    </label>
+                </div>
+                <div class="card__footer">
+                    <div class="button-group">
+                        <a href="{% url 'order_detail' order.id %}"
+                           class="button button--secondary">← Cancelar</a>
+                        <button type="button"
+                                @click.prevent="modal=true"
+                                class="button button--primary">💾 Guardar Cambios</button>
+                    </div>
+                </div>
+                <div class="modal"
+                     x-show="modal"
+                     x-cloak
+                     :class="{'modal--open': modal}"
+                     @click.outside="modal = false">
+                    <div class="modal__dialog">
+                        <div class="modal__header">
+                            <h2 class="modal__title">Confirmar cambios</h2>
+                            <button class="modal__close" @click="modal = false">&times;</button>
+                        </div>
+                        <div class="modal__body">
+                            <p>¿Deseas guardar los cambios realizados en esta comanda?</p>
+                        </div>
+                        <div class="modal__footer">
+                            <button type="button" @click="modal = false" class="button button--secondary">Cancelar</button>
+                            <button type="button"
+                                    @click="$el.closest('form').submit()"
+                                    class="button button--primary">Confirmar</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}

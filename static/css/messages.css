@@ -1,0 +1,197 @@
+/* ============================================
+   MESSAGE
+   Bloque para mensajes de alerta, notificaciones y feedback
+   ============================================ */
+
+.message {
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+  margin-bottom: var(--space-md);
+  font-size: 1rem;
+  line-height: 1.5;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.message__title {
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  font-size: 1.1rem;
+}
+
+.message__body {
+  margin: 0;
+}
+
+.message__close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: var(--space-xs);
+  margin: calc(var(--space-xs) * -1);
+  transition: opacity 0.2s;
+}
+
+.message__close:hover {
+  opacity: 1;
+}
+
+/* Modificadores por tipo */
+.message--success {
+  background-color: rgba(var(--color-success), 0.1);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.message--info {
+  background-color: rgba(var(--color-info), 0.1);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.message--warning {
+  background-color: rgba(var(--color-warning), 0.1);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.message--danger,
+.message--error {
+  background-color: rgba(var(--color-danger), 0.1);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.message--primary {
+  background-color: rgba(var(--color-primary), 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.message--secondary,
+.message--debug {
+  background-color: rgba(var(--color-secondary), 0.1);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+/* Modificadores de estilo */
+.message--solid {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.message--solid.message--success {
+  background-color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.message--solid.message--info {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+.message--solid.message--warning {
+  background-color: var(--color-warning);
+  border-color: var(--color-warning);
+  color: #212529;
+}
+
+.message--solid.message--danger {
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.message--solid.message--primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.message--solid.message--secondary,
+.message--solid.message--debug {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.message--outline {
+  background-color: transparent;
+}
+
+.message--bordered {
+  border-width: 2px;
+}
+
+/* Message con icono */
+.message--with-icon {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.message__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Message desmontable */
+.message--dismissible {
+  padding-right: calc(var(--space-lg) * 2);
+}
+
+/* ============================================
+   MESSAGES (Contenedor de mensajes)
+   ============================================ */
+
+.messages {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+.messages__container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+}
+
+.messages__actions {
+  text-align: right;
+  margin-top: var(--space-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .message {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .message--with-icon {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .message__icon {
+    font-size: 1.25rem;
+  }
+
+  .messages {
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
+
+  .messages__actions {
+    text-align: center;
+  }
+}

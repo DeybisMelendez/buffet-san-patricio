@@ -1,0 +1,74 @@
+{% load user_extras %}
+<header class="nav" x-data="{ mobileMenuOpen: false }">
+    <div class="nav__container">
+        <a href="{% url 'table_list' %}" class="nav__brand">Boa POS</a>
+        <button class="nav__toggle"
+                @click="mobileMenuOpen = !mobileMenuOpen"
+                aria-label="Toggle menu">
+            <svg class="nav__toggle-icon"
+                 viewBox="0 0 24 24"
+                 width="24"
+                 height="24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+        </button>
+        <div class="nav__menus"
+             x-bind:class="{ 'nav__menus--open': mobileMenuOpen }">
+            <ul class="nav__menu">
+                <!-- Sección principal -->
+                <li class="nav__item">
+                    <a href="{% url 'table_list' %}"
+                       class="nav__link {% if request.resolver_match.url_name == 'table_list' %}nav__link--active{% endif %}">
+                        Mesas
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="{% url 'order_history' %}"
+                       class="nav__link {% if request.resolver_match.url_name == 'order_history' %}nav__link--active{% endif %}">
+                        Historial
+                    </a>
+                </li>
+                {% if user|is_encargado %}
+                    <!-- Inventario -->
+                    <li class="nav__item nav__dropdown">
+                        <a href="#" class="nav__link">Ingredientes</a>
+                        <div class="nav__dropdown-content">
+                            <a href="{% url 'inventory_movement' %}" class="nav__dropdown-link">Movimientos</a>
+                            <a href="{% url 'purchase_ingredients' %}" class="nav__dropdown-link">Ingresos</a>
+                        </div>
+                    </li>
+                    <!-- Reportes -->
+                    <li class="nav__item nav__dropdown">
+                        <a href="#" class="nav__link">Reportes</a>
+                        <div class="nav__dropdown-content">
+                            <a href="{% url 'sales_report_by_product' %}" class="nav__dropdown-link">Ventas</a>
+                            <a href="{% url 'report_orders' %}" class="nav__dropdown-link">Comandas</a>
+                            <a href="{% url 'report_movements' %}" class="nav__dropdown-link">Movimiento de Inventario</a>
+                            <a href="{% url 'report_inventory' %}" class="nav__dropdown-link">Saldo de Inventario</a>
+                        </div>
+                    </li>
+                {% endif %}
+                {% if user.is_staff %}
+                    <li class="nav__item">
+                        <a href="/admin/" class="nav__link">Admin</a>
+                    </li>
+                {% endif %}
+            </ul>
+            <ul class="nav__menu">
+                <li class="nav__item">
+                    <span class="nav__link"><strong>{{ user|get_group }}: {{ request.user }}</strong></span>
+                </li>
+                <li class="nav__item">
+                    <form method="post" action="{% url 'logout' %}" class="nav__form">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="button button--small button--outline button--danger">Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>

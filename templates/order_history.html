@@ -1,57 +1,67 @@
 {% extends "layout.html" %}
 {% load humanize %}
+{% load static %}
 {% block title %}Historial de Comandas{% endblock %}
-
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/table.css' %}">
+{% endblock %}
 {% block body %}
-<main class="container" x-data="{ fecha: '{{ target_date|date:"Y-m-d" }}' }">
-  <h1>📜 Historial de Comandas</h1>
-
-  <section class="grid">
-    <!-- Navegación por días -->
-    <div>
-      <a href="?days_ago={{ prev_days_ago }}" class="contrast">← Día anterior</a>
+    <div x-data="{ fecha: '{{ target_date|date:"Y-m-d" }}' }">
+        <h1>📜 Historial de Comandas</h1>
+        <!-- Navegación por días -->
+        <div class="button-group button-group--centered">
+            <a href="?days_ago={{ prev_days_ago }}" class="button button--outline">← Día anterior</a>
+            <span class="button button--outline"
+                  style="background-color: transparent;
+                         border-color: transparent;
+                         pointer-events: none">
+                <strong>{{ target_date|date:"d/m/Y" }}</strong>
+            </span>
+            {% if days_ago > 0 %}
+                <a href="?days_ago={{ next_days_ago }}" class="button button--outline">Día siguiente →</a>
+            {% else %}
+                <span class="button button--outline"
+                      style="opacity: 0.5;
+                             cursor: not-allowed;
+                             pointer-events: none">Día siguiente →</span>
+            {% endif %}
+        </div>
+        {% if orders %}
+            <div class="table-responsive">
+                <table class="table table--striped table--hover">
+                    <thead>
+                        <tr>
+                            <th>Comanda</th>
+                            <th>Mesa</th>
+                            <th class="table__cell--center">Hora</th>
+                            <th>Estado</th>
+                            <th class="table__cell--numeric">Total</th>
+                            <th class="table__cell--actions">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr>
+                                <td>{{ order.id }}</td>
+                                <td>{{ order.table.name }}</td>
+                                <td class="table__cell--center">{{ order.created_at|date:"H:i" }}</td>
+                                <td>{{ order.get_status_display }}</td>
+                                <td class="table__cell--numeric">C$ {{ order.get_total|floatformat:2|intcomma }}</td>
+                                <td class="table__cell--actions">
+                                    <a href="{% url 'order_detail' order.id %}"
+                                       class="button button--small button--outline">Ver detalle</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="card card--compact" style="text-align: center;">
+                <div class="card__body">
+                    <p>No hay comandas registradas para esta fecha.</p>
+                </div>
+            </div>
+        {% endif %}
     </div>
-    <div class="center">
-      <strong>{{ target_date|date:"d/m/Y" }}</strong>
-    </div>
-    <div class="end">
-      {% if days_ago > 0 %}
-        <a href="?days_ago={{ next_days_ago }}" class="contrast">Día siguiente →</a>
-      {% else %}
-        <span style="opacity:0.5;">Día siguiente →</span>
-      {% endif %}
-    </div>
-  </section>
-
-  {% if orders %}
-    <table>
-      <thead>
-        <tr>
-          <th>Comanda</th>
-          <th>Mesa</th>
-          <th>Hora</th>
-          <th>Estado</th>
-          <th>Total</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for order in orders %}
-          <tr>
-            <td>{{ order.id }}</td>
-            <td>{{ order.table.name }}</td>
-            <td>{{ order.created_at|date:"H:i" }}</td>
-            <td>{{ order.get_status_display }}</td>
-            <td>C$ {{ order.get_total|floatformat:2|intcomma }}</td>
-            <td><a href="{% url 'order_detail' order.id %}">Ver detalle</a></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <article>
-      <p>No hay comandas registradas para esta fecha.</p>
-    </article>
-  {% endif %}
-</main>
 {% endblock %}

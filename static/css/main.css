@@ -1,0 +1,69 @@
+/* ============================================
+   MAIN
+   Bloque para el contenido principal de la página
+   ============================================ */
+
+.main {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.main__container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+}
+
+/* Modificadores */
+.main--compact {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+.main--full {
+  padding: 0;
+}
+
+.main--full .main__container {
+  max-width: none;
+  padding: 0;
+}
+
+.main--center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.main__container--narrow {
+  max-width: 400px;
+  width: 100%;
+}
+
+.main__container--center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main {
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
+  }
+
+  .main__container {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+}

@@ -1,16 +1,8 @@
 from django.contrib import admin
-from .models import (
-    Table,
-    ProductCategory,
-    DispatchArea,
-    Warehouse,
-    Product,
-    Ingredient,
-    ProductIngredient,
-    IngredientMovement,
-    Order,
-    OrderItem,
-)
+
+from .models import (DispatchArea, Ingredient, IngredientMovement, Order,
+                     OrderItem, Product, ProductCategory, ProductIngredient,
+                     Table, Warehouse)
 
 
 @admin.register(Table)
@@ -24,11 +16,13 @@ class ProductCategoryAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
 
+
 @admin.register(DispatchArea)
 class DispatchAreaAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
-    
+
+
 @admin.register(Warehouse)
 class WarehouseAdmin(admin.ModelAdmin):
     list_display = ("name",)
@@ -62,6 +56,7 @@ class ProductIngredientAdmin(admin.ModelAdmin):
     list_filter = ("product", "ingredient")
     search_fields = ("product__name", "ingredient__name")
 
+
 @admin.register(IngredientMovement)
 class IngredientMovementAdmin(admin.ModelAdmin):
     list_display = ("ingredient", "quantity", "reason", "user", "created_at")
@@ -75,6 +70,7 @@ class IngredientMovementAdmin(admin.ModelAdmin):
         if not obj.user:
             obj.user = request.user
         super().save_model(request, obj, form, change)
+
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -90,6 +86,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_total_display(self, obj):
         return f"C${obj.get_total():,.2f}"
+
     get_total_display.short_description = "Total"
 
 
@@ -101,4 +98,5 @@ class OrderItemAdmin(admin.ModelAdmin):
 
     def get_total_display(self, obj):
         return f"C${obj.get_total():,.2f}"
+
     get_total_display.short_description = "Subtotal"

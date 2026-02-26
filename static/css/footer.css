@@ -1,0 +1,68 @@
+/* ============================================
+   FOOTER
+   Bloque para el pie de página
+   ============================================ */
+
+.footer {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.footer__container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+}
+
+.footer__copyright {
+  text-align: center;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-secondary);
+}
+
+.footer__copyright a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.footer__copyright a:hover {
+  color: var(--color-secondary);
+}
+
+/* Modificadores */
+.footer--compact {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+.footer--transparent {
+  background-color: transparent;
+  border-top: none;
+}
+
+.footer--dark {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+  border-top-color: #333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer {
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
+  }
+
+  .footer__copyright {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+}

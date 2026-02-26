@@ -1,62 +1,58 @@
 {% extends "layout.html" %}
 {% block title %}Reporte Diario{% endblock %}
-
 {% block body %}
-<main class="container" x-data="{ fecha: '{{ target_date|date:"Y-m-d" }}' }">
-  <h1>Reporte de Ventas</h1>
-
-  <section class="grid">
-    <div>
-      <a href="?days_ago={{ prev_days_ago }}" class="contrast">← Día anterior</a>
-    </div>
-    <div class="center">
-      <strong>{{ target_date|date:"d/m/Y" }}</strong>
-    </div>
-    <div class="end">
-      {% if days_ago > 0 %}
-        <a href="?days_ago={{ next_days_ago }}" class="contrast">Día siguiente →</a>
-      {% else %}
-        <span style="opacity:0.5;">Día siguiente →</span>
-      {% endif %}
-    </div>
-  </section>
-
-  <hr>
-
-  {% if product_summary %}
-    <h2>Resumen por Producto</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Precio Unitario</th>
-          <th>Cantidad</th>
-          <th>Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for name, data in product_summary.items %}
-        <tr>
-          <td>{{ name }}</td>
-          <td>C$ {{ data.price|floatformat:2|intcomma }}</td>
-          <td>{{ data.qty|floatformat:2|intcomma }}</td>
-          <td>C$ {{ data.subtotal|floatformat:2|intcomma }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr>
-          <th colspan="3">Total del día</th>
-          <th>C$ {{ total_sales|floatformat:2|intcomma }}</th>
-        </tr>
-      </tfoot>
-    </table>
-
-    <a href="{% url 'export_orders_csv' %}" role="button">Descargar CSV</a>
-  {% else %}
-    <article>
-      <p>No hay ventas registradas para esta fecha.</p>
-    </article>
-  {% endif %}
-</main>
+    <main class="container"
+          x-data="{ fecha: '{{ target_date|date:"Y-m-d" }}' }">
+        <h1>Reporte de Ventas</h1>
+        <section class="grid">
+            <div>
+                <a href="?days_ago={{ prev_days_ago }}" class="contrast">← Día anterior</a>
+            </div>
+            <div class="center">
+                <strong>{{ target_date|date:"d/m/Y" }}</strong>
+            </div>
+            <div class="end">
+                {% if days_ago > 0 %}
+                    <a href="?days_ago={{ next_days_ago }}" class="contrast">Día siguiente →</a>
+                {% else %}
+                    <span style="opacity:0.5;">Día siguiente →</span>
+                {% endif %}
+            </div>
+        </section>
+        <hr>
+        {% if product_summary %}
+            <h2>Resumen por Producto</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio Unitario</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, data in product_summary.items %}
+                        <tr>
+                            <td>{{ name }}</td>
+                            <td>C$ {{ data.price|floatformat:2|intcomma }}</td>
+                            <td>{{ data.qty|floatformat:2|intcomma }}</td>
+                            <td>C$ {{ data.subtotal|floatformat:2|intcomma }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="3">Total del día</th>
+                        <th>C$ {{ total_sales|floatformat:2|intcomma }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+            <a href="{% url 'export_orders_csv' %}" role="button">Descargar CSV</a>
+        {% else %}
+            <article>
+                <p>No hay ventas registradas para esta fecha.</p>
+            </article>
+        {% endif %}
+    </main>
 {% endblock %}

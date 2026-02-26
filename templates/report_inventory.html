@@ -1,55 +1,56 @@
 {% extends "layout.html" %}
 {% load humanize %}
+{% load static %}
+{% block title %}📦 Reporte de Inventario{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/table.css' %}">
+{% endblock %}
 {% block body %}
-<main class="container">
-<h1>📦 Reporte de Inventario</h1>
-      <p><strong>Total de ingredientes:</strong> {{ total_items }}</p>
-      <a href="{% url 'export_inventory_csv' %}" role="button">
-        ⬇️ Descargar CSV
-      </a>
-      <a href="{% url 'report_inventory' %}?print=true" role="button">🖨️ Imprimir Reporte</a>
-
-  <div class="class="overflow-auto"">
-    <table class="striped">
-      <thead>
-        <tr>
-          
-          <th>Ingrediente</th>
-          <th>Cantidad actual</th>
-          <th>Unidad</th>
-          
-        </tr>
-      </thead>
-      <tbody>
-        {% for i in ingredients %}
-        <tr>
-            
-          <td>{{ i.name }}</td>
-          
-          <td>{{ i.stock_quantity|floatformat:2|intcomma }}</td>
-          <td>{{ i.unit|default:"—" }}</td>
-          
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="4" style="text-align:center;">No hay ingredientes registrados.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-</div>
-{% if print %}
-  <div 
-    x-data="{
-      comandaHtml: '',
-      async init() {
-        const response = await fetch('{% url "print_inventory_report" %}');
-        this.comandaHtml = await response.text();
-      }
-    }"
-  >
-    <iframe :srcdoc="comandaHtml" frameborder="0" style="display: none"></iframe>
-  </div>
-{% endif %}
-</main>
+    <div>
+        <h1>📦 Reporte de Inventario</h1>
+        <p>
+            <strong>Total de ingredientes:</strong> {{ total_items }}
+        </p>
+        <div class="card">
+            <div class="card__header">
+                <div class="card__actions">
+                    <a href="{% url 'export_inventory_csv' %}"
+                       class="button button--primary button--small">⬇️ Descargar CSV</a>
+                    <a href="{% url 'report_inventory' %}?print=true"
+                       class="button button--secondary button--small">🖨️ Imprimir Reporte</a>
+                </div>
+            </div>
+            <div class="card__body">
+                <div class="table-responsive">
+                    <table class="table table--striped table--responsive">
+                        <thead>
+                            <tr>
+                                <th>Ingrediente</th>
+                                <th class="table__cell--numeric">Cantidad actual</th>
+                                <th>Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in ingredients %}
+                                <tr>
+                                    <td>{{ i.name }}</td>
+                                    <td class="table__cell--numeric">{{ i.stock_quantity|floatformat:2|intcomma }}</td>
+                                    <td>{{ i.unit|default:"—" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="table__cell--center">No hay ingredientes registrados.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% if print %}
+            <div x-data="{ comandaHtml: '', async init() { const response = await fetch('{% url 'print_inventory_report' %}'); this.comandaHtml = await response.text(); } }">
+                <iframe :srcdoc="comandaHtml" frameborder="0" style="display: none"></iframe>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

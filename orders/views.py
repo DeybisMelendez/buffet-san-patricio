@@ -6,11 +6,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import F, Sum
+from django.db.models import F, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.db.models import Q
 
 from .models import (Ingredient, IngredientMovement, Order, OrderItem, Product,
                      ProductCategory, Table)
@@ -18,6 +17,7 @@ from .models import (Ingredient, IngredientMovement, Order, OrderItem, Product,
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
 # ==========================
+
 
 def is_encargado(user):
     """Verifica si el usuario pertenece al grupo Encargado."""
@@ -44,6 +44,7 @@ def parse_date_range(request):
 # 🪑 MESAS Y COMANDAS
 # ==========================
 
+
 @login_required
 def table_list(request):
     """Muestra todas las mesas y su total pendiente."""
@@ -52,7 +53,11 @@ def table_list(request):
     for table in tables:
         total_due = (
             Order.objects.filter(table=table, is_paid=False)
-            .annotate(order_total=Sum(F("orderitem__quantity") * F("orderitem__product__price")))
+            .annotate(
+                order_total=Sum(
+                    F("orderitem__quantity") * F("orderitem__product__price")
+                )
+            )
             .aggregate(total=Sum("order_total"))["total"]
             or 0
         )
@@ -83,7 +88,10 @@ def mark_table_paid(request, table_id):
         messages.info(request, f"ℹ️ No hay comandas pendientes para {table.name}.")
     else:
         count = unpaid.update(is_paid=True)
-        messages.success(request, f"✅ {count} comandas de la mesa {table.name} marcadas como pagadas.")
+        messages.success(
+            request,
+            f"✅ {count} comandas de la mesa {table.name} marcadas como pagadas.",
+        )
 
     return redirect("table_list")
 
@@ -91,6 +99,7 @@ def mark_table_paid(request, table_id):
 # ==========================
 # 🍽️ CREACIÓN Y DETALLE DE COMANDAS
 # ==========================
+
 
 @login_required
 def create_order(request, table_id):
@@ -107,12 +116,16 @@ def create_order(request, table_id):
         for key, value in request.POST.items():
             if key.startswith("product_") and value.isdigit() and int(value) > 0:
                 product = get_object_or_404(Product, id=key.split("_")[1])
-                OrderItem.objects.create(order=order, product=product, quantity=int(value))
+                OrderItem.objects.create(
+                    order=order, product=product, quantity=int(value)
+                )
                 created_items += 1
 
         if created_items:
-            messages.success(request, f"✅ Comanda #{order.id} creada con {created_items} productos.")
-            context['order'] = order
+            messages.success(
+                request, f"✅ Comanda #{order.id} creada con {created_items} productos."
+            )
+            context["order"] = order
             return render(request, "create_order.html", context)
 
         order.delete()
@@ -137,7 +150,11 @@ def order_detail(request, order_id):
             messages.info(request, f"ℹ️ La comanda #{order.id} ya estaba pagada.")
         return redirect("table_list")
 
-    return render(request, "order_detail.html", {"order": order, "items": items, "total": order.get_total()})
+    return render(
+        request,
+        "order_detail.html",
+        {"order": order, "items": items, "total": order.get_total()},
+    )
 
 
 @login_required
@@ -156,7 +173,9 @@ def edit_order(request, order_id):
         messages.success(request, f"✅ Comanda #{order.id} actualizada correctamente.")
         return redirect("order_detail", order_id=order.id)
 
-    return render(request, "edit_order.html", {"order": order, "tables": tables, "users": users})
+    return render(
+        request, "edit_order.html", {"order": order, "tables": tables, "users": users}
+    )
 
 
 def print_order(request, order_id):
@@ -167,12 +186,17 @@ def print_order(request, order_id):
     if not items.exists():
         messages.warning(request, f"⚠️ La comanda #{order.id} no tiene productos.")
 
-    return render(request, "print_order.html", {"order": order, "items": items, "total": order.get_total()})
+    return render(
+        request,
+        "print_order.html",
+        {"order": order, "items": items, "total": order.get_total()},
+    )
 
 
 # ==========================
 # 🕒 HISTORIAL Y REPORTES
 # ==========================
+
 
 @login_required
 def order_history(request):
@@ -180,17 +204,25 @@ def order_history(request):
     days_ago = int(request.GET.get("days_ago", 0))
     target_date = datetime.now() - timedelta(days=days_ago)
 
-    orders = Order.objects.filter(created_at__date=target_date).select_related("table", "user").order_by("-created_at")
+    orders = (
+        Order.objects.filter(created_at__date=target_date)
+        .select_related("table", "user")
+        .order_by("-created_at")
+    )
     total = orders.count()
     paid = orders.filter(is_paid=True).count()
 
-    return render(request, "order_history.html", {
-        "orders": orders,
-        "target_date": target_date,
-        "days_ago": days_ago,
-        "prev_days_ago": days_ago + 1,
-        "next_days_ago": max(days_ago - 1, 0),
-    })
+    return render(
+        request,
+        "order_history.html",
+        {
+            "orders": orders,
+            "target_date": target_date,
+            "days_ago": days_ago,
+            "prev_days_ago": days_ago + 1,
+            "next_days_ago": max(days_ago - 1, 0),
+        },
+    )
 
 
 @login_required
@@ -200,7 +232,9 @@ def daily_report(request):
     days_ago = int(request.GET.get("days_ago", 0))
     target_date = timezone.now().date() - timedelta(days=days_ago)
 
-    orders = Order.objects.filter(created_at__date=target_date, is_paid=True).prefetch_related("orderitem_set__product")
+    orders = Order.objects.filter(
+        created_at__date=target_date, is_paid=True
+    ).prefetch_related("orderitem_set__product")
     summary, total_sales = {}, Decimal("0")
 
     for order in orders:
@@ -214,26 +248,31 @@ def daily_report(request):
             summary[name]["subtotal"] += subtotal
 
     messages.info(request, f"📊 Ventas del {target_date}: {total_sales:.2f} total.")
-    return render(request, "daily_report.html", {
-        "orders": orders,
-        "product_summary": summary,
-        "target_date": target_date,
-        "days_ago": days_ago,
-        "prev_days_ago": days_ago + 1,
-        "next_days_ago": max(days_ago - 1, 0),
-        "total_sales": total_sales,
-    })
+    return render(
+        request,
+        "daily_report.html",
+        {
+            "orders": orders,
+            "product_summary": summary,
+            "target_date": target_date,
+            "days_ago": days_ago,
+            "prev_days_ago": days_ago + 1,
+            "next_days_ago": max(days_ago - 1, 0),
+            "total_sales": total_sales,
+        },
+    )
 
 
 # ==========================
 # 🧾 INVENTARIO Y MOVIMIENTOS
 # ==========================
 
+
 @login_required
 @user_passes_test(is_encargado)
 def inventory_movement(request):
     """Ajustes de inventario físico."""
-    ingredients = Ingredient.objects.all().order_by("warehouse","name")
+    ingredients = Ingredient.objects.all().order_by("warehouse", "name")
 
     if request.method == "POST":
         note = request.POST.get("note", "").strip()
@@ -251,8 +290,10 @@ def inventory_movement(request):
                 diff = found_qty - ing.stock_quantity
                 if diff != 0:
                     IngredientMovement.objects.create(
-                        ingredient=ing, quantity=diff, user=request.user,
-                        reason=f"Ajuste por inventario físico. {note}"
+                        ingredient=ing,
+                        quantity=diff,
+                        user=request.user,
+                        reason=f"Ajuste por inventario físico. {note}",
                     )
                     count += 1
         if count:
@@ -266,7 +307,7 @@ def inventory_movement(request):
 @user_passes_test(is_encargado)
 def purchase_ingredients(request):
     """Registra compras de ingredientes."""
-    ingredients = Ingredient.objects.all().order_by("warehouse","name")
+    ingredients = Ingredient.objects.all().order_by("warehouse", "name")
 
     if request.method == "POST":
         count = 0
@@ -282,10 +323,17 @@ def purchase_ingredients(request):
                     continue
                 if qty > 0:
                     IngredientMovement.objects.create(
-                        ingredient=ing, quantity=qty, user=request.user, reason="Compra de ingredientes"
+                        ingredient=ing,
+                        quantity=qty,
+                        user=request.user,
+                        reason="Compra de ingredientes",
                     )
                     count += 1
-        messages.success(request, f"✅ {count} compras registradas.") if count else messages.info(request, "ℹ️ No se registró ninguna compra.")
+        (
+            messages.success(request, f"✅ {count} compras registradas.")
+            if count
+            else messages.info(request, "ℹ️ No se registró ninguna compra.")
+        )
         return redirect("purchase_ingredients")
 
     return render(request, "purchase_ingredients.html", {"ingredients": ingredients})
@@ -299,8 +347,9 @@ def report_inventory(request):
     total = ingredients.count()
     context = {"ingredients": ingredients, "total_items": total}
     if request.method == "GET" and request.GET.get("print") == "true":
-        context['print'] = True
+        context["print"] = True
     return render(request, "report_inventory.html", context)
+
 
 @login_required
 @user_passes_test(is_encargado)
@@ -308,7 +357,11 @@ def print_inventory_report(request):
     ingredients = Ingredient.objects.all().order_by("name")
     total = ingredients.count()
     today = timezone.now()
-    return render(request, "print_inventory_report.html", {"ingredients": ingredients, "total_items": total, "today": today})
+    return render(
+        request,
+        "print_inventory_report.html",
+        {"ingredients": ingredients, "total_items": total, "today": today},
+    )
 
 
 @login_required
@@ -318,7 +371,9 @@ def export_inventory_csv(request):
     ingredients = Ingredient.objects.all().order_by("name")
 
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="inventario_{datetime.now():%Y%m%d_%H%M}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="inventario_{datetime.now():%Y%m%d_%H%M}.csv"'
+    )
 
     writer = csv.writer(response)
     writer.writerow(["Ingrediente", "Cantidad", "Unidad"])
@@ -331,6 +386,7 @@ def export_inventory_csv(request):
 # 💾 REPORTES CSV
 # ==========================
 
+
 @login_required
 @user_passes_test(is_encargado)
 def report_orders(request):
@@ -339,17 +395,28 @@ def report_orders(request):
     table = request.GET.get("table", None)
     items = None
     if table:
-        items = OrderItem.objects.filter(order__created_at__range=(start, end), order__table=table).select_related(
-            "order", "product", "order__table", "order__user"
-        )
+        items = OrderItem.objects.filter(
+            order__created_at__range=(start, end), order__table=table
+        ).select_related("order", "product", "order__table", "order__user")
     else:
-        items = OrderItem.objects.filter(order__created_at__range=(start, end)).select_related(
-            "order", "product", "order__table", "order__user"
-        )
+        items = OrderItem.objects.filter(
+            order__created_at__range=(start, end)
+        ).select_related("order", "product", "order__table", "order__user")
     total = sum((i.get_total() or 0) for i in items)
     items = items.order_by("-id")
     tables = Table.objects.all()
-    return render(request, "report_orders.html", {"order_items": items, "start": start, "end": end, "tables": tables, "table": table, "total": total})
+    return render(
+        request,
+        "report_orders.html",
+        {
+            "order_items": items,
+            "start": start,
+            "end": end,
+            "tables": tables,
+            "table": table,
+            "total": total,
+        },
+    )
 
 
 @login_required
@@ -360,27 +427,45 @@ def export_orders_csv(request):
     table = request.GET.get("table")
     items = None
     if table:
-        items = OrderItem.objects.filter(order__created_at__range=(start, end), order__table=table).select_related(
-            "order", "product", "order__table", "order__user"
-        )
+        items = OrderItem.objects.filter(
+            order__created_at__range=(start, end), order__table=table
+        ).select_related("order", "product", "order__table", "order__user")
     else:
-        items = OrderItem.objects.filter(order__created_at__range=(start, end)).select_related(
-            "order", "product", "order__table", "order__user"
-        )
+        items = OrderItem.objects.filter(
+            order__created_at__range=(start, end)
+        ).select_related("order", "product", "order__table", "order__user")
 
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="comandas_{datetime.now():%Y%m%d_%H%M}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="comandas_{datetime.now():%Y%m%d_%H%M}.csv"'
+    )
 
     writer = csv.writer(response)
-    writer.writerow(["Fecha", "Comanda", "Mesero", "Mesa", "Cantidad", "Producto", "Precio", "Total"])
+    writer.writerow(
+        [
+            "Fecha",
+            "Comanda",
+            "Mesero",
+            "Mesa",
+            "Cantidad",
+            "Producto",
+            "Precio",
+            "Total",
+        ]
+    )
     for i in items:
-        writer.writerow([
-            i.order.created_at.strftime("%Y-%m-%d %H:%M"),
-            i.order.id,
-            i.order.user.username if i.order.user else "—",
-            i.order.table.name if i.order.table else "—",
-            i.quantity, i.product.name, i.product.price, i.get_total(),
-        ])
+        writer.writerow(
+            [
+                i.order.created_at.strftime("%Y-%m-%d %H:%M"),
+                i.order.id,
+                i.order.user.username if i.order.user else "—",
+                i.order.table.name if i.order.table else "—",
+                i.quantity,
+                i.product.name,
+                i.product.price,
+                i.get_total(),
+            ]
+        )
     return response
 
 
@@ -390,25 +475,23 @@ def report_movements(request):
     """Lista los movimientos de inventario."""
     start, end = parse_date_range(request)
 
-    moves = (
-        IngredientMovement.objects
-        .filter(created_at__range=(start, end))
-        .select_related("ingredient")
-    )
+    moves = IngredientMovement.objects.filter(
+        created_at__range=(start, end)
+    ).select_related("ingredient")
 
     # --- Búsqueda ---
     search = request.GET.get("search")
     if search:
         moves = moves.filter(
-            Q(reason__icontains=search) |
-            Q(ingredient__name__icontains=search)
+            Q(reason__icontains=search) | Q(ingredient__name__icontains=search)
         )
 
     return render(
         request,
         "report_movements.html",
-        {"movements": moves, "start": start, "end": end, "search": search}
+        {"movements": moves, "start": start, "end": end, "search": search},
     )
+
 
 @login_required
 @user_passes_test(is_encargado)
@@ -416,18 +499,15 @@ def export_movements_csv(request):
     """Exporta los movimientos de inventario a CSV."""
     start, end = parse_date_range(request)
 
-    moves = (
-        IngredientMovement.objects
-        .filter(created_at__range=(start, end))
-        .select_related("ingredient")
-    )
+    moves = IngredientMovement.objects.filter(
+        created_at__range=(start, end)
+    ).select_related("ingredient")
 
     # --- Filtro de búsqueda (igual que la vista principal) ---
     search = request.GET.get("search")
     if search:
         moves = moves.filter(
-            Q(reason__icontains=search) |
-            Q(ingredient__name__icontains=search)
+            Q(reason__icontains=search) | Q(ingredient__name__icontains=search)
         )
 
     response = HttpResponse(content_type="text/csv")
@@ -439,15 +519,18 @@ def export_movements_csv(request):
     writer.writerow(["Fecha", "Cantidad", "Ingrediente", "Razón", "Usuario"])
 
     for m in moves:
-        writer.writerow([
-            m.created_at.strftime("%Y-%m-%d %H:%M"),
-            m.quantity,
-            m.ingredient.name,
-            m.reason or "—",
-            m.user.username if m.user else "—",
-        ])
+        writer.writerow(
+            [
+                m.created_at.strftime("%Y-%m-%d %H:%M"),
+                m.quantity,
+                m.ingredient.name,
+                m.reason or "—",
+                m.user.username if m.user else "—",
+            ]
+        )
 
     return response
+
 
 @login_required
 @user_passes_test(is_encargado)
@@ -457,31 +540,35 @@ def sales_report_by_product(request):
 
     # Filtramos solo órdenes pagadas en el rango seleccionado
     items = (
-        OrderItem.objects.filter(order__is_paid=True, order__created_at__range=(start, end))
-        .select_related("product", )
+        OrderItem.objects.filter(
+            order__is_paid=True, order__created_at__range=(start, end)
+        )
+        .select_related(
+            "product",
+        )
         .values("product__name", "product__dispatch_area__name")
         .annotate(
             total_qty=Sum("quantity"),
             total_sales=Sum(F("quantity") * F("product__price")),
             price=F("product__price"),
         )
-        .order_by("product__dispatch_area__name","product__name")
+        .order_by("product__dispatch_area__name", "product__name")
     )
 
     # Total general del rango
     total_sales = sum((i["total_sales"] or 0) for i in items)
-    
-    
-    totals_by_dispatch_area = (
-    OrderItem.objects.filter(order__is_paid=True, order__created_at__range=(start, end))
-    .values("product__dispatch_area__name")
-    .annotate(
-        area_total_qty=Sum("quantity"),
-        area_total_sales=Sum(F("quantity") * F("product__price")),
-    )
-    .order_by("product__dispatch_area__name")
-)
 
+    totals_by_dispatch_area = (
+        OrderItem.objects.filter(
+            order__is_paid=True, order__created_at__range=(start, end)
+        )
+        .values("product__dispatch_area__name")
+        .annotate(
+            area_total_qty=Sum("quantity"),
+            area_total_sales=Sum(F("quantity") * F("product__price")),
+        )
+        .order_by("product__dispatch_area__name")
+    )
 
     context = {
         "items": items,
@@ -492,13 +579,16 @@ def sales_report_by_product(request):
     }
     return render(request, "sales_report_by_product.html", context)
 
+
 @login_required
 @user_passes_test(is_encargado)
 def export_sales_by_product_csv(request):
     """Exporta el reporte de ventas por producto a CSV."""
     start, end = parse_date_range(request)
     items = (
-        OrderItem.objects.filter(order__is_paid=True, order__created_at__range=(start, end))
+        OrderItem.objects.filter(
+            order__is_paid=True, order__created_at__range=(start, end)
+        )
         .select_related("product")
         .values("product__name", "product__dispatch_area__name")
         .annotate(
@@ -510,11 +600,15 @@ def export_sales_by_product_csv(request):
     )
 
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="ventas_por_producto_{datetime.now():%Y%m%d_%H%M}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="ventas_por_producto_{datetime.now():%Y%m%d_%H%M}.csv"'
+    )
 
     writer = csv.writer(response)
     writer.writerow(["Producto", "Precio Unitario", "Cantidad", "Total"])
     for i in items:
-        writer.writerow([i["product__name"], i["price"], i["total_qty"], i["total_sales"]])
+        writer.writerow(
+            [i["product__name"], i["price"], i["total_qty"], i["total_sales"]]
+        )
 
     return response

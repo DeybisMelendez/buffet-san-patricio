@@ -1,16 +1,49 @@
 {% extends "layout.html" %}
 {% block body %}
-<article>
-    <h2>Iniciar sesión</h2>
-
-    <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Entrar</button>
-    </form>
-
-    {% if form.errors %}
-    <bloquote>Usuario o contraseña incorrectos</bloquote>
-    {% endif %}
-</article>
+    <div class="main__container main__container--narrow main__container--center">
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title card__title--centered">Iniciar sesión</h2>
+                <p class="card__subtitle card__subtitle--centered">Ingresa tus credenciales para acceder al sistema</p>
+            </div>
+            <div class="card__body">
+                <form method="post" class="form">
+                    {% csrf_token %}
+                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                    <div class="form__group">
+                        <label for="id_username" class="form__label">Usuario</label>
+                        <input type="text"
+                               name="username"
+                               id="id_username"
+                               class="form__control"
+                               placeholder="Nombre de usuario"
+                               required
+                               autofocus>
+                    </div>
+                    <div class="form__group">
+                        <label for="id_password" class="form__label">Contraseña</label>
+                        <input type="password"
+                               name="password"
+                               id="id_password"
+                               class="form__control"
+                               placeholder="Contraseña"
+                               required>
+                    </div>
+                    {% if form.errors %}
+                        <div class="form__group">
+                            <div class="form__feedback form__feedback--invalid">
+                                <strong>Usuario o contraseña incorrectos.</strong> Intenta nuevamente.
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="form__group">
+                        <button type="submit" class="button button--primary button--block">Entrar</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card__footer card__footer--centered">
+                <p>¿Problemas para ingresar? Contacta al administrador.</p>
+            </div>
+        </div>
+    </div>
 {% endblock %}

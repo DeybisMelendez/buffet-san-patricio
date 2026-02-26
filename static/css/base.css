@@ -1,0 +1,121 @@
+/* ============================================
+   BASE
+   Estilos base y variables CSS para temas
+   ============================================ */
+
+:root {
+  /* Colores base - tema claro */
+  --color-bg-light: #ffffff;
+  --color-text-light: #333333;
+  --color-border-light: #e0e0e0;
+  --color-primary-light: #007bff;
+  --color-secondary-light: #6c757d;
+  --color-success-light: #28a745;
+  --color-warning-light: #ffc107;
+  --color-danger-light: #dc3545;
+  --color-info-light: #17a2b8;
+
+  /* Colores base - tema oscuro */
+  --color-bg-dark: #1e1e1e;
+  --color-text-dark: #f0f0f0;
+  --color-border-dark: #444444;
+  --color-primary-dark: #3399ff;
+  --color-secondary-dark: #8a93a2;
+  --color-success-dark: #34ce57;
+  --color-warning-dark: #ffd654;
+  --color-danger-dark: #ff6b6b;
+  --color-info-dark: #5bc0de;
+
+  /* Espaciados */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+
+  /* Bordes */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+}
+
+/* Aplicar colores según tema */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--color-bg-dark);
+    --color-text: var(--color-text-dark);
+    --color-border: var(--color-border-dark);
+    --color-primary: var(--color-primary-dark);
+    --color-secondary: var(--color-secondary-dark);
+    --color-success: var(--color-success-dark);
+    --color-warning: var(--color-warning-dark);
+    --color-danger: var(--color-danger-dark);
+    --color-info: var(--color-info-dark);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: var(--color-bg-light);
+    --color-text: var(--color-text-light);
+    --color-border: var(--color-border-light);
+    --color-primary: var(--color-primary-light);
+    --color-secondary: var(--color-secondary-light);
+    --color-success: var(--color-success-light);
+    --color-warning: var(--color-warning-light);
+    --color-danger: var(--color-danger-light);
+    --color-info: var(--color-info-light);
+  }
+}
+
+/* Reset básico */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s, color 0.3s;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Tipografía */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--color-secondary);
+}
+
+/* AlpineJS */
+[x-cloak] {
+  display: none !important;
+}
+

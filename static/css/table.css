@@ -1,0 +1,174 @@
+/* ============================================
+   TABLE
+   Bloque para tablas de datos
+   ============================================ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-lg);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+.table th,
+.table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  font-weight: 600;
+  background-color: rgba(var(--color-primary), 0.05);
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.table tbody tr:hover {
+  background-color: rgba(var(--color-primary), 0.05);
+}
+
+/* Elementos */
+.table__caption {
+  caption-side: bottom;
+  padding: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--color-secondary);
+  text-align: center;
+}
+
+.table__header {
+  background-color: rgba(var(--color-secondary), 0.05);
+}
+
+.table__cell--numeric {
+  text-align: right;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+}
+
+.table__cell--center {
+  text-align: center;
+}
+
+.table__cell--actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Modificadores */
+.table--striped tbody tr:nth-child(odd) {
+  background-color: rgba(var(--color-secondary), 0.03);
+}
+
+.table--striped tbody tr:hover {
+  background-color: rgba(var(--color-primary), 0.05);
+}
+
+.table--bordered th,
+.table--bordered td {
+  border: 1px solid var(--color-border);
+}
+
+.table--compact th,
+.table--compact td {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.table--hover tbody tr:hover {
+  background-color: rgba(var(--color-primary), 0.1);
+}
+
+/* Responsive */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .table--responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .table--responsive th,
+  .table--responsive td {
+    white-space: nowrap;
+  }
+
+  /* Stack table en móviles */
+  .table--stack {
+    display: block;
+  }
+
+  .table--stack thead {
+    display: none;
+  }
+
+  .table--stack tbody {
+    display: block;
+  }
+
+  .table--stack tr {
+    display: block;
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-sm);
+  }
+
+  .table--stack td {
+    display: block;
+    text-align: right;
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom: 1px solid rgba(var(--color-border), 0.5);
+  }
+
+  .table--stack td:before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .table--stack td:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Tabla de resumen con acento de advertencia */
+.table--summary th {
+  background-color: rgba(var(--color-warning), 0.1);
+  color: var(--color-warning);
+  border-bottom-color: var(--color-warning);
+}
+
+.table--summary tbody tr:nth-child(even) {
+  background-color: rgba(var(--color-warning), 0.05);
+}
+
+.table--summary tbody tr:hover {
+  background-color: rgba(var(--color-warning), 0.1);
+}
+
+.table--summary tfoot td {
+  background-color: rgba(var(--color-warning), 0.1);
+  font-weight: 600;
+}
+
+/* Anchos específicos para columnas de productos */
+.table__cell--product {
+  width: 40%;
+}
+
+.table__cell--price {
+  width: 30%;
+}
+
+.table__cell--quantity {
+  width: 30%;
+}

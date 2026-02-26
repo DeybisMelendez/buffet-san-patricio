@@ -1,135 +1,50 @@
 {% load static %}
-{% load user_extras %}
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow" />
-  <meta name="googlebot" content="noindex" />
-  <link rel="manifest" href="{% static 'manifest.json' %}" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>{% block title %}Panel de Comandas{% endblock %}</title>
-  <!-- PicoCSS -->
-  <meta name="color-scheme" content="light dark">
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.pumpkin.min.css"
-  >
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css"
-  >
-  <link rel="stylesheet" href="{% static 'styles.css' %}">
-</head>
-<body>
-  {% if user.is_authenticated %}
-  <header class="container">
-    <nav>
-      <ul>
-        <!-- Sección principal -->
-        <li>
-          <a href="{% url 'table_list' %}">
-            Mesas
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'order_history' %}">
-            Historial
-          </a>
-        </li>
-        {% if user|is_encargado %}
-        <!-- Inventario -->
-        <li>
-          <details class="dropdown">
-            <summary>
-              Ingredientes
-            </summary>
-            <ul>
-              <li>
-                <a href="{% url 'inventory_movement' %}">
-                  Movimientos
-                </a>
-              </li>
-              <li>
-                <a href="{% url 'purchase_ingredients' %}">
-                  Ingresos
-                </a>
-              </li>
-            </ul>
-          </details>
-        </li>
-        <!-- Reportes -->
-        <li>
-          <details class="dropdown">
-            <summary>
-              Reportes
-            </summary>
-            <ul>
-              <li>
-                <a href="{% url 'sales_report_by_product' %}">
-                  Ventas
-                </a>
-              </li>
-              <li>
-                <a href="{% url 'report_orders' %}">
-                  Comandas
-                </a>
-              </li>
-              <li>
-                <a href="{% url 'report_movements' %}">
-                  Movimiento de Inventario
-                </a>
-              </li>
-              <li>
-                <a href="{% url 'report_inventory' %}">Saldo de Inventario</a>
-              </li>
-            </ul>
-          </details>
-        </li>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="googlebot" content="noindex" />
+        <link rel="manifest" href="{% static 'manifest.json' %}" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <title>
+            {% block title %}Boa POS - Panel de Comandas{% endblock %}
+        </title>
+        <!-- CSS Base y Layout -->
+        <meta name="color-scheme" content="light dark">
+        <link rel="stylesheet" href="{% static 'css/base.css' %}">
+        <link rel="stylesheet" href="{% static 'css/nav.css' %}">
+        <link rel="stylesheet" href="{% static 'css/form.css' %}">
+        <link rel="stylesheet" href="{% static 'css/card.css' %}">
+        <link rel="stylesheet" href="{% static 'css/button.css' %}">
+        <link rel="stylesheet" href="{% static 'css/messages.css' %}">
+        <link rel="stylesheet" href="{% static 'css/main.css' %}">
+        <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+        <!-- CSS adicional por template -->
+        {% block extra_css %}{% endblock %}
+    </head>
+    <body>
+        {% if user.is_authenticated %}
+            {% include "includes/_nav.html" %}
         {% endif %}
-        {% if user.is_staff %}
-          <li><a href="/admin/">Admin</a></li>
+        <!-- Mensajes -->
+        {% if messages %}
+            {% include "includes/_messages.html" %}
         {% endif %}
-      </ul>
-      <ul>
-        <li><strong>{{user|get_group}}: {{request.user}}</strong></li>
-        <li>
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button role="button" type="submit">Logout</button>
-          </form>
-        </li>
-      </ul>
-    </nav>
-  </header>
-  {% endif %}
-  <!-- Mensajes -->
-  {% if messages %}
-  <section class="container">
-    {% for message in messages %}
-      <blockquote class="messages__{{ message.tags }}">
-        {{ message }}
-      </blockquote>
-    {% endfor %}
-  </section>
-  {% endif %}
-
-  <!-- Contenido dinámico -->
-  <main class="container">
-    {% block body %}{% endblock %}
-  </main>
-
-  <!-- AlpineJS -->
-  <script src="//unpkg.com/alpinejs" defer></script>
-  <script>
-    if (window.history.replaceState) {
-        window.history.replaceState(null, null, window.location.href);
-    }
-  </script>
-  <footer class="container">
-    <p class="text-center">&copy; 2025 Km9 Comandas - Desarrollado por AlphaTech Nicaragua, <a href="https://wa.me/50555025301">escríbenos por WhatsApp</a>.</p>
-  </footer>
-</body>
+        <!-- Contenido dinámico -->
+        <main class="main">
+            <div class="main__container">
+                {% block body %}{% endblock %}
+            </div>
+        </main>
+        <!-- AlpineJS -->
+        <script src="//unpkg.com/alpinejs" defer></script>
+        <!-- JavaScript común -->
+        <script src="{% static 'js/common.js' %}" defer></script>
+        <!-- JavaScript adicional por template -->
+        {% block extra_js %}{% endblock %}
+        {% include "includes/_footer.html" %}
+    </body>
 </html>

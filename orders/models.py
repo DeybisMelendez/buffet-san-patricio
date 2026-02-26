@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from django.db import models
 
 
@@ -15,11 +16,13 @@ class ProductCategory(models.Model):
     def __str__(self):
         return self.name
 
+
 class DispatchArea(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    
+
     def __str__(self):
         return self.name
+
 
 class Warehouse(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -27,10 +30,15 @@ class Warehouse(models.Model):
     def __str__(self):
         return self.name
 
+
 class Product(models.Model):
     name = models.CharField(max_length=255)
-    category = models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    dispatch_area = models.ForeignKey(DispatchArea, on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.ForeignKey(
+        ProductCategory, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    dispatch_area = models.ForeignKey(
+        DispatchArea, on_delete=models.SET_NULL, null=True, blank=True
+    )
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
@@ -55,8 +63,10 @@ class Ingredient(models.Model):
     unit = models.CharField(
         max_length=10, choices=UNITS, default="und", verbose_name="Unidad"
     )
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.SET_NULL, null=True, blank=True)
-    
+    warehouse = models.ForeignKey(
+        Warehouse, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
     def add_stock(self, amount):
         """Agrega cantidad al stock."""
         self.stock_quantity += Decimal(amount)
@@ -83,7 +93,9 @@ class IngredientMovement(models.Model):
     ingredient = models.ForeignKey("Ingredient", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     reason = models.CharField(max_length=255, blank=True, null=True)
-    user = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(
+        "auth.User", on_delete=models.SET_NULL, null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def apply_movement(self):
@@ -98,7 +110,9 @@ class IngredientMovement(models.Model):
 
     def __str__(self):
         tipo = "Ingreso" if self.quantity >= 0 else "Salida"
-        return f"{tipo}: {self.quantity} {self.ingredient.unit} de {self.ingredient.name}"
+        return (
+            f"{tipo}: {self.quantity} {self.ingredient.unit} de {self.ingredient.name}"
+        )
 
 
 class Order(models.Model):
@@ -106,7 +120,7 @@ class Order(models.Model):
     user = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_paid = models.BooleanField(default=False)
-    
+
     def get_status_display(self):
         return "Pagada" if self.is_paid else "Pendiente"
 
@@ -138,7 +152,6 @@ class OrderItem(models.Model):
                 user=self.order.user,
                 reason=f"Uso en {self.product.name}, Comanda #{self.order.id}",
             )
-
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name} (Comanda #{self.order.id})"

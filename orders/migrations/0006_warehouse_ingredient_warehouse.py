@@ -7,20 +7,33 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0005_dispatcharea_alter_product_category_and_more'),
+        ("orders", "0005_dispatcharea_alter_product_category_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Warehouse',
+            name="Warehouse",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, unique=True)),
             ],
         ),
         migrations.AddField(
-            model_name='ingredient',
-            name='warehouse',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='orders.warehouse'),
+            model_name="ingredient",
+            name="warehouse",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="orders.warehouse",
+            ),
         ),
     ]
