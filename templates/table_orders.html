@@ -48,7 +48,7 @@
                         <div class="card__actions">
                             <a href="{% url 'order_detail' order.id %}"
                                class="button button--primary button--small">🔍 Ver Detalle</a>
-                            {% if user|is_encargado %}
+                            {% if user|can_mark_paid %}
                                 <a href="{% url 'edit_order' order.id %}"
                                    class="button button--secondary button--small">✏️ Editar</a>
                             {% endif %}

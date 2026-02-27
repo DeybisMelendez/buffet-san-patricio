@@ -31,8 +31,8 @@
                         Historial
                     </a>
                 </li>
-                {% if user|is_encargado %}
-                    <!-- Gestión del Menú -->
+                <!-- Gestión del Menú (solo para administradores y servicio?) -->
+                {% if user|can_manage_menu %}
                     <li class="nav__item nav__dropdown">
                         <a href="#" class="nav__link">Gestión del Menú</a>
                         <div class="nav__dropdown-content">
@@ -41,32 +41,50 @@
                             <a href="{% url 'dispatch_area_list' %}" class="nav__dropdown-link">Áreas de Despacho</a>
                         </div>
                     </li>
-                    <!-- Inventario -->
+                {% endif %}
+                
+                <!-- Inventario -->
+                {% if user|can_view_inventory %}
                     <li class="nav__item nav__dropdown">
                         <a href="#" class="nav__link">Inventario</a>
                         <div class="nav__dropdown-content">
-                            <a href="{% url 'inventory_movement' %}" class="nav__dropdown-link">Registrar Movimientos</a>
-                            <a href="{% url 'purchase_ingredients' %}" class="nav__dropdown-link">Ingresos de Inventario</a>
-                            <a href="{% url 'report_inventory' %}" class="nav__dropdown-link">Saldo Actual</a>
-                            <a href="{% url 'ingredient_list' %}" class="nav__dropdown-link">Ingredientes</a>
-                        </div>
-                    </li>
-                    <!-- Reportes -->
-                    <li class="nav__item nav__dropdown">
-                        <a href="#" class="nav__link">Reportes</a>
-                        <div class="nav__dropdown-content">
-                            <a href="{% url 'sales_report_by_product' %}" class="nav__dropdown-link">Ventas por Producto</a>
-                            <a href="{% url 'report_orders' %}" class="nav__dropdown-link">Comandas</a>
-                            <a href="{% url 'report_movements' %}" class="nav__dropdown-link">Historial de Movimientos</a>
+                            {% if user|can_add_inventory_movement %}
+                                <a href="{% url 'inventory_movement' %}" class="nav__dropdown-link">Registrar Movimientos</a>
+                                <a href="{% url 'purchase_ingredients' %}" class="nav__dropdown-link">Ingresos de Inventario</a>
+                            {% endif %}
+                            {% if user|can_view_inventory %}
+                                <a href="{% url 'report_inventory' %}" class="nav__dropdown-link">Saldo Actual</a>
+                                <a href="{% url 'ingredient_list' %}" class="nav__dropdown-link">Ingredientes</a>
+                            {% endif %}
                         </div>
                     </li>
                 {% endif %}
-                {% if user|is_admin %}
+                
+                <!-- Reportes -->
+                {% if user|can_view_reports %}
+                    <li class="nav__item nav__dropdown">
+                        <a href="#" class="nav__link">Reportes</a>
+                        <div class="nav__dropdown-content">
+                            {% if user|can_view_sales_report %}
+                                <a href="{% url 'sales_report_by_product' %}" class="nav__dropdown-link">Ventas por Producto</a>
+                            {% endif %}
+                            {% if user|can_view_order_history %}
+                                <a href="{% url 'report_orders' %}" class="nav__dropdown-link">Comandas</a>
+                            {% endif %}
+                            {% if user|can_view_inventory %}
+                                <a href="{% url 'report_movements' %}" class="nav__dropdown-link">Historial de Movimientos</a>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endif %}
+                {% if user|can_manage_users %}
                     <li class="nav__item nav__dropdown">
                         <a href="#" class="nav__link">Administración</a>
                         <div class="nav__dropdown-content">
                             <a href="{% url 'user_list' %}" class="nav__dropdown-link">Usuarios</a>
-                            <a href="/admin/" class="nav__dropdown-link" target="_blank">Panel Admin</a>
+                            {% if user.is_superuser %}
+                                <a href="/admin/" class="nav__dropdown-link" target="_blank">Panel Admin</a>
+                            {% endif %}
                         </div>
                     </li>
                 {% endif %}

@@ -118,6 +118,45 @@ def user_can_manage_users(user):
     return user.has_perm("auth.change_user")
 
 
+def user_can_manage_menu(user):
+    """Verifica si el usuario puede gestionar el menú (productos, categorías, áreas)."""
+    return (
+        user.has_perm("orders.change_product")
+        or user.has_perm("orders.change_productcategory")
+        or user.has_perm("orders.change_dispatcharea")
+    )
+
+
+def user_can_view_inventory(user):
+    """Verifica si el usuario puede ver inventario."""
+    return user.has_perm("orders.view_ingredient") or user.has_perm(
+        "orders.view_ingredientmovement"
+    )
+
+
+def user_can_add_inventory_movement(user):
+    """Verifica si el usuario puede registrar movimientos de inventario."""
+    return user.has_perm("orders.add_ingredientmovement")
+
+
+def user_can_manage_inventory_full(user):
+    """Verifica si el usuario puede gestionar inventario completamente."""
+    return user.has_perm("orders.change_ingredient")
+
+
+def user_can_view_reports(user):
+    """Verifica si el usuario puede ver reportes."""
+    return user.has_perm("orders.view_order") or user.has_perm("orders.view_product")
+
+
+def user_can_view_sales_report(user):
+    """Verifica si el usuario puede ver reporte de ventas por producto."""
+    if user.is_superuser:
+        return True
+    allowed_groups = [GROUP_SUPERVISOR, GROUP_ADMINISTRADOR, GROUP_CAJERO]
+    return user.groups.filter(name__in=allowed_groups).exists()
+
+
 # ==========================
 # 🏗️ CREACIÓN DE GRUPOS (para migraciones o setup)
 # ==========================

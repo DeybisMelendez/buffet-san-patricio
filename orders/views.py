@@ -12,7 +12,10 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from users.utils import has_valid_role, is_encargado
+from users.utils import (has_valid_role, user_can_add_inventory_movement,
+                         user_can_manage_inventory_full, user_can_manage_menu,
+                         user_can_mark_paid, user_can_view_inventory,
+                         user_can_view_reports, user_can_view_sales_report)
 
 from .forms import ProductIngredientForm
 from .models import (DispatchArea, Ingredient, IngredientMovement, Order,
@@ -81,7 +84,7 @@ def table_orders(request, table_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_mark_paid)
 def mark_table_paid(request, table_id):
     """Marca todas las órdenes no pagadas de una mesa como pagadas."""
     table = get_object_or_404(Table, id=table_id)
@@ -163,7 +166,7 @@ def order_detail(request, order_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_mark_paid)
 def edit_order(request, order_id):
     """Permite editar una comanda (mesa, usuario, pagada)."""
     order = get_object_or_404(Order, id=order_id)
@@ -232,7 +235,7 @@ def order_history(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_sales_report)
 def daily_report(request):
     """Reporte diario de ventas."""
     days_ago = int(request.GET.get("days_ago", 0))
@@ -275,7 +278,7 @@ def daily_report(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_add_inventory_movement)
 def inventory_movement(request):
     """Ajustes de inventario físico."""
     ingredients = Ingredient.objects.all().order_by("warehouse", "name")
@@ -310,7 +313,7 @@ def inventory_movement(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_add_inventory_movement)
 def purchase_ingredients(request):
     """Registra compras de ingredientes."""
     ingredients = Ingredient.objects.all().order_by("warehouse", "name")
@@ -346,7 +349,7 @@ def purchase_ingredients(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_inventory)
 def report_inventory(request):
     """Muestra el estado actual del inventario."""
     ingredients = Ingredient.objects.all().order_by("name")
@@ -358,7 +361,7 @@ def report_inventory(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_inventory)
 def print_inventory_report(request):
     ingredients = Ingredient.objects.all().order_by("name")
     total = ingredients.count()
@@ -371,7 +374,7 @@ def print_inventory_report(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_inventory)
 def export_inventory_csv(request):
     """Exporta el inventario actual a CSV."""
     ingredients = Ingredient.objects.all().order_by("name")
@@ -394,7 +397,7 @@ def export_inventory_csv(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_reports)
 def report_orders(request):
     """Reporte de comandas por rango de fechas."""
     start, end = parse_date_range(request)
@@ -426,7 +429,7 @@ def report_orders(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_reports)
 def export_orders_csv(request):
     """Exporta las comandas a CSV."""
     start, end = parse_date_range(request)
@@ -476,7 +479,7 @@ def export_orders_csv(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_inventory)
 def report_movements(request):
     """Lista los movimientos de inventario."""
     start, end = parse_date_range(request)
@@ -500,7 +503,7 @@ def report_movements(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_inventory)
 def export_movements_csv(request):
     """Exporta los movimientos de inventario a CSV."""
     start, end = parse_date_range(request)
@@ -539,7 +542,7 @@ def export_movements_csv(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_sales_report)
 def sales_report_by_product(request):
     """Reporte de ventas por producto (filtrable por fecha)."""
     start, end = parse_date_range(request)
@@ -587,7 +590,7 @@ def sales_report_by_product(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_view_sales_report)
 def export_sales_by_product_csv(request):
     """Exporta el reporte de ventas por producto a CSV."""
     start, end = parse_date_range(request)
@@ -626,7 +629,7 @@ def export_sales_by_product_csv(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def product_list(request):
     """Lista todos los productos."""
     products = (
@@ -638,7 +641,7 @@ def product_list(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def product_create(request):
     """Crea un nuevo producto."""
     categories = ProductCategory.objects.all().order_by("name")
@@ -679,7 +682,7 @@ def product_create(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def product_edit(request, product_id):
     """Edita un producto existente."""
     product = get_object_or_404(Product, id=product_id)
@@ -721,7 +724,7 @@ def product_edit(request, product_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def product_delete(request, product_id):
     """Elimina un producto."""
     product = get_object_or_404(Product, id=product_id)
@@ -747,7 +750,7 @@ def product_delete(request, product_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def category_list(request):
     """Lista todas las categorías de productos."""
     categories = ProductCategory.objects.all().order_by("name")
@@ -755,7 +758,7 @@ def category_list(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def category_create(request):
     """Crea una nueva categoría de producto."""
     if request.method == "POST":
@@ -777,7 +780,7 @@ def category_create(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def category_edit(request, category_id):
     """Edita una categoría existente."""
     category = get_object_or_404(ProductCategory, id=category_id)
@@ -806,7 +809,7 @@ def category_edit(request, category_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def category_delete(request, category_id):
     """Elimina una categoría."""
     category = get_object_or_404(ProductCategory, id=category_id)
@@ -842,7 +845,7 @@ def category_delete(request, category_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def dispatch_area_list(request):
     """Lista todas las áreas de despacho."""
     areas = DispatchArea.objects.all().order_by("name")
@@ -850,7 +853,7 @@ def dispatch_area_list(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def dispatch_area_create(request):
     """Crea una nueva área de despacho."""
     if request.method == "POST":
@@ -881,7 +884,7 @@ def dispatch_area_create(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def dispatch_area_edit(request, area_id):
     """Edita un área de despacho existente."""
     area = get_object_or_404(DispatchArea, id=area_id)
@@ -915,7 +918,7 @@ def dispatch_area_edit(request, area_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def dispatch_area_delete(request, area_id):
     """Elimina un área de despacho."""
     area = get_object_or_404(DispatchArea, id=area_id)
@@ -954,7 +957,7 @@ def dispatch_area_delete(request, area_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_menu)
 def product_recipes(request, product_id):
     """Gestiona todos los ingredientes de un producto usando formsets."""
     product = get_object_or_404(Product, id=product_id)
@@ -1036,7 +1039,7 @@ def product_recipes(request, product_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_inventory_full)
 def ingredient_list(request):
     """Lista todos los ingredientes."""
     ingredients = Ingredient.objects.all().select_related("warehouse").order_by("name")
@@ -1044,7 +1047,7 @@ def ingredient_list(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_inventory_full)
 def ingredient_create(request):
     """Crea un nuevo ingrediente."""
     warehouses = Warehouse.objects.all().order_by("name")
@@ -1082,7 +1085,7 @@ def ingredient_create(request):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_inventory_full)
 def ingredient_edit(request, ingredient_id):
     """Edita un ingrediente existente."""
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
@@ -1122,7 +1125,7 @@ def ingredient_edit(request, ingredient_id):
 
 
 @login_required
-@user_passes_test(is_encargado)
+@user_passes_test(user_can_manage_inventory_full)
 def ingredient_delete(request, ingredient_id):
     """Elimina un ingrediente."""
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)

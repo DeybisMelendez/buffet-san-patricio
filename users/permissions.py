@@ -116,26 +116,61 @@ GROUP_PERMISSIONS = {
         "add_orderitem",
         "change_orderitem",
     ],
-    GROUP_SUPERVISOR: FULL_MANAGEMENT_PERMS,
-    GROUP_ADMINISTRADOR: FULL_MANAGEMENT_PERMS + USER_GROUP_PERMS,
-    GROUP_COCINERO: [
-        "view_table",
+    GROUP_SUPERVISOR: [
+        # Inventario completo
+        "view_ingredient",
+        "change_ingredient",
+        "view_ingredientmovement",
+        "add_ingredientmovement",
+        "change_ingredientmovement",
+        "delete_ingredientmovement",
+        # Productos (solo ver, no gestionar)
+        "view_product",
         "view_productcategory",
         "view_dispatcharea",
         "view_warehouse",
+        "view_productingredient",
+        # Órdenes y mesas
+        "view_table",
+        "view_order",
+        "view_orderitem",
+        "add_order",
+        "change_order",
+        "delete_order",
+        "add_orderitem",
+        "change_orderitem",
+        "delete_orderitem",
+        # Reportes
+        # Nota: Los reportes no tienen permisos específicos, se controlan por vistas
+    ],
+    GROUP_ADMINISTRADOR: FULL_MANAGEMENT_PERMS + USER_GROUP_PERMS,
+    GROUP_COCINERO: [
+        # Mesas y órdenes (solo ver)
+        "view_table",
+        "view_order",
+        "view_orderitem",
+        # Productos e ingredientes (solo ver)
         "view_product",
+        "view_productcategory",
+        "view_dispatcharea",
+        "view_warehouse",
         "view_ingredient",
         "view_productingredient",
         "view_ingredientmovement",
-        "view_order",
-        "view_orderitem",
     ],
     GROUP_CAJERO: [
+        # Mesas y órdenes
         "view_table",
-        "view_product",
+        "add_order",
+        "change_order",  # Para marcar como pagado
         "view_order",
         "view_orderitem",
-        "change_order",  # Para marcar como pagado
+        # Productos (para crear órdenes y reportes)
+        "view_product",
+        # Ingredientes (solo registrar ingresos)
+        "view_ingredient",
+        "add_ingredientmovement",
+        "view_ingredientmovement",
     ],
 }
 

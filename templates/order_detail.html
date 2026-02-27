@@ -16,7 +16,7 @@
                 Mesero: {{ order.user }}
             </p>
             <div class="card__actions">
-                {% if user|is_encargado %}
+                {% if user|can_mark_paid %}
                     <a href="{% url 'edit_order' order.id %}" class="button button--primary">✏️ Editar Comanda</a>
                 {% endif %}
             </div>

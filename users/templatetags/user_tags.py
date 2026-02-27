@@ -5,6 +5,8 @@ Reemplaza a user_extras.py con un enfoque más correcto.
 
 from django import template
 
+from users.permissions import (GROUP_ADMINISTRADOR, GROUP_CAJERO,
+                               GROUP_SUPERVISOR)
 from users.utils import is_admin  # compatibilidad
 from users.utils import is_encargado  # compatibilidad
 from users.utils import is_mesero  # compatibilidad
@@ -107,6 +109,80 @@ def filter_can_manage_products(user):
 def filter_can_manage_users(user):
     """Verifica si el usuario puede gestionar usuarios."""
     return user.has_perm("auth.change_user")
+
+
+# ==========================
+# 📋 FILTROS DE PERMISOS ESPECÍFICOS PARA NAVEGACIÓN
+# ==========================
+
+
+@register.filter(name="can_manage_menu")
+def filter_can_manage_menu(user):
+    """
+    Verifica si el usuario puede gestionar el menú
+    (productos, categorías, áreas de despacho).
+    """
+    return (
+        user.has_perm("orders.change_product")
+        or user.has_perm("orders.change_productcategory")
+        or user.has_perm("orders.change_dispatcharea")
+    )
+
+
+@register.filter(name="can_view_inventory")
+def filter_can_view_inventory(user):
+    """Verifica si el usuario puede ver inventario."""
+    return user.has_perm("orders.view_ingredient") or user.has_perm(
+        "orders.view_ingredientmovement"
+    )
+
+
+@register.filter(name="can_add_inventory_movement")
+def filter_can_add_inventory_movement(user):
+    """Verifica si el usuario puede registrar movimientos de inventario."""
+    return user.has_perm("orders.add_ingredientmovement")
+
+
+@register.filter(name="can_manage_inventory_full")
+def filter_can_manage_inventory_full(user):
+    """Verifica si el usuario puede gestionar inventario (cambiar ingredientes)."""
+    return user.has_perm("orders.change_ingredient")
+
+
+@register.filter(name="can_view_reports")
+def filter_can_view_reports(user):
+    """
+    Verifica si el usuario puede ver reportes.
+    Asume que si puede ver órdenes o productos, puede ver reportes.
+    """
+    return user.has_perm("orders.view_order") or user.has_perm("orders.view_product")
+
+
+@register.filter(name="can_view_sales_report")
+def filter_can_view_sales_report(user):
+    """Verifica si el usuario puede ver reporte de ventas por producto."""
+    if user.is_superuser:
+        return True
+    allowed_groups = [GROUP_SUPERVISOR, GROUP_ADMINISTRADOR, GROUP_CAJERO]
+    return user.groups.filter(name__in=allowed_groups).exists()
+
+
+@register.filter(name="can_view_order_history")
+def filter_can_view_order_history(user):
+    """Verifica si el usuario puede ver historial de comandas."""
+    return user.has_perm("orders.view_order")
+
+
+@register.filter(name="can_view_products")
+def filter_can_view_products(user):
+    """Verifica si el usuario puede ver productos."""
+    return user.has_perm("orders.view_product")
+
+
+@register.filter(name="can_view_ingredients")
+def filter_can_view_ingredients(user):
+    """Verifica si el usuario puede ver ingredientes."""
+    return user.has_perm("orders.view_ingredient")
 
 
 # ==========================
