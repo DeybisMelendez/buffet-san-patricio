@@ -14,7 +14,7 @@
         </div>
     </div>
 </div>
-<header class="nav">
+<header class="nav" x-data="mobileMenu">
     <div class="nav__container">
         <a href="{% url 'dashboard' %}" class="nav__brand">
             <i class="material-icons nav__brand-icon">restaurant</i>
@@ -127,6 +127,10 @@
                 this.update();
                 setInterval(() => this.update(), 1000);
             }
+        }));
+
+        Alpine.data('mobileMenu', () => ({
+            mobileMenuOpen: false
         }));
     });
 </script>
