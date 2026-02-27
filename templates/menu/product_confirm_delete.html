@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
 {% load static %}
-{% block title %}🗑️ Eliminar Producto{% endblock %}
+{% block title %}Eliminar Producto{% endblock %}
 {% block body %}
     <div class="main__container">
-        <h1>🗑️ Eliminar Producto</h1>
+        <h1><i class="material-icons">delete</i> Eliminar Producto</h1>
         {% include "includes/_messages.html" %}
         <div class="card">
             <div class="card__body">
@@ -14,8 +14,8 @@
                 <form method="post" class="form">
                     {% csrf_token %}
                     <div class="form__group">
-                        <button type="submit" class="button button--danger">🗑️ Sí, eliminar producto</button>
-                        <a href="{% url 'product_list' %}" class="button button--secondary">↩️ Cancelar</a>
+                        <button type="submit" class="button button--danger"><i class="material-icons">delete</i> Sí, eliminar producto</button>
+                        <a href="{% url 'product_list' %}" class="button button--secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
                     </div>
                 </form>
             </div>

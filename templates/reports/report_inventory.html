@@ -1,13 +1,13 @@
 {% extends "layout.html" %}
 {% load humanize %}
 {% load static %}
-{% block title %}📦 Reporte de Inventario{% endblock %}
+{% block title %}Reporte de Inventario{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/table.css' %}">
 {% endblock %}
 {% block body %}
     <div>
-        <h1>📦 Reporte de Inventario</h1>
+        <h1><i class="material-icons">inventory</i> Reporte de Inventario</h1>
         <p>
             <strong>Total de ingredientes:</strong> {{ total_items }}
         </p>
@@ -15,9 +15,9 @@
             <div class="card__header">
                 <div class="card__actions">
                     <a href="{% url 'export_inventory_csv' %}"
-                       class="button button--primary button--small">⬇️ Descargar CSV</a>
+                       class="button button--primary button--small"><i class="material-icons">download</i> Descargar CSV</a>
                     <a href="{% url 'report_inventory' %}?print=true"
-                       class="button button--secondary button--small">🖨️ Imprimir Reporte</a>
+                       class="button button--secondary button--small"><i class="material-icons">print</i> Imprimir Reporte</a>
                 </div>
             </div>
             <div class="card__body">

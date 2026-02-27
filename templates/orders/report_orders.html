@@ -13,7 +13,7 @@
             <div class="card__header">
                 <div class="card__actions">
                     <a href="{% url 'export_orders_csv' %}?start={{ start|date:'Y-m-d\\TH:i' }}&end={{ end|date:'Y-m-d\\TH:i' }}&table={{ table }}"
-                       class="button button--primary button--small">📥 Descargar CSV</a>
+                       class="button button--primary button--small"><i class="material-icons">download</i> Descargar CSV</a>
                 </div>
             </div>
             <div class="card__body">
@@ -44,7 +44,7 @@
                         </div>
                     </div>
                     <div class="form__group">
-                        <button type="submit" class="button button--secondary">🔍 Filtrar</button>
+                        <button type="submit" class="button button--secondary"><i class="material-icons">search</i> Filtrar</button>
                     </div>
                 </form>
             </div>

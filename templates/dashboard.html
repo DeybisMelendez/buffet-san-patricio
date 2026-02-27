@@ -1,0 +1,285 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% load static %}
+{% block title %}Dashboard - Resumen General{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/grid.css' %}">
+    <link rel="stylesheet" href="{% static 'css/card.css' %}">
+    <style>
+        .dashboard__kpi {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border-radius: 8px;
+            background: var(--card-background);
+            box-shadow: var(--card-shadow);
+            text-align: center;
+        }
+        .dashboard__kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            line-height: 1;
+        }
+        .dashboard__kpi-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        .dashboard__kpi--warning .dashboard__kpi-value {
+            color: var(--warning);
+        }
+        .dashboard__kpi--danger .dashboard__kpi-value {
+            color: var(--danger);
+        }
+        .dashboard__kpi--success .dashboard__kpi-value {
+            color: var(--success);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+{% endblock %}
+{% block body %}
+    <div>
+        <h1><i class="material-icons">dashboard</i> Dashboard - Resumen General</h1>
+        <p class="text-secondary">
+            Resumen visual adaptado a tu rol:
+            {% if is_admin %}
+                Administrador
+            {% elif is_supervisor %}
+                Supervisor
+            {% elif is_cajero %}
+                Cajero
+            {% elif is_cocinero %}
+                Cocinero
+            {% elif is_servicio %}
+                Servicio
+            {% endif %}
+        </p>
+        <!-- KPIs -->
+        <div class="grid grid--3cols">
+            {% if sales_today %}
+                <div class="dashboard__kpi dashboard__kpi--success">
+                    <div class="dashboard__kpi-value">C$ {{ sales_today|floatformat:2|intcomma }}</div>
+                    <div class="dashboard__kpi-label">Ventas Hoy</div>
+                </div>
+            {% endif %}
+            {% if pending_orders %}
+                <div class="dashboard__kpi dashboard__kpi--warning">
+                    <div class="dashboard__kpi-value">{{ pending_orders }}</div>
+                    <div class="dashboard__kpi-label">Órdenes Pendientes</div>
+                </div>
+            {% endif %}
+            {% if low_stock_count %}
+                <div class="dashboard__kpi dashboard__kpi--danger">
+                    <div class="dashboard__kpi-value">{{ low_stock_count }}</div>
+                    <div class="dashboard__kpi-label">Ingredientes con Stock Bajo</div>
+                </div>
+            {% endif %}
+        </div>
+        <!-- Gráficos -->
+        <div class="grid grid--2cols">
+            {% if sales_labels %}
+                <div class="card">
+                    <div class="card__header">
+                        <h3>Ventas Últimos 7 Días</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="chart-container">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if area_labels %}
+                <div class="card">
+                    <div class="card__header">
+                        <h3>Ventas por Área de Despacho (Hoy)</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="chart-container">
+                            <canvas id="areaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if stock_labels %}
+                <div class="card">
+                    <div class="card__header">
+                        <h3>Ingredientes con Stock Bajo</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="chart-container">
+                            <canvas id="stockChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if orders_labels %}
+                <div class="card">
+                    <div class="card__header">
+                        <h3>Órdenes Pendientes por Mesa</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="chart-container">
+                            <canvas id="ordersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        <!-- Mensaje si no hay gráficos -->
+        {% if not sales_labels and not area_labels and not stock_labels and not orders_labels %}
+            <div class="card">
+                <div class="card__body">
+                    <p class="text-center">No hay datos disponibles para mostrar en el dashboard con tu rol actual.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        // Ventas últimos 7 días
+        {% if sales_labels %}
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            const salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                     labels: {{ sales_labels|safe }},
+                    datasets: [{
+                        label: 'Ventas (C$)',
+                         data: {{ sales_data|safe }},
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'C$ ' + value.toLocaleString('es-NI');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        {% endif %}
+
+        // Ventas por área de despacho
+         {% if area_labels %}
+            const areaCtx = document.getElementById('areaChart').getContext('2d');
+            const areaChart = new Chart(areaCtx, {
+                type: 'bar',
+                data: {
+                     labels: {{ area_labels|safe }},
+                    datasets: [{
+                        label: 'Ventas (C$)',
+                         data: {{ area_data|safe }},
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'C$ ' + value.toLocaleString('es-NI');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        {% endif %}
+
+        // Ingredientes con stock bajo
+         {% if stock_labels %}
+            const stockCtx = document.getElementById('stockChart').getContext('2d');
+            const stockChart = new Chart(stockCtx, {
+                type: 'doughnut',
+                data: {
+                     labels: {{ stock_labels|safe }},
+                    datasets: [{
+                        label: 'Stock Actual',
+                         data: {{ stock_data|safe }},
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        {% endif %}
+
+        // Órdenes pendientes por mesa
+         {% if orders_labels %}
+            const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+            const ordersChart = new Chart(ordersCtx, {
+                type: 'pie',
+                data: {
+                     labels: {{ orders_labels|safe }},
+                    datasets: [{
+                        label: 'Órdenes Pendientes',
+                         data: {{ orders_data|safe }},
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        {% endif %}
+    </script>
+{% endblock %}

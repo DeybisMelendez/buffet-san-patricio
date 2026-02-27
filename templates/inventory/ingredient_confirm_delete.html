@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
 {% load static %}
-{% block title %}🗑️ Eliminar Ingrediente{% endblock %}
+{% block title %}Eliminar Ingrediente{% endblock %}
 {% block body %}
     <div class="main__container">
-        <h1>🗑️ Eliminar Ingrediente</h1>
+        <h1><i class="material-icons">delete</i> Eliminar Ingrediente</h1>
         {% include "includes/_messages.html" %}
         <div class="card">
             <div class="card__body">
@@ -13,7 +13,7 @@
                 {% if movements_count > 0 or recipes_count > 0 %}
                     <div class="alert alert--warning">
                         <p>
-                            <strong>⚠️ Advertencia:</strong> Este ingrediente tiene registros asociados:
+                            <strong><i class="material-icons">warning</i> Advertencia:</strong> Este ingrediente tiene registros asociados:
                         </p>
                         <ul>
                             {% if movements_count > 0 %}<li>{{ movements_count }} movimiento(s) de inventario.</li>{% endif %}
@@ -26,8 +26,8 @@
                 <form method="post" class="form">
                     {% csrf_token %}
                     <div class="form__group">
-                        <button type="submit" class="button button--danger">🗑️ Sí, eliminar ingrediente</button>
-                        <a href="{% url 'ingredient_list' %}" class="button button--secondary">↩️ Cancelar</a>
+                        <button type="submit" class="button button--danger"><i class="material-icons">delete</i> Sí, eliminar ingrediente</button>
+                        <a href="{% url 'ingredient_list' %}" class="button button--secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
                     </div>
                 </form>
             </div>

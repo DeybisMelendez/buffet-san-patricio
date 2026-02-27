@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import F, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.forms import modelformset_factory
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,9 +18,9 @@ from users.utils import (has_valid_role, user_can_add_inventory_movement,
                          user_can_view_reports, user_can_view_sales_report)
 
 from .forms import ProductIngredientForm
-from .models import (DispatchArea, Ingredient, IngredientMovement, Order,
-                     OrderItem, Product, ProductCategory, ProductIngredient,
-                     Table, Warehouse)
+from .models import (Company, DispatchArea, Ingredient, IngredientMovement,
+                     Order, OrderItem, Product, ProductCategory,
+                     ProductIngredient, Table, Warehouse)
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -67,7 +67,7 @@ def table_list(request):
         )
         table_data.append({"table": table, "total_due": total_due})
 
-    return render(request, "table_list.html", {"table_data": table_data})
+    return render(request, "pos/table_list.html", {"table_data": table_data})
 
 
 @login_required
@@ -80,7 +80,7 @@ def table_orders(request, table_id):
         .prefetch_related("orderitem_set__product")
         .order_by("-created_at")
     )
-    return render(request, "table_orders.html", {"table": table, "orders": orders})
+    return render(request, "pos/table_orders.html", {"table": table, "orders": orders})
 
 
 @login_required
@@ -133,13 +133,13 @@ def create_order(request, table_id):
                 request, f"✅ Comanda #{order.id} creada con {created_items} productos."
             )
             context["order"] = order
-            return render(request, "create_order.html", context)
+            return render(request, "pos/create_order.html", context)
 
         order.delete()
         messages.warning(request, "⚠️ No se seleccionaron productos.")
         return redirect("create_order", table_id=table.id)
 
-    return render(request, "create_order.html", context)
+    return render(request, "pos/create_order.html", context)
 
 
 @login_required
@@ -160,7 +160,7 @@ def order_detail(request, order_id):
 
     return render(
         request,
-        "order_detail.html",
+        "pos/order_detail.html",
         {"order": order, "items": items, "total": order.get_total()},
     )
 
@@ -182,7 +182,7 @@ def edit_order(request, order_id):
         return redirect("order_detail", order_id=order.id)
 
     return render(
-        request, "edit_order.html", {"order": order, "tables": tables, "users": users}
+        request, "pos/edit_order.html", {"order": order, "tables": tables, "users": users}
     )
 
 
@@ -198,7 +198,7 @@ def print_order(request, order_id):
 
     return render(
         request,
-        "print_order.html",
+        "pos/print_order.html",
         {"order": order, "items": items, "total": order.get_total()},
     )
 
@@ -223,7 +223,7 @@ def order_history(request):
 
     return render(
         request,
-        "order_history.html",
+        "orders/order_history.html",
         {
             "orders": orders,
             "target_date": target_date,
@@ -259,7 +259,7 @@ def daily_report(request):
     messages.info(request, f"📊 Ventas del {target_date}: {total_sales:.2f} total.")
     return render(
         request,
-        "daily_report.html",
+        "orders/daily_report.html",
         {
             "orders": orders,
             "product_summary": summary,
@@ -309,7 +309,7 @@ def inventory_movement(request):
             messages.success(request, f"✅ {count} ajustes aplicados.")
         else:
             messages.info(request, "ℹ️ No se realizaron ajustes.")
-    return render(request, "inventory.html", {"ingredients": ingredients})
+    return render(request, "inventory/inventory.html", {"ingredients": ingredients})
 
 
 @login_required
@@ -345,7 +345,7 @@ def purchase_ingredients(request):
         )
         return redirect("purchase_ingredients")
 
-    return render(request, "purchase_ingredients.html", {"ingredients": ingredients})
+    return render(request, "inventory/purchase_ingredients.html", {"ingredients": ingredients})
 
 
 @login_required
@@ -357,7 +357,7 @@ def report_inventory(request):
     context = {"ingredients": ingredients, "total_items": total}
     if request.method == "GET" and request.GET.get("print") == "true":
         context["print"] = True
-    return render(request, "report_inventory.html", context)
+    return render(request, "reports/report_inventory.html", context)
 
 
 @login_required
@@ -368,7 +368,7 @@ def print_inventory_report(request):
     today = timezone.now()
     return render(
         request,
-        "print_inventory_report.html",
+        "reports/print_inventory_report.html",
         {"ingredients": ingredients, "total_items": total, "today": today},
     )
 
@@ -416,7 +416,7 @@ def report_orders(request):
     tables = Table.objects.all()
     return render(
         request,
-        "report_orders.html",
+        "orders/report_orders.html",
         {
             "order_items": items,
             "start": start,
@@ -497,7 +497,7 @@ def report_movements(request):
 
     return render(
         request,
-        "report_movements.html",
+        "reports/report_movements.html",
         {"movements": moves, "start": start, "end": end, "search": search},
     )
 
@@ -586,7 +586,7 @@ def sales_report_by_product(request):
         "end": end,
         "totals_by_dispatch_area": totals_by_dispatch_area,
     }
-    return render(request, "sales_report_by_product.html", context)
+    return render(request, "reports/sales_report_by_product.html", context)
 
 
 @login_required
@@ -637,7 +637,7 @@ def product_list(request):
         .select_related("category", "dispatch_area")
         .order_by("name")
     )
-    return render(request, "product_list.html", {"products": products})
+    return render(request, "menu/product_list.html", {"products": products})
 
 
 @login_required
@@ -672,7 +672,7 @@ def product_create(request):
 
     return render(
         request,
-        "product_form.html",
+        "menu/product_form.html",
         {
             "categories": categories,
             "dispatch_areas": dispatch_areas,
@@ -713,7 +713,7 @@ def product_edit(request, product_id):
 
     return render(
         request,
-        "product_form.html",
+        "menu/product_form.html",
         {
             "product": product,
             "categories": categories,
@@ -741,7 +741,7 @@ def product_delete(request, product_id):
             messages.error(request, f"❌ Error al eliminar producto: {e}")
             return redirect("product_list")
 
-    return render(request, "product_confirm_delete.html", {"product": product})
+    return render(request, "menu/product_confirm_delete.html", {"product": product})
 
 
 # ==========================
@@ -754,7 +754,7 @@ def product_delete(request, product_id):
 def category_list(request):
     """Lista todas las categorías de productos."""
     categories = ProductCategory.objects.all().order_by("name")
-    return render(request, "category_list.html", {"categories": categories})
+    return render(request, "menu/category_list.html", {"categories": categories})
 
 
 @login_required
@@ -776,7 +776,7 @@ def category_create(request):
             except Exception as e:
                 messages.error(request, f"❌ Error al crear categoría: {e}")
 
-    return render(request, "category_form.html", {"title": "Crear Categoría"})
+    return render(request, "menu/category_form.html", {"title": "Crear Categoría"})
 
 
 @login_required
@@ -831,7 +831,7 @@ def category_delete(request, category_id):
 
     return render(
         request,
-        "category_confirm_delete.html",
+        "menu/category_confirm_delete.html",
         {
             "category": category,
             "products_using_category": products_using_category,
@@ -849,7 +849,7 @@ def category_delete(request, category_id):
 def dispatch_area_list(request):
     """Lista todas las áreas de despacho."""
     areas = DispatchArea.objects.all().order_by("name")
-    return render(request, "dispatch_area_list.html", {"areas": areas})
+    return render(request, "menu/dispatch_area_list.html", {"areas": areas})
 
 
 @login_required
@@ -878,7 +878,7 @@ def dispatch_area_create(request):
 
     return render(
         request,
-        "dispatch_area_form.html",
+        "menu/dispatch_area_form.html",
         {"title": "Crear Área de Despacho"},
     )
 
@@ -912,7 +912,7 @@ def dispatch_area_edit(request, area_id):
 
     return render(
         request,
-        "dispatch_area_form.html",
+        "menu/dispatch_area_form.html",
         {"area": area, "title": "Editar Área de Despacho"},
     )
 
@@ -943,7 +943,7 @@ def dispatch_area_delete(request, area_id):
 
     return render(
         request,
-        "dispatch_area_confirm_delete.html",
+        "menu/dispatch_area_confirm_delete.html",
         {
             "area": area,
             "products_using_area": products_using_area,
@@ -1025,7 +1025,7 @@ def product_recipes(request, product_id):
 
     return render(
         request,
-        "product_recipes.html",
+        "menu/product_recipes.html",
         {
             "product": product,
             "formset": formset,
@@ -1043,7 +1043,7 @@ def product_recipes(request, product_id):
 def ingredient_list(request):
     """Lista todos los ingredientes."""
     ingredients = Ingredient.objects.all().select_related("warehouse").order_by("name")
-    return render(request, "ingredient_list.html", {"ingredients": ingredients})
+    return render(request, "inventory/ingredient_list.html", {"ingredients": ingredients})
 
 
 @login_required
@@ -1075,7 +1075,7 @@ def ingredient_create(request):
 
     return render(
         request,
-        "ingredient_form.html",
+        "inventory/ingredient_form.html",
         {
             "warehouses": warehouses,
             "units": Ingredient.UNITS,
@@ -1114,7 +1114,7 @@ def ingredient_edit(request, ingredient_id):
 
     return render(
         request,
-        "ingredient_form.html",
+        "inventory/ingredient_form.html",
         {
             "ingredient": ingredient,
             "warehouses": warehouses,
@@ -1148,10 +1148,173 @@ def ingredient_delete(request, ingredient_id):
 
     return render(
         request,
-        "ingredient_confirm_delete.html",
+        "inventory/ingredient_confirm_delete.html",
         {
             "ingredient": ingredient,
             "movements_count": movements_count,
             "recipes_count": recipes_count,
         },
     )
+
+
+# ==========================
+# 🏢 CONFIGURACIÓN DE EMPRESA
+# ==========================
+
+
+@login_required
+@user_passes_test(user_can_manage_menu)
+def company_settings(request):
+    """Vista para configurar los datos de la empresa (solo una instancia)."""
+    # Obtener la única instancia de Company, si existe
+    company = Company.objects.first()
+
+    if request.method == "POST":
+        # Si ya existe, actualizar; si no, crear nueva
+        if company:
+            company.name = request.POST.get("name", "").strip()
+            company.ruc = request.POST.get("ruc", "").strip()
+            company.address = request.POST.get("address", "").strip()
+            company.phone = request.POST.get("phone", "").strip()
+            company.email = request.POST.get("email", "").strip()
+            company.slogan = request.POST.get("slogan", "").strip()
+
+            # Manejar archivo de logo
+            if "logo" in request.FILES:
+                company.logo = request.FILES["logo"]
+        else:
+            company = Company(
+                name=request.POST.get("name", "").strip(),
+                ruc=request.POST.get("ruc", "").strip(),
+                address=request.POST.get("address", "").strip(),
+                phone=request.POST.get("phone", "").strip(),
+                email=request.POST.get("email", "").strip(),
+                slogan=request.POST.get("slogan", "").strip(),
+            )
+            if "logo" in request.FILES:
+                company.logo = request.FILES["logo"]
+
+        try:
+            company.save()
+            messages.success(
+                request, "✅ Configuración de empresa guardada exitosamente."
+            )
+            return redirect("company_settings")
+        except Exception as e:
+            messages.error(request, f"❌ Error al guardar configuración: {e}")
+
+    return render(request, "settings/company_settings.html", {"company": company})
+
+
+# ==========================
+# 📊 DASHBOARD
+# ==========================
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def dashboard(request):
+    """Dashboard principal con gráficos adaptados al grupo del usuario."""
+    from users.utils import (is_administrador, is_cajero, is_cocinero,
+                             is_servicio, is_supervisor,
+                             user_can_view_inventory,
+                             user_can_view_sales_report)
+
+    # Obtener fecha actual
+    today = timezone.now().date()
+    start_of_day = timezone.make_aware(datetime.combine(today, time.min))
+    end_of_day = timezone.make_aware(datetime.combine(today, time.max))
+
+    # Datos disponibles para todos los grupos
+    context = {
+        "is_admin": is_administrador(request.user),
+        "is_supervisor": is_supervisor(request.user),
+        "is_cajero": is_cajero(request.user),
+        "is_cocinero": is_cocinero(request.user),
+        "is_servicio": is_servicio(request.user),
+    }
+
+    # Ventas del día (si puede ver reporte de ventas)
+    if user_can_view_sales_report(request.user):
+        # Total ventas hoy
+        sales_today = OrderItem.objects.filter(
+            order__is_paid=True, order__created_at__range=(start_of_day, end_of_day)
+        ).aggregate(total=Sum(F("quantity") * F("product__price")))
+        context["sales_today"] = sales_today["total"] or 0
+
+        # Ventas por área de despacho hoy
+        sales_by_area = (
+            OrderItem.objects.filter(
+                order__is_paid=True,
+                order__created_at__range=(start_of_day, end_of_day),
+                product__dispatch_area__name__isnull=False,
+            )
+            .values("product__dispatch_area__name")
+            .annotate(total=Sum(F("quantity") * F("product__price")))
+            .order_by("product__dispatch_area__name")
+        )
+        sales_by_area_list = list(sales_by_area)
+        context["sales_by_area"] = sales_by_area_list
+        # Preparar datos para gráfico de áreas
+        area_labels = [
+            item["product__dispatch_area__name"] for item in sales_by_area_list
+        ]
+        area_data = [float(item["total"] or 0) for item in sales_by_area_list]
+        context["area_labels"] = area_labels
+        context["area_data"] = area_data
+
+        # Ventas últimos 7 días
+        sales_labels = []
+        sales_data = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            start = timezone.make_aware(datetime.combine(day, time.min))
+            end = timezone.make_aware(datetime.combine(day, time.max))
+            daily_sales = OrderItem.objects.filter(
+                order__is_paid=True, order__created_at__range=(start, end)
+            ).aggregate(total=Sum(F("quantity") * F("product__price")))
+            sales_labels.append(day.strftime("%d/%m"))
+            sales_data.append(float(daily_sales["total"] or 0))
+        context["sales_labels"] = sales_labels
+        context["sales_data"] = sales_data
+
+    # Inventario (si puede ver inventario)
+    if user_can_view_inventory(request.user):
+        # Ingredientes con stock bajo (menor a 5 unidades)
+        low_stock_qs = Ingredient.objects.filter(stock_quantity__lt=5)
+        context["low_stock_count"] = low_stock_qs.count()
+
+        # Top 10 ingredientes con menor stock para el gráfico
+        low_stock = low_stock_qs.values("name", "stock_quantity", "unit").order_by(
+            "stock_quantity"
+        )[:10]
+        low_stock_list = list(low_stock)
+        context["low_stock"] = low_stock_list
+        # Preparar datos para gráfico de stock
+        stock_labels = [item["name"] for item in low_stock_list]
+        stock_data = [float(item["stock_quantity"]) for item in low_stock_list]
+        context["stock_labels"] = stock_labels
+        context["stock_data"] = stock_data
+
+    # Órdenes pendientes (si puede ver órdenes)
+    if request.user.has_perm("orders.view_order"):
+
+        pending_orders = Order.objects.filter(is_paid=False).count()
+        context["pending_orders"] = pending_orders
+
+        # Órdenes pendientes por mesa
+        pending_by_table = (
+            Order.objects.filter(is_paid=False, table__name__isnull=False)
+            .values("table__name")
+            .annotate(count=Count("id"))
+            .order_by("table__name")
+        )
+        pending_by_table_list = list(pending_by_table)
+        context["pending_by_table"] = pending_by_table_list
+        # Preparar datos para gráfico de órdenes pendientes
+        orders_labels = [item["table__name"] for item in pending_by_table_list]
+        orders_data = [item["count"] for item in pending_by_table_list]
+        context["orders_labels"] = orders_labels
+        context["orders_data"] = orders_data
+
+    return render(request, "dashboard.html", context)

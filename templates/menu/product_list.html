@@ -1,20 +1,20 @@
 {% extends "layout.html" %}
 {% load humanize %}
 {% load static %}
-{% block title %}📦 Productos de Venta{% endblock %}
+{% block title %}Productos de Venta{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/table.css' %}">
     <link rel="stylesheet" href="{% static 'css/button-group.css' %}">
 {% endblock %}
 {% block body %}
     <div class="main__container">
-        <h1>📦 Productos de Venta</h1>
+        <h1><i class="material-icons">inventory_2</i> Productos de Venta</h1>
         {% include "includes/_messages.html" %}
         <div class="card">
             <div class="card__header">
                 <div class="card__actions">
                     <a href="{% url 'product_create' %}"
-                       class="button button--primary button--small">➕ Nuevo Producto</a>
+                       class="button button--primary button--small"><i class="material-icons">add</i> Nuevo Producto</a>
                 </div>
             </div>
             <div class="card__body">
@@ -40,13 +40,13 @@
                                         <div class="button-group">
                                             <a href="{% url 'product_recipes' product.id %}"
                                                class="button button--info button--small"
-                                               title="Receta">📋</a>
+                                               title="Receta"><i class="material-icons">description</i></a>
                                             <a href="{% url 'product_edit' product.id %}"
                                                class="button button--secondary button--small"
-                                               title="Editar">✏️</a>
+                                               title="Editar"><i class="material-icons">edit</i></a>
                                             <a href="{% url 'product_delete' product.id %}"
                                                class="button button--danger button--small"
-                                               title="Eliminar">🗑️</a>
+                                               title="Eliminar"><i class="material-icons">delete</i></a>
                                         </div>
                                     </td>
                                 </tr>

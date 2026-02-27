@@ -28,14 +28,14 @@
                             <div class="card__actions card__actions--equal">
                                 <a href="{% url 'create_order' item.table.id %}"
                                    class="button button--primary"
-                                   title="Crear nueva orden">➕</a>
+                                   title="Crear nueva orden"><i class="material-icons">add</i></a>
                                 <a href="{% url 'table_orders' item.table.id %}"
                                    class="button button--secondary"
-                                   title="Ver órdenes de la mesa">📋</a>
+                                   title="Ver órdenes de la mesa"><i class="material-icons">list_alt</i></a>
                                 {% if item.total_due > 0 %}
                                     <button @click="console.log('Pagar clicked'); tableName='{{ item.table.name|escapejs }}'; tableTotal='{{ item.total_due|floatformat:2|intcomma|escapejs }}'; tableId='{{ item.table.id|escapejs }}'; modal=true; console.log('modal:', modal)"
                                             class="button button--success"
-                                            title="Marcar como pagado">✅</button>
+                                            title="Marcar como pagado"><i class="material-icons">check_circle</i></button>
                                 {% endif %}
                             </div>
                         </div>

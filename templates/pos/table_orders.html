@@ -46,11 +46,11 @@
                     </div>
                     <footer class="card__footer">
                         <div class="card__actions">
-                            <a href="{% url 'order_detail' order.id %}"
-                               class="button button--primary button--small">🔍 Ver Detalle</a>
-                            {% if user|can_mark_paid %}
-                                <a href="{% url 'edit_order' order.id %}"
-                                   class="button button--secondary button--small">✏️ Editar</a>
+<a href="{% url 'order_detail' order.id %}"
+                                   class="button button--primary button--small"><i class="material-icons">visibility</i> Ver Detalle</a>
+                                {% if user|can_mark_paid %}
+                                    <a href="{% url 'edit_order' order.id %}"
+                                       class="button button--secondary button--small"><i class="material-icons">edit</i> Editar</a>
                             {% endif %}
                         </div>
                     </footer>

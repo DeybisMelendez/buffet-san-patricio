@@ -48,10 +48,10 @@
                 <div class="card__footer">
                     <div class="button-group">
                         <a href="{% url 'order_detail' order.id %}"
-                           class="button button--secondary">← Cancelar</a>
+                           class="button button--secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
                         <button type="button"
                                 @click.prevent="modal=true"
-                                class="button button--primary">💾 Guardar Cambios</button>
+                                class="button button--primary"><i class="material-icons">save</i> Guardar Cambios</button>
                     </div>
                 </div>
                 <div class="modal"

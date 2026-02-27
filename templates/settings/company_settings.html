@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Configuración de Empresa{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/form.css' %}">
+{% endblock %}
+{% block body %}
+    <div class="main__container">
+        <h1><i class="material-icons">business</i> Configuración de Empresa</h1>
+        {% include "includes/_messages.html" %}
+        <div class="card">
+            <div class="card__body">
+                <form method="post" enctype="multipart/form-data" class="form">
+                    {% csrf_token %}
+                    <div class="form__group">
+                        <label for="name" class="form__label">Nombre de la empresa *</label>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               value="{% if company %}{{ company.name }}{% endif %}"
+                               required
+                               class="form__control"
+                               placeholder="Ej: Restaurante La Casona">
+                    </div>
+                    <div class="form__group">
+                        <label for="ruc" class="form__label">RUC</label>
+                        <input type="text"
+                               id="ruc"
+                               name="ruc"
+                               value="{% if company %}{{ company.ruc }}{% endif %}"
+                               class="form__control"
+                               placeholder="Ej: 1234567890123">
+                    </div>
+                    <div class="form__group">
+                        <label for="address" class="form__label">Dirección</label>
+                        <textarea id="address"
+                                  name="address"
+                                  class="form__control"
+                                  placeholder="Ej: Av. Principal #123, Ciudad"
+                                  rows="3">{% if company %}{{ company.address }}{% endif %}</textarea>
+                    </div>
+                    <div class="form__group">
+                        <label for="phone" class="form__label">Teléfono</label>
+                        <input type="text"
+                               id="phone"
+                               name="phone"
+                               value="{% if company %}{{ company.phone }}{% endif %}"
+                               class="form__control"
+                               placeholder="Ej: 8888-8888">
+                    </div>
+                    <div class="form__group">
+                        <label for="email" class="form__label">Correo electrónico</label>
+                        <input type="email"
+                               id="email"
+                               name="email"
+                               value="{% if company %}{{ company.email }}{% endif %}"
+                               class="form__control"
+                               placeholder="Ej: contacto@empresa.com">
+                    </div>
+                    <div class="form__group">
+                        <label for="slogan" class="form__label">Eslogan</label>
+                        <input type="text"
+                               id="slogan"
+                               name="slogan"
+                               value="{% if company %}{{ company.slogan }}{% endif %}"
+                               class="form__control"
+                               placeholder="Ej: La mejor comida de la ciudad">
+                    </div>
+                    <div class="form__group">
+                        <label for="logo" class="form__label">Logo (opcional)</label>
+                        <input type="file"
+                               id="logo"
+                               name="logo"
+                               accept="image/*"
+                               class="form__control">
+                        {% if company and company.logo %}
+                            <div class="form__help">
+                                Logo actual: <a href="{{ company.logo.url }}" target="_blank">{{ company.logo.name }}</a>
+                            </div>
+                        {% endif %}
+                        <div class="form__help">
+                            Suba una imagen para mostrar en las comandas impresas.
+                        </div>
+                    </div>
+                    <div class="form__group">
+                        <button type="submit" class="button button--primary"><i class="material-icons">save</i> Guardar Configuración</button>
+                        <a href="{% url 'dashboard' %}" class="button button--secondary"><i class="material-icons">arrow_back</i> Volver al Inicio</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

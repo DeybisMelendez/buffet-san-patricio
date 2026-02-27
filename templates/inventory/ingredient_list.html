@@ -1,20 +1,20 @@
 {% extends "layout.html" %}
 {% load humanize %}
 {% load static %}
-{% block title %}🧂 Ingredientes{% endblock %}
+{% block title %}Ingredientes{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/table.css' %}">
     <link rel="stylesheet" href="{% static 'css/button-group.css' %}">
 {% endblock %}
 {% block body %}
     <div class="main__container">
-        <h1>🧂 Ingredientes</h1>
+        <h1><i class="material-icons">kitchen</i> Ingredientes</h1>
         {% include "includes/_messages.html" %}
         <div class="card">
             <div class="card__header">
                 <div class="card__actions">
                     <a href="{% url 'ingredient_create' %}"
-                       class="button button--primary button--small">➕ Nuevo Ingrediente</a>
+                       class="button button--primary button--small"><i class="material-icons">add</i> Nuevo Ingrediente</a>
                 </div>
             </div>
             <div class="card__body">
@@ -40,10 +40,10 @@
                                         <div class="button-group">
                                             <a href="{% url 'ingredient_edit' ingredient.id %}"
                                                class="button button--secondary button--small"
-                                               title="Editar">✏️</a>
+                                               title="Editar"><i class="material-icons">edit</i></a>
                                             <a href="{% url 'ingredient_delete' ingredient.id %}"
                                                class="button button--danger button--small"
-                                               title="Eliminar">🗑️</a>
+                                               title="Eliminar"><i class="material-icons">delete</i></a>
                                         </div>
                                     </td>
                                 </tr>

@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% load humanize %}
 {% load static %}
-{% block title %}📋 Receta de {{ product.name }}{% endblock %}
+{% block title %}Receta de {{ product.name }}{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/table.css' %}">
     <link rel="stylesheet" href="{% static 'css/form.css' %}">
@@ -79,7 +79,7 @@
 {% endblock %}
 {% block body %}
     <div class="main__container">
-        <h1>📋 Receta de {{ product.name }}</h1>
+        <h1><i class="material-icons">description</i> Receta de {{ product.name }}</h1>
         {% include "includes/_messages.html" %}
         <div class="card">
             <div class="card__header">
@@ -102,7 +102,7 @@
                             </td>
                             <td class="table__cell--numeric">{{ formset.empty_form.quantity }}</td>
                             <td class="table__cell--center">
-                                <button type="button" class="button button--danger button--small delete-row">🗑️ Eliminar</button>
+                                <button type="button" class="button button--danger button--small delete-row"><i class="material-icons">delete</i> Eliminar</button>
                                 {{ formset.empty_form.DELETE }}
                             </td>
                         </tr>
@@ -133,7 +133,7 @@
                                             <button type="button"
                                                     class="button button--danger button--small"
                                                     @click="removeForm({{ forloop.counter0 }}, {{ form.instance.pk|yesno:'true,false' }})">
-                                                🗑️ Eliminar
+                                                <i class="material-icons">delete</i> Eliminar
                                             </button>
                                             {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
                                         </td>
@@ -143,13 +143,13 @@
                         </table>
                     </div>
                     <div class="form__group">
-                        <button type="button" class="button button--success" @click="addForm()">➕ Agregar Ingrediente</button>
-                        <button type="submit" class="button button--primary">💾 Guardar Receta</button>
-                        <a href="{% url 'product_list' %}" class="button button--secondary">↩️ Volver a Productos</a>
+                        <button type="button" class="button button--success" @click="addForm()"><i class="material-icons">add</i> Agregar Ingrediente</button>
+                        <button type="submit" class="button button--primary"><i class="material-icons">save</i> Guardar Receta</button>
+                        <a href="{% url 'product_list' %}" class="button button--secondary"><i class="material-icons">arrow_back</i> Volver a Productos</a>
                     </div>
                     <div class="messages messages--info">
                         <p>
-                            <strong>💡 Instrucciones:</strong>
+                            <strong><i class="material-icons">lightbulb</i> Instrucciones:</strong>
                         </p>
                         <ul>
                             <li>

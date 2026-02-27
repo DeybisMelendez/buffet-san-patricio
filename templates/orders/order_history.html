@@ -7,7 +7,7 @@
 {% endblock %}
 {% block body %}
     <div x-data="{ fecha: '{{ target_date|date:"Y-m-d" }}' }">
-        <h1>📜 Historial de Comandas</h1>
+        <h1><i class="material-icons">history</i> Historial de Comandas</h1>
         <!-- Navegación por días -->
         <div class="button-group button-group--centered">
             <a href="?days_ago={{ prev_days_ago }}" class="button button--outline">← Día anterior</a>

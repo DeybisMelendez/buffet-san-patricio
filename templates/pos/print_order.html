@@ -1,0 +1,65 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Comanda #{{ order.id }} - {{ company.name|default:"Restaurante" }}</title>
+        <style>
+            @media print {
+                body { font-family: Arial, sans-serif; font-size: 12pt; }
+                .header { text-align: center; margin-bottom: 15px; }
+                .header img { max-height: 60px; }
+                .company-name { font-size: 16pt; font-weight: bold; }
+                .company-details { font-size: 10pt; color: #555; }
+                .order-info { margin: 15px 0; }
+                .items { margin: 20px 0; }
+                .item { margin: 5px 0; }
+                .total { font-weight: bold; margin-top: 10px; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            {% if company and company.logo %}
+                <img src="{{ company.logo.url }}" alt="Logo">
+            {% endif %}
+            <div class="company-name">{{ company.name|default:"Restaurante" }}</div>
+            <div class="company-details">
+                {% if company and company.ruc %}<div>RUC: {{ company.ruc }}</div>{% endif %}
+                {% if company and company.address %}<div>{{ company.address }}</div>{% endif %}
+                {% if company and company.phone %}<div>Tel: {{ company.phone }}</div>{% endif %}
+                {% if company and company.email %}<div>{{ company.email }}</div>{% endif %}
+                {% if company and company.slogan %}<div><em>{{ company.slogan }}</em></div>{% endif %}
+            </div>
+        </div>
+        <hr>
+        <div class="order-info">
+            <h3>Comanda #{{ order.id }}</h3>
+            <p><strong>Mesa:</strong> {{ order.table.name }}</p>
+            <p><strong>Fecha:</strong> {{ order.created_at|date:"d/m/Y H:i" }}</p>
+            <p><strong>Mesero:</strong> {{ order.user }}</p>
+        </div>
+        <hr>
+        <div class="items">
+            <h4>Productos:</h4>
+            {% for item in items %}
+                <div class="item"><b>{{ item.quantity|intcomma }} x {{ item.product.name }}</b></div>
+            {% empty %}
+                <div class="item">No hay productos en esta comanda.</div>
+            {% endfor %}
+        </div>
+        <hr>
+        <div class="total">
+            <p>Total: C$ {{ total|intcomma }}</p>
+        </div>
+        <br>
+        <br>
+        <br>
+        <script>
+            window.onload = function() {
+                window.print();
+            };
+        </script>
+    </body>
+</html>

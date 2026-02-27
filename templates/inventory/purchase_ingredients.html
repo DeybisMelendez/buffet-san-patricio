@@ -1,13 +1,13 @@
 {% extends 'layout.html' %}
 {% load humanize %}
 {% load static %}
-{% block title %}🛒 Registrar Ingreso de Ingredientes{% endblock %}
+{% block title %}Registrar Ingreso de Ingredientes{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/table.css' %}">
 {% endblock %}
 {% block body %}
     <div x-data>
-        <h1>🛒 Registrar Ingreso de Ingredientes</h1>
+        <h1><i class="material-icons">shopping_cart</i> Registrar Ingreso de Ingredientes</h1>
         <p>Indica la cantidad de cada ingrediente que deseas agregar al inventario.</p>
         <form method="post" class="form">
             {% csrf_token %}
@@ -44,7 +44,7 @@
                 </table>
             </div>
             <div class="form__group">
-                <button type="submit" class="button button--primary">💾 Registrar Compras</button>
+                <button type="submit" class="button button--primary"><i class="material-icons">save</i> Registrar Compras</button>
             </div>
         </form>
     </div>
