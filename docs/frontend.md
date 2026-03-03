@@ -6,8 +6,9 @@ Este documento define las convenciones y guías para el desarrollo frontend del 
 
 - **Simplicidad**: Priorizar soluciones simples y mantenibles.
 - **Minimalismo**: Evitar JavaScript innecesario; usar AlpineJS para interactividad básica.
-- **Reutilización**: Crear componentes CSS reutilizables usando la metodología BEM.
-- **Compatibilidad**: Diseñar pensando en temas claro y oscuro.
+- **Framework**: Usar Bootstrap 5 como framework CSS principal.
+- **Custom CSS**: Solo cuando Bootstrap no pueda manejar un estilo específico.
+- **Iconos**: Google Material Icons para todos los iconos.
 
 ## Interactividad
 
@@ -29,322 +30,194 @@ Este documento define las convenciones y guías para el desarrollo frontend del 
 
 ## Estilos CSS
 
-### Metodología BEM (Bloque, Elemento, Modificador)
+### Bootstrap 5
 
-- **Bloque**: Componente independiente y reutilizable (ej. `.card`, `.nav`).
-- **Elemento**: Parte de un bloque (ej. `.card__title`, `.card__body`).
-- **Modificador**: Variante de un bloque o elemento (ej. `.card--featured`, `.nav__item--active`).
+El proyecto usa **Bootstrap 5** como framework CSS principal. Se incluye vía CDN en el layout base.
 
-### Estructura de Archivos
+**Recursos:**
+- Documentación: https://getbootstrap.com/docs/5.3/
+- CDN: https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css
 
-- **Directorio**: `static/css/`
-- **Organización**: Un archivo por bloque principal.
-- **Nombres**: En `kebab-case` (ej. `nav.css`, `card.css`, `modal.css`).
-- **Importación selectiva**: No hay un archivo principal único; cada template importa los bloques que necesita. El layout base incluye bloques esenciales (base, navegación, mensajes, botones, contenido principal, pie de página).
+### Uso de Clases Bootstrap
 
-### Contenido de Archivos CSS
+**Utilidades:**
+- Layout: `container`, `container-fluid`, `row`, `col-*`
+- Spacing: `m-*`, `p-*`, `mt-*`, `mb-*`, `ms-*`, `me-*`
+- Typography: `text-start`, `text-center`, `text-end`, `fw-bold`, `fs-*`
+- Colors: `text-primary`, `text-secondary`, `bg-primary`, `bg-light`, etc.
+- Flexbox: `d-flex`, `justify-content-*`, `align-items-*`, `flex-wrap`
+- Borders: `border`, `border-*`, `rounded`, `rounded-*`
 
-Cada archivo debe incluir:
+**Componentes:**
+- Cards: `card`, `card-header`, `card-body`, `card-footer`
+- Buttons: `btn`, `btn-primary`, `btn-secondary`, `btn-sm`, `btn-lg`
+- Forms: `form-control`, `form-label`, `form-select`, `input-group`
+- Tables: `table`, `table-striped`, `table-hover`, `table-responsive`
+- Modals: `modal`, `modal-dialog`, `modal-content`, `modal-header`, `modal-body`
+- Navbar: `navbar`, `navbar-expand-*`, `navbar-light`, `navbar-dark`
+- Alerts: `alert`, `alert-primary`, `alert-success`, `alert-warning`, `alert-danger`
 
-1. **Comentario de cabecera**: Descripción del bloque y su propósito.
-2. **Variables CSS**: Definir colores, espaciados, etc. para temas.
-3. **Bloque**: Estilos base.
-4. **Elementos**: Estilos de elementos dentro del bloque.
-5. **Modificadores**: Variantes.
-6. **Media queries**: Responsividad si es necesario.
+### Custom CSS
 
-### Ejemplo: `static/css/card.css`
+Solo crear CSS personalizado cuando Bootstrap no pueda manejar el estilo necesario.
 
-```css
-/* ============================================
-   CARD
-   Componente para mostrar contenido en cajas
-   ============================================ */
+**Directorios:**
+- `static/css/` – archivos CSS personalizados
 
-:root {
-  --card-bg-light: #ffffff;
-  --card-bg-dark: #1e1e1e;
-  --card-border-light: #e0e0e0;
-  --card-border-dark: #333333;
-  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
+**Casos válidos para custom CSS:**
+- Estilos específicos del proyecto que requieren variables CSS reutilizables
+- Estilos para componentes muy específicos del dominio
+- Animaciones o transiciones complejas
 
-.card {
-  background-color: var(--card-bg-light);
-  border: 1px solid var(--card-border-light);
-  border-radius: 8px;
-  box-shadow: var(--card-shadow);
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-}
+**Casos NO válidos (usar Bootstrap):**
+- Margins, paddings, sizes (`mt-1`, `p-2`, etc.)
+- Colores de texto o fondo (`text-primary`, `bg-success`, etc.)
+- Flexbox (`d-flex`, `justify-content-between`, etc.)
+- Borders y rounded (`border`, `rounded`, etc.)
 
-@media (prefers-color-scheme: dark) {
-  .card {
-    background-color: var(--card-bg-dark);
-    border-color: var(--card-border-dark);
-  }
-}
+### Ejemplo: Estructura con Bootstrap
 
-.card__header {
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--card-border-light);
-}
-
-.card__title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.card__body {
-  line-height: 1.6;
-}
-
-.card__footer {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--card-border-light);
-  text-align: right;
-}
-
-/* Modificadores */
-.card--featured {
-  border-color: #007bff;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
-}
-
-.card--compact {
-  padding: 1rem;
-}
-
-.card--borderless {
-  border: none;
-  box-shadow: none;
-}
+```html
+<div class="container my-4">
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Título</h5>
+        </div>
+        <div class="card-body">
+          <p class="card-text">Contenido de la tarjeta.</p>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-primary btn-sm">Acción</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 ```
+
+## Iconos
+
+### Google Material Icons
+
+El proyecto usa **Google Material Icons** vía CDN.
+
+**Include en el layout:**
+```html
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+```
+
+**Uso en HTML:**
+```html
+<span class="material-icons">icon_name</span>
+```
+
+**Iconos comunes:**
+- Editar: `edit`
+- Eliminar: `delete`
+- Agregar: `add`
+- Guardar: `save`
+- Cancelar: `close`
+- Volver: `arrow_back`
+- Buscar: `search`
+- Menú: `menu`
+- Configuración: `settings`
 
 ## Temas Claro y Oscuro
 
+Bootstrap 5 soporta temas claro y oscuro de forma nativa.
+
 ### Enfoque
 
-- Usar `prefers-color-scheme` para detección automática.
-- Definir variables CSS en `:root` para ambos temas.
-- Proporcionar alternativas de color en media queries.
+- Usar clases de Bootstrap para ambos temas.
+- Para tema oscuro, usar la clase `dark` en el elemento `html` o usar variables CSS de Bootstrap.
+- Personalizar con CSS variables cuando sea necesario.
 
-### Variables Recomendadas
+### Custom CSS para Temas
 
 ```css
 :root {
-  /* Colores base - tema claro */
-  --color-bg-light: #ffffff;
-  --color-text-light: #333333;
-  --color-border-light: #e0e0e0;
-  --color-primary-light: #007bff;
-  --color-secondary-light: #6c757d;
-
-  /* Colores base - tema oscuro */
-  --color-bg-dark: #1e1e1e;
-  --color-text-dark: #f0f0f0;
-  --color-border-dark: #444444;
-  --color-primary-dark: #3399ff;
-  --color-secondary-dark: #8a93a2;
+  --mi-color-primary: #0d6efd;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: var(--color-bg-dark);
-    --color-text: var(--color-text-dark);
-    --color-border: var(--color-border-dark);
-    --color-primary: var(--color-primary-dark);
-    --color-secondary: var(--color-secondary-dark);
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-bg: var(--color-bg-light);
-    --color-text: var(--color-text-light);
-    --color-border: var(--color-border-light);
-    --color-primary: var(--color-primary-light);
-    --color-secondary: var(--color-secondary-light);
-  }
+[data-bs-theme="dark"] {
+  --mi-color-primary: #6ea8fe;
 }
 ```
 
-## Estructura de Carpetas Recomendada
+## Estructura de Carpetas
 
 ```
 static/
 ├── css/
-│   ├── base.css            # Estilos base (reset, tipografía)
-│   ├── card.css            # Bloque de tarjetas
-│   ├── footer.css          # Pie de página
-│   ├── form.css            # Bloque de formularios
-│   ├── main.css            # Contenido principal
-│   ├── messages.css        # Mensajes y alertas
-│   ├── modal.css           # Bloque de modales
-│   ├── nav.css             # Bloque de navegación
-│   └── table.css           # Bloque de tablas
+│   └── (archivos CSS personalizados, mínimo)
 ├── js/
 │   └── (scripts personalizados si son necesarios)
 └── (otros assets: imágenes, fuentes, etc.)
 ```
 
-## Directrices para Crear Nuevos Bloques
-
-1. **Evaluar necesidad**: ¿Existe ya un bloque que pueda adaptarse?
-2. **Nombre semantico**: Usar nombres que describan el propósito del componente, no su apariencia o ubicación. Los bloques deben ser reutilizables, con nombres semánticos y funcionales, no genéricos, utilitarios ni específicos para una plantilla.
-   - **Correcto**: `.card`, `.toolbar`, `.ads`, `.grid`, `.messages`, `.list` (componentes reutilizables)
-   - **Incorrecto**: `.create-order`, `.auth`, `.new-table` (específicos de página), `.text-small`, `.mt-1`, `.p-1` (clases utilitarias)
-3. **Archivo separado**: Crear nuevo archivo en `static/css/`.
-4. **Documentar**: Incluir comentario de cabecera explicando propósito.
-5. **Variables**: Definir variables CSS para temas.
-6. **Probar**: Verificar en temas claro y oscuro.
-
-## Filosofía BEM - No usar clases utilitarias
-
-**IMPORTANTE**: En la metodología BEM, **NO se deben crear clases utilitarias** como `.flex`, `.grid`, `.mt-1`, `.text-center`, etc. Tampoco se deben crear bloques específicos para una plantilla (ej. `.create-order`, `.auth`, `.new-table`). Estas clases violan los principios de BEM porque:
-
-1. **No son bloques independientes**: Solo modifican propiedades CSS individuales o están atados a un contexto específico.
-2. **Rompen la encapsulación**: Los estilos se dispersan en múltiples clases.
-3. **Dificultan el mantenimiento**: Cambiar el diseño requiere modificar HTML, no CSS.
-4. **Reducen reutilización**: Los bloques específicos de página no pueden ser reutilizados en otros contextos.
-
-### Enfoque correcto en BEM
-
-- **Crear bloques semanticos**: `.card`, `.nav`, `.modal` (no `.flex-container`, `.grid-layout`)
-- **Usar elementos dentro de bloques**: `.card__header`, `.nav__menu` (no `.mt-3`, `.text-right`)
-- **Aplicar modificadores para variantes**: `.card--featured`, `.nav--sticky` (no clases utilitarias)
-
-### Ejemplo incorrecto vs correcto
-
-```html
-<!-- INCORRECTO: Clases utilitarias -->
-<div class="flex justify-between items-center mt-4 mb-2">
-  <h3 class="text-lg font-bold text-primary">Título</h3>
-  <button class="btn btn--primary">Acción</button>
-</div>
-
-<!-- CORRECTO: Bloque BEM -->
-<div class="card__header">
-  <h3 class="card__title">Título</h3>
-  <button class="card__button card__button--primary">Acción</button>
-</div>
-```
-
-En el CSS correspondiente:
-
-```css
-.card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: var(--space-lg);
-  margin-bottom: var(--space-sm);
-}
-
-.card__title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.card__button {
-  /* estilos específicos para el botón dentro del card */
-}
-```
-
-### Bloques Implementados
-
-Los siguientes bloques están implementados en `static/css/`:
-
-- **`base.css`** – Variables de tema, reset básico, utilidades
-- **`nav.css`** – Navegación (`.nav`, `.nav__menu`, `.nav__item`, etc.)
-- **`card.css`** – Tarjetas (`.card`, `.card__header`, `.card__body`, etc.)
-- **`modal.css`** – Modales (`.modal`, `.modal__dialog`, `.modal__header`, etc.)
-- **`form.css`** – Formularios (`.form`, `.form__group`, `.form__control`, etc.)
-- **`table.css`** – Tablas (`.table`, `.table--striped`, `.table--responsive`, etc.)
-- **`messages.css`** – Mensajes y alertas (`.message`, `.message--success`, `.message--warning`, etc.)
-- **`main.css`** – Contenido principal (`.main`, `.main__container`, etc.)
-- **`footer.css`** – Pie de página (`.footer`, `.footer__container`, etc.)
-
-### Bloques Específicos del Proyecto
-
-- `.order-card` - Tarjeta para mostrar órdenes
-- `.inventory-item` - Item de inventario
-- `.sales-summary` - Resumen de ventas
-
-**Nota**: Aunque estos bloques son específicos del dominio del proyecto, deben ser diseñados como componentes reutilizables dentro del sistema. Sus nombres describen su propósito funcional (ej. mostrar una orden, item de inventario, resumen de ventas) y no están atados a una plantilla específica.
-
 ## Integración con Django Templates
 
 ### Carga de Estilos
 
-El layout base (`layout.html`) carga los bloques CSS esenciales para la estructura común (base, navegación, mensajes, contenido principal y pie de página). Cada template puede importar bloques adicionales según sus necesidades mediante el bloque `extra_css`.
+El layout base (`layout.html`) carga Bootstrap 5 y Google Material Icons vía CDN.
 
-**Bloques cargados por defecto en `layout.html`:**
+**En el layout base:**
 ```html
-<link rel="stylesheet" href="{% static 'css/base.css' %}">
-<link rel="stylesheet" href="{% static 'css/nav.css' %}">
-<link rel="stylesheet" href="{% static 'css/messages.css' %}">
-<link rel="stylesheet" href="{% static 'css/main.css' %}">
-<link rel="stylesheet" href="{% static 'css/footer.css' %}">
+<head>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
 ```
 
 ### Bloques Extra para Templates
 
 Cada template puede agregar CSS y JavaScript adicional mediante los bloques `extra_css` y `extra_js`:
 
-**En el template base (`layout.html`):**
-
-```html
-<head>
-  <!-- ... -->
-  {% block extra_css %}{% endblock %}
-</head>
-<body>
-  <!-- ... -->
-  {% block extra_js %}{% endblock %}
-</body>
-```
-
 **En un template específico:**
 
 ```html
-{% extends 'layout.html' %} {% load static %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/mi-estilo-especifico.css' %}" />
-{% endblock %} {% block extra_js %}
-<script src="{% static 'js/mi-script-especifico.js' %}"></script>
-{% endblock %} {% block body %}
-<!-- Contenido del template -->
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  /* Custom styles only when Bootstrap can't handle it */
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/mi-script.js' %}"></script>
+{% endblock %}
+
+{% block body %}
+<!-- Content using Bootstrap classes -->
 {% endblock %}
 ```
 
-### Uso de Bloques BEM en HTML
+## Directrices para Nuevo Desarrollo
 
-```html
-<article class="card card--featured">
-  <header class="card__header">
-    <h3 class="card__title">Título de la tarjeta</h3>
-  </header>
-  <div class="card__body">
-    <p>Contenido de la tarjeta</p>
-  </div>
-  <footer class="card__footer">
-    <button class="btn btn--primary">Acción</button>
-  </footer>
-</article>
-```
+1. **Usar Bootstrap primero**: Antes de crear custom CSS, verificar si Bootstrap tiene clases útiles.
+2. **Iconos**: Siempre usar Google Material Icons.
+3. **AlpineJS**: Para interactividad básica, preferir AlpineJS sobre JavaScript personalizado.
+4. **Mantenibilidad**: Si se crea custom CSS, documentar su propósito.
+5. **Responsive**: Usar clases de Bootstrap para responsive design (`col-`, `col-sm-`, `col-md-`, etc.).
 
-## Actualización de Documentación
+## Migración de BEM a Bootstrap
 
-Cada vez que se cree un nuevo bloque o archivo CSS, se debe:
+El proyecto anteriormente usaba metodología BEM. La migración a Bootstrap implica:
 
-1. Actualizar este documento agregando el bloque en la sección correspondiente.
-2. Actualizar `AGENTS.md` para mantener contexto de las convenciones.
-3. Asegurar que el archivo esté disponible en `static/css/` para su importación selectiva. Opcionalmente, se puede agregar al archivo `styles.css` (bundle completo) si se desea mantener compatibilidad.
+1. **Templates nuevos**: Usar clases Bootstrap exclusivamente.
+2. **Templates existentes**: Migración gradual según sea necesario.
+3. **Custom CSS**: Minimizar; migrar a Bootstrap donde sea posible.
+4. **Archivos BEM legacy**: Los archivos en `static/css/` se mantienen temporalmente pero no se deben crear nuevos.
 
 ---
 
-_Última actualización: 2026-02-26_
+_Última actualización: 2026-03-03_

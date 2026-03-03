@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Tablas Dinámicas - Grid.js{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/card.css' %}">
+    <link rel="stylesheet" href="{% static 'css/gridjs.css' %}">
+{% endblock %}
+{% block body %}
+    <div class="main__container">
+        <h1>
+            <i class="material-icons">table_chart</i> Tablas Dinámicas con Grid.js
+        </h1>
+        <div class="card">
+            <div class="card__header">
+                <h2>Ingredientes (usando include)</h2>
+            </div>
+            <div class="card__body">
+                {% include "includes/_gridjs.html" with table_id="ingredients-table" url="/api/ingredients/" columns="[{name:'ID',id:'id',hidden:true},{name:'Nombre',id:'name'},{name:'Unidad',id:'unit'},{name:'Almacén',id:'warehouse'},{name:'Stock',id:'stock_quantity'}]" perPage=10 column_filters=true %}
+            </div>
+        </div>
+        <div class="card demo-card-spacer">
+            <div class="card__header">
+                <h2>Productos (usando JavaScript)</h2>
+            </div>
+            <div class="card__body">
+                <div id="products-table"></div>
+            </div>
+        </div>
+        <div class="card demo-card-spacer">
+            <div class="card__header">
+                <h2>Ejemplo con formateador</h2>
+            </div>
+            <div class="card__body">
+                {% include "includes/_gridjs.html" with table_id="products-currency-table" url="/api/products/" columns="[{name:'ID',id:'id',hidden:true},{name:'Nombre',id:'name'},{name:'Categoría',id:'category'},{name:'Área',id:'dispatch_area'},{name:'Precio',id:'price',formatter:function(cell){return'$'+cell.toFixed(2);}}]" perPage=5 column_filters=true filter_placeholder="Buscar..." %}
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function fetchData(url) {
+            return fetch(url, { credentials: 'same-origin' })
+                .then(function(res) { return res.json(); });
+        }
+
+
+
+        var productColumns = [
+            { name: 'ID', id: 'id', hidden: true },
+            { name: 'Nombre', id: 'name' },
+            { name: 'Categoría', id: 'category' },
+            { name: 'Área de Despacho', id: 'dispatch_area' },
+            { name: 'Precio', id: 'price', formatter: function(cell) {
+                return '$' + cell.toFixed(2);
+            }}
+        ];
+
+        // Tabla de Productos con JavaScript (para casos avanzados)
+        new Grid({
+            columns: productColumns,
+            data: function() { return fetchData('/api/products/'); },
+            search: true,
+            sort: true,
+            pagination: { limit: 10 },
+            resizable: true,
+            language: {
+                search: { placeholder: 'Buscar productos...' },
+                pagination: {
+                    previous: 'Anterior',
+                    next: 'Siguiente',
+                    showing: 'Mostrando',
+                    of: 'de',
+                    to: 'a',
+                    results: 'resultados'
+                }
+            }
+        }).render(document.getElementById('products-table'));
+
+        if (typeof GridJS !== 'undefined' && GridJS.addColumnFilters) {
+            GridJS.addColumnFilters('products-table');
+        }
+    });
+    </script>
+{% endblock %}

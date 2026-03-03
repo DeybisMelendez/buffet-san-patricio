@@ -2,6 +2,13 @@ from django.urls import path
 
 from . import views
 
+
+def gridjs_demo(request):
+    """Vista de demostración para Grid.js."""
+    from django.shortcuts import render
+    return render(request, "gridjs_demo.html")
+
+
 urlpatterns = [
     # ==========================
     # POS - Mesas y Comandas
@@ -107,4 +114,34 @@ urlpatterns = [
     # ==========================
     path("dashboard/", views.dashboard, name="dashboard"),
     path("", views.table_list, name="table_list_default"),
+    # ==========================
+    # API Grid.js - Endpoints JSON
+    # ==========================
+    path(
+        "api/ingredients/",
+        views.api_ingredients,
+        name="api_ingredients"
+    ),
+    path("api/products/", views.api_products, name="api_products"),
+    path(
+        "api/categories/",
+        views.api_categories,
+        name="api_categories"
+    ),
+    path(
+        "api/dispatch-areas/",
+        views.api_dispatch_areas,
+        name="api_dispatch_areas"
+    ),
+    path("api/tables/", views.api_tables, name="api_tables"),
+    path("api/orders/", views.api_orders, name="api_orders"),
+    path(
+        "api/movements/",
+        views.api_movements,
+        name="api_movements"
+    ),
+    # ==========================
+    # Demo Grid.js
+    # ==========================
+    path("demo/gridjs/", gridjs_demo, name="gridjs_demo"),
 ]

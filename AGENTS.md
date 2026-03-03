@@ -10,7 +10,7 @@ This document provides guidelines for AI agents working on the `Boa POS` Django 
 
 - **Framework**: Django 5.2.7
 - **Database**: SQLite (default)
-- **Frontend**: AlpineJS + custom BEM CSS (no build system)
+- **Frontend**: AlpineJS + Bootstrap 5 (CDN)
 - **Language**: Python 3.12+
 - **Locale**: Spanish (Nicaragua) – user-facing strings in Spanish
 
@@ -101,8 +101,9 @@ Configuration files should be added as needed (`pyproject.toml`, `.flake8`, `.is
 ### Frontend Assets
 
 - No build process (CSS/JS are served directly).
-- Templates use AlpineJS (CDN) for interactivity; all styling uses custom BEM blocks.
-- Custom styles are modular CSS files in `static/css/` (one file per BEM block).
+- Templates use AlpineJS (CDN) for interactivity.
+- **Styles**: Bootstrap 5 (CDN) + custom CSS only when needed.
+- **Icons**: Google Material Icons (CDN).
 - Prettier is ignored via `.prettierignore`; no Prettier configuration present.
 
 ## Code Style Guidelines
@@ -198,7 +199,7 @@ class Ingredient(models.Model):
 - Use `{% load static %}` and `{% load user_tags %}` as needed.
 - Extend blocks `{% block title %}` and `{% block body %}`.
 - Use AlpineJS for simple interactivity; avoid writing complex JavaScript.
-- Keep HTML semantic; use custom BEM‑based CSS (see Frontend Guidelines).
+- Keep HTML semantic; use Bootstrap classes primarily, custom CSS only when needed.
 
 ### Error Handling
 
@@ -229,28 +230,20 @@ Detailed frontend specifications are documented in [`docs/frontend.md`](docs/fro
 
 - **Interactivity**: Use AlpineJS for simple interactivity; avoid custom JavaScript when possible.
 - **JavaScript**: If required, place in `static/js/` with descriptive filenames.
-- **Styles**: Pure CSS with BEM methodology (Block, Element, Modifier). **PicoCSS has been removed**; all styling uses custom BEM blocks.
+- **Styles**: Bootstrap 5 (CDN) as primary CSS framework. Use utility classes and components.
+- **Icons**: Google Material Icons (CDN) - use `<span class="material-icons">icon_name</span>`.
 - **Template extensions**: Use `{% block extra_css %}` and `{% block extra_js %}` in templates to add page-specific assets.
 
-### CSS Structure
+### Bootstrap Usage
 
-- **Directory**: `static/css/` – one file per BEM block.
-- **Naming**: Bloques reutilizables con nombres **semánticos y funcionales**, no genéricos, utilitarios ni específicos para una plantilla. Los nombres deben describir el propósito del componente, no su apariencia o ubicación.
-  - **Correcto**: `.card`, `.toolbar`, `.ads`, `.grid`, `.messages`, `.list` (componentes reutilizables)
-  - **Incorrecto**: `.create-order`, `.auth`, `.new-table` (específicos de página), `.text-small`, `.mt-1`, `.p-1` (clases utilitarias)
-- **Theming**: Support light/dark themes using CSS variables and `prefers-color-scheme`.
-- **File organization**: Each block documented with its purpose at the top.
-
-### BEM Convention
-
-- **Block**: `.miBloque` (independent component)
-- **Element**: `.miBloque__suElemento` (part of a block)
-- **Modifier**: `.miBloque--suModificador` (variant)
+- Use Bootstrap 5 utility classes for layout, spacing, typography, and colors.
+- Use Bootstrap components (cards, modals, forms, tables, navbars) when available.
+- Custom CSS should only be used for project-specific styles that Bootstrap cannot handle.
+- Keep HTML semantic; avoid excessive div nesting.
 
 ### Maintenance
 
-- When creating new CSS blocks/files, update `docs/frontend.md` and this `AGENTS.md`.
-- Ensure new CSS files are available in `static/css/` for selective import. Optionally, add them to `static/css/styles.css` for bundling.
+- When creating new CSS files, update `docs/frontend.md` and this `AGENTS.md`.
 
 ## Environment & Configuration
 
@@ -272,7 +265,7 @@ No continuous integration pipeline is configured. If adding one, consider:
 - **Cursor/Copilot rules**: No `.cursorrules`, `.cursor/rules/`, or `.github/copilot-instructions.md` files present.
 - **Git hooks**: No pre‑commit or pre‑push hooks configured.
 - **Dependencies**: Listed in `requirements.txt`; core Django packages plus linting/formatting tools (black, flake8, isort, mypy).
-- **Static files**: Served from `static/` directory; no CDN besides AlpineJS.
+- **Static files**: Served from `static/` directory; Bootstrap 5 and AlpineJS via CDN.
 
 ## Summary for Agents
 
@@ -285,9 +278,10 @@ No continuous integration pipeline is configured. If adding one, consider:
 7. Keep frontend changes minimal – this is a server‑side Django application.
 8. When in doubt, mimic the patterns found in `orders/views.py` and `orders/models.py`.
 9. Run linting and formatting commands on individual files (`black path/to/file.py`, `flake8 path/to/file.py`, `djlint --reformat path/to/template.html`, etc.) after making changes to ensure code quality.
-10. When working on HTML, CSS, or JavaScript, always review `docs/frontend.md` for context on frontend architecture and BEM methodology.
-11. Always activate the virtual environment (`.env/bin/activate`) before running any Python commands.
+10. When working on HTML, CSS, or JavaScript, always review `docs/frontend.md` for context on frontend architecture and Bootstrap 5 usage.
+11. Use Google Material Icons via CDN (`<span class="material-icons">icon</span>`) for all icons.
+12. Always activate the virtual environment (`.env/bin/activate`) before running any Python commands.
 
 ---
 
-_Last updated: 2026‑02‑26_
+_Last updated: 2026‑03‑03_

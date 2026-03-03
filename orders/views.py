@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.forms import modelformset_factory
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -1318,3 +1318,129 @@ def dashboard(request):
         context["orders_data"] = orders_data
 
     return render(request, "dashboard.html", context)
+
+
+# ==========================
+# 📡 API GRIDJS - ENDPOINTS JSON
+# ==========================
+
+
+@login_required
+def api_ingredients(request):
+    """API endpoint que retorna lista de ingredientes en formato JSON para Grid.js."""
+    ingredients = Ingredient.objects.select_related("warehouse").order_by("name")
+    data = [
+        {
+            "id": i.id,
+            "name": i.name,
+            "unit": i.get_unit_display(),
+            "warehouse": i.warehouse.name if i.warehouse else None,
+            "stock_quantity": float(i.stock_quantity),
+        }
+        for i in ingredients
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_products(request):
+    """API endpoint que retorna lista de productos en formato JSON para Grid.js."""
+    products = (
+        Product.objects.select_related("category", "dispatch_area")
+        .order_by("name")
+    )
+    data = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "category": p.category.name if p.category else None,
+            "dispatch_area": p.dispatch_area.name if p.dispatch_area else None,
+            "price": float(p.price),
+        }
+        for p in products
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_categories(request):
+    """API endpoint que retorna lista de categorías en formato JSON para Grid.js."""
+    categories = ProductCategory.objects.all().order_by("name")
+    data = [
+        {
+            "id": c.id,
+            "name": c.name,
+        }
+        for c in categories
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_dispatch_areas(request):
+    """API endpoint que retorna lista de áreas de despacho en formato JSON para Grid.js."""
+    areas = DispatchArea.objects.all().order_by("name")
+    data = [
+        {
+            "id": a.id,
+            "name": a.name,
+        }
+        for a in areas
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_tables(request):
+    """API endpoint que retorna lista de mesas en formato JSON para Grid.js."""
+    tables = Table.objects.all().order_by("name")
+    data = [
+        {
+            "id": t.id,
+            "name": t.name,
+        }
+        for t in tables
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_orders(request):
+    """API endpoint que retorna lista de órdenes en formato JSON para Grid.js."""
+    orders = (
+        Order.objects.select_related("table", "user")
+        .order_by("-created_at")
+    )
+    data = [
+        {
+            "id": o.id,
+            "table": o.table.name if o.table else None,
+            "user": o.user.username if o.user else None,
+            "created_at": o.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": o.get_status_display(),
+            "total": float(o.get_total()),
+        }
+        for o in orders
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_movements(request):
+    """API endpoint que retorna lista de movimientos de inventario en formato JSON."""
+    movements = (
+        IngredientMovement.objects.select_related("ingredient", "user")
+        .order_by("-created_at")
+    )
+    data = [
+        {
+            "id": m.id,
+            "ingredient": m.ingredient.name,
+            "quantity": float(m.quantity),
+            "reason": m.reason or "",
+            "user": m.user.username if m.user else None,
+            "created_at": m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for m in movements
+    ]
+    return JsonResponse(data, safe=False)
