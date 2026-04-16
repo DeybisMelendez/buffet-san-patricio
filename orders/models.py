@@ -68,7 +68,6 @@ class Ingredient(models.Model):
     )
 
     def add_stock(self, amount):
-        """Agrega cantidad al stock."""
         self.stock_quantity += Decimal(amount)
         self.save()
 
@@ -76,13 +75,10 @@ class Ingredient(models.Model):
         return f"{self.name} ({self.stock_quantity} {self.unit})"
 
     def name_with_unit(self):
-        """Retorna el nombre con la unidad para mostrar en selects."""
         return f"{self.name} ({self.unit})"
 
 
 class ProductIngredient(models.Model):
-    """Relación de ingredientes que usa cada producto."""
-
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
@@ -100,8 +96,6 @@ class ProductIngredient(models.Model):
 
 
 class IngredientMovement(models.Model):
-    """Registra todo movimiento de inventario (uso, compra, ajuste, etc.)"""
-
     ingredient = models.ForeignKey("Ingredient", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     reason = models.CharField(max_length=255, blank=True, null=True)
@@ -111,7 +105,6 @@ class IngredientMovement(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def apply_movement(self):
-        """Aplica el movimiento al inventario."""
         self.ingredient.add_stock(self.quantity)
 
     def save(self, *args, **kwargs):
@@ -152,7 +145,6 @@ class OrderItem(models.Model):
         return self.quantity * self.product.price
 
     def save(self, *args, **kwargs):
-        """Guarda el pedido y actualiza el inventario de ingredientes."""
         super().save(*args, **kwargs)
 
         for prod_ing in ProductIngredient.objects.filter(product=self.product):
@@ -169,9 +161,119 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name} (Comanda #{self.order.id})"
 
 
-class Company(models.Model):
-    """Configuración de la empresa para mostrar en comandas y reportes."""
+# ==========================
+# 🧾 FACTURACIÓN
+# ==========================
 
+
+class Invoice(models.Model):
+    PAYMENT_METHODS = [
+        ("CONTADO", "Contado"),
+        ("CREDITO", "Crédito"),
+    ]
+
+    invoice_number = models.PositiveIntegerField(unique=True)
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invoices_created",
+    )
+    cashier = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invoices_cashed",
+    )
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    payment_method = models.CharField(
+        max_length=10, choices=PAYMENT_METHODS, default="CONTADO"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            last_invoice = Invoice.objects.order_by("-invoice_number").first()
+            self.invoice_number = (
+                (last_invoice.invoice_number + 1) if last_invoice else 1
+            )
+        super().save(*args, **kwargs)
+
+    def get_items(self):
+        return self.invoiceitem_set.select_related("product")
+
+    def __str__(self):
+        return f"Factura #{self.invoice_number}"
+
+
+class InvoiceItem(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def save(self, *args, **kwargs):
+        self.total = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name}"
+
+
+# ==========================
+# 💰 ARQUEO DE CAJA
+# ==========================
+
+
+class CashRegister(models.Model):
+    user = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True)
+    date = models.DateField(auto_now_add=True)
+    opening_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    closing_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_contado = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_credito = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    closing_time = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def get_status_display(self):
+        return "Cerrado" if self.closing_time else "Abierto"
+
+    def get_expected_cash(self):
+        if self.closing_time:
+            return self.opening_amount + self.total_contado
+        return None
+
+    def get_difference(self):
+        if self.closing_amount is not None:
+            expected = self.opening_amount + self.total_contado
+            return self.closing_amount - expected
+        return None
+
+    @staticmethod
+    def get_active():
+        return CashRegister.objects.filter(closing_time__isnull=True).first()
+
+    def __str__(self):
+        return f"Arqueo #{self.id} - {self.date} ({self.get_status_display()})"
+
+
+class Company(models.Model):
     name = models.CharField(max_length=255, verbose_name="Nombre de la empresa")
     ruc = models.CharField(max_length=20, verbose_name="RUC", blank=True, null=True)
     address = models.TextField(verbose_name="Dirección", blank=True, null=True)

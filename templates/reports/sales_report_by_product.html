@@ -1,9 +1,19 @@
 {% extends "layout.html" %}
-{% load humanize %}
+{% load static %}
+
 {% block title %}Reporte de Ventas por Producto{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet">
+<style>
+    .gridjs-wrapper { box-shadow: none; }
+    .gridjs-table { width: 100%; }
+</style>
+{% endblock %}
+
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">Reporte de Ventas por Producto</h1>
+        <h1 class="mb-4"><i class="material-icons">point_of_sale</i> Reporte de Ventas por Producto</h1>
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Filtros</h5>
@@ -34,61 +44,94 @@
                 </form>
             </div>
         </div>
-        <div class="table-responsive mb-4">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Area de Despacho</th>
-                        <th>Producto</th>
-                        <th class="text-end">Precio Unitario</th>
-                        <th class="text-end">Cantidad Vendida</th>
-                        <th class="text-end">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i in items %}
-                        <tr>
-                            <td>{{ i.product__dispatch_area__name }}</td>
-                            <td>{{ i.product__name }}</td>
-                            <td class="text-end">C$ {{ i.price|floatformat:2|intcomma }}</td>
-                            <td class="text-end">{{ i.total_qty|intcomma }}</td>
-                            <td class="text-end">C$ {{ i.total_sales|floatformat:2|intcomma }}</td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center">Sin ventas registradas</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th colspan="4">Total general</th>
-                        <th class="text-end">C$ {{ total_sales|floatformat:2|intcomma }}</th>
-                    </tr>
-                </tfoot>
-            </table>
+        
+        <div class="card">
+            <div class="card-body">
+                <div id="sales_by_product"></div>
+            </div>
         </div>
-        <h3 class="h5 mb-3">Totales por área de despacho</h3>
-        <div class="table-responsive mb-3">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Área</th>
-                        <th class="text-end">Ventas totales</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in totals_by_dispatch_area %}
-                        <tr>
-                            <td>{{ t.product__dispatch_area__name }}</td>
-                            <td class="text-end">C$ {{ t.area_total_sales|floatformat:2|intcomma }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <p>
+        
+        <p class="mt-3">
             <small class="text-body-secondary">Mostrando ventas pagadas entre {{ start|date:"d/m/Y H:i" }} y {{ end|date:"d/m/Y H:i" }}</small>
         </p>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
+<script>
+(function() {
+    'use strict';
+    
+    const apiUrl = '/api/sales-by-product/?start={{ start|date:"Y-m-d\\TH:i" }}&end={{ end|date:"Y-m-d\\TH:i" }}';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableElement = document.getElementById('sales_by_product');
+        if (!tableElement) return;
+        
+        const grid = new gridjs.Grid({
+            columns: [
+                { name: 'Área', id: 'dispatch_area', sort: { enabled: true } },
+                { name: 'Producto', id: 'product', sort: { enabled: true } },
+                { 
+                    name: 'Precio', 
+                    id: 'price', 
+                    sort: { enabled: true },
+                    formatter: function(cell) {
+                        return 'C$ ' + cell.toFixed(2);
+                    }
+                },
+                { name: 'Cantidad', id: 'quantity', sort: { enabled: true } },
+                { 
+                    name: 'Total', 
+                    id: 'total', 
+                    sort: { enabled: true },
+                    formatter: function(cell) {
+                        return 'C$ ' + cell.toFixed(2);
+                    }
+                }
+            ],
+            server: {
+                url: apiUrl,
+                then: function(data) {
+                    return data.results.map(function(s) {
+                        return [
+                            s.dispatch_area,
+                            s.product,
+                            'C$ ' + s.price.toFixed(2),
+                            s.quantity,
+                            'C$ ' + s.total.toFixed(2)
+                        ];
+                    });
+                },
+                total: function(data) {
+                    return data.count;
+                }
+            },
+            search: {
+                enabled: true,
+                placeholder: 'Buscar...'
+            },
+            sort: {
+                enabled: true
+            },
+            pagination: {
+                enabled: true,
+                limit: 25,
+                limits: [10, 25, 50, 100],
+                summary: true,
+                labels: {
+                    first: '«',
+                    last: '»',
+                    prev: '‹',
+                    next: '›'
+                }
+            },
+            language: 'es-ES'
+        });
+        
+        grid.render(tableElement);
+    });
+})();
+</script>
 {% endblock %}

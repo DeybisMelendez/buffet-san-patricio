@@ -88,6 +88,7 @@ urlpatterns = [
     # ==========================
     # Reports - Reportes
     # ==========================
+    path("reports/", views.reports_index, name="reports_index"),
     path("reports/inventory/", views.report_inventory, name="report_inventory"),
     path("reports/inventory/print/", views.print_inventory_report, name="print_inventory_report"),
     path("reports/inventory/csv/", views.export_inventory_csv, name="export_inventory_csv"),
@@ -140,6 +141,25 @@ urlpatterns = [
         views.api_movements,
         name="api_movements"
     ),
+    path("api/inventory/", views.api_inventory, name="api_inventory"),
+    path("api/sales-today/", views.api_sales_today, name="api_sales_today"),
+    path("api/sales-by-product/", views.api_sales_by_product, name="api_sales_by_product"),
+    path("api/orders-report/", views.api_orders_report, name="api_orders_report"),
+    # ==========================
+    # 🧾 FACTURACIÓN
+    # ==========================
+    path("pos/table/<int:table_id>/invoice/", views.invoice_table, name="invoice_table"),
+    path("invoices/", views.invoice_list, name="invoice_list"),
+    path("invoices/<int:invoice_id>/print/", views.print_invoice, name="print_invoice"),
+    path("api/invoices/", views.api_invoices, name="api_invoices"),
+    # ==========================
+    # 💰 ARQUEO DE CAJA
+    # ==========================
+    path("cash/", views.cash_register_list, name="cash_register_list"),
+    path("cash/open/", views.cash_register_open, name="cash_register_open"),
+    path("cash/<int:register_id>/", views.cash_register_detail, name="cash_register_detail"),
+    path("cash/<int:register_id>/close/", views.cash_register_close, name="cash_register_close"),
+    path("cash/status/", views.api_cash_register_status, name="api_cash_register_status"),
     # ==========================
     # Demo Grid.js
     # ==========================

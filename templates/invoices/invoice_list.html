@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% block title %}Lista de Facturas{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">Lista de Facturas</h1>
+        {% if invoices %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Fecha</th>
+                            <th>Mesa</th>
+                            <th>Atendió</th>
+                            <th>Cajero</th>
+                            <th class="text-end">Total</th>
+                            <th>Pago</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ invoice.invoice_number }}</strong>
+                                </td>
+                                <td>{{ invoice.created_at|date:"d/m/Y" }} {{ invoice.created_at|time:"H:i" }}</td>
+                                <td>{{ invoice.table.name|default:"—" }}</td>
+                                <td>{{ invoice.user.username|default:"—" }}</td>
+                                <td>{{ invoice.cashier.username|default:"—" }}</td>
+                                <td class="text-end">C$ {{ invoice.total|floatformat:2|intcomma }}</td>
+                                <td>
+                                    {% if invoice.payment_method == 'CONTADO' %}
+                                        <span class="badge bg-success">Contado</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Crédito</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'print_invoice' invoice.id %}"
+                                       class="btn btn-sm btn-primary"
+                                       target="_blank">
+                                        <i class="material-icons">print</i> Imprimir
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">No hay facturas registradas.</div>
+        {% endif %}
+        <a href="{% url 'table_list' %}" class="btn btn-secondary mt-3">
+            <i class="material-icons">arrow_back</i> Volver a Mesas
+        </a>
+    </div>
+{% endblock %}

@@ -1,12 +1,19 @@
 {% extends "layout.html" %}
-{% load humanize %}
+{% load static %}
+
 {% block title %}Reporte de Inventario{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet">
+<style>
+    .gridjs-wrapper { box-shadow: none; }
+    .gridjs-table { width: 100%; }
+</style>
+{% endblock %}
+
 {% block body %}
     <div class="container">
         <h1 class="mb-4"><i class="material-icons">inventory</i> Reporte de Inventario</h1>
-        <p>
-            <strong>Total de ingredientes:</strong> {{ total_items }}
-        </p>
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Inventario</h5>
@@ -18,30 +25,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Ingrediente</th>
-                                <th class="text-end">Cantidad actual</th>
-                                <th>Unidad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for i in ingredients %}
-                                <tr>
-                                    <td>{{ i.name }}</td>
-                                    <td class="text-end">{{ i.stock_quantity|floatformat:2|intcomma }}</td>
-                                    <td>{{ i.unit|default:"—" }}</td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center">No hay ingredientes registrados.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <div id="inventory"></div>
             </div>
         </div>
         {% if print %}
@@ -49,5 +33,76 @@
                 <iframe :srcdoc="comandaHtml" frameborder="0" style="display: none"></iframe>
             </div>
         {% endif %}
+        <p class="mt-3">
+            <small class="text-body-secondary">Total de ingredientes: {{ total_items }}</small>
+        </p>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
+<script>
+(function() {
+    'use strict';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableElement = document.getElementById('inventory');
+        if (!tableElement) return;
+        
+        const grid = new gridjs.Grid({
+            columns: [
+                { name: 'Nombre', id: 'name', sort: { enabled: true } },
+                { 
+                    name: 'Stock', 
+                    id: 'stock', 
+                    sort: { enabled: true },
+                    formatter: function(cell) {
+                        return cell.toFixed(2);
+                    }
+                },
+                { name: 'Unidad', id: 'unit', sort: { enabled: true } },
+                { name: 'Almacén', id: 'warehouse', sort: { enabled: true } }
+            ],
+            server: {
+                url: '/api/inventory/',
+                then: function(data) {
+                    return data.results.map(function(i) {
+                        return [
+                            i.name,
+                            i.stock.toFixed(2),
+                            i.unit,
+                            i.warehouse
+                        ];
+                    });
+                },
+                total: function(data) {
+                    return data.count;
+                }
+            },
+            search: {
+                enabled: true,
+                placeholder: 'Buscar...'
+            },
+            sort: {
+                enabled: true
+            },
+            pagination: {
+                enabled: true,
+                limit: 25,
+                limits: [10, 25, 50, 100],
+                summary: true,
+                labels: {
+                    first: '«',
+                    last: '»',
+                    prev: '‹',
+                    next: '›'
+                }
+            },
+            language: 'es-ES'
+        });
+        
+        grid.render(tableElement);
+    });
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% block title %}Cerrar Turno #{{ register.id }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">Cerrar Turno de Caja</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small>Monto de Apertura:</small>
+                                    <p class="mb-0 fw-bold">C$ {{ register.opening_amount|floatformat:2|intcomma }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <small>Ventas en Efectivo:</small>
+                                    <p class="mb-0 fw-bold text-success">C$ {{ register.total_contado|floatformat:2|intcomma }}</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="text-center">
+                                <small>Monto Esperado en Caja:</small>
+                                <h3 class="mb-0">C$ {{ expected|floatformat:2|intcomma }}</h3>
+                            </div>
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="closing_amount" class="form-label">Monto Real en Caja (C$)</label>
+                                <input type="number"
+                                       class="form-control form-control-lg"
+                                       id="closing_amount"
+                                       name="closing_amount"
+                                       step="0.01"
+                                       min="0"
+                                       value="{{ expected|stringformat:'f' }}"
+                                       required>
+                                <div class="form-text">Ingrese el efectivo que hay físicamente en caja.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Observaciones (opcional)</label>
+                                <textarea class="form-control"
+                                          id="notes"
+                                          name="notes"
+                                          rows="3"
+                                          placeholder="Notas adicionales sobre el turno..."></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger btn-lg">
+                                    <i class="material-icons">lock</i> Cerrar Turno
+                                </button>
+                                <a href="{% url 'cash_register_list' %}"
+                                   class="btn btn-secondary btn-lg">Cancelar</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

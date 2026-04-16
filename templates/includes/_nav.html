@@ -75,6 +75,31 @@
                         </ul>
                     </li>
                 {% endif %}
+                <!-- Facturación -->
+                {% if user|can_mark_paid %}
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="material-icons">receipt_long</i> Facturación
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url 'invoice_list' %}" class="dropdown-item"><i class="material-icons">list</i> Lista de Facturas</a></li>
+                            {% if user|can_view_invoices %}
+                            <li><a href="{% url 'table_list' %}" class="dropdown-item"><i class="material-icons">table_restaurant</i> Facturar Mesas</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                {% endif %}
+                <!-- Arqueo de Caja -->
+                {% if user|has_group:"Cajero" or user|has_group:"Supervisor" or user|is_administrador or user.is_superuser %}
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="material-icons">point_of_sale</i> Caja
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url 'cash_register_list' %}" class="dropdown-item"><i class="material-icons">account_balance_wallet</i> Arqueo de Caja</a></li>
+                        </ul>
+                    </li>
+                {% endif %}
                 <!-- Reportes -->
                 {% if user|can_view_reports %}
                     <li class="nav-item dropdown">
@@ -82,13 +107,17 @@
                             <i class="material-icons">assessment</i> Reportes
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a href="{% url 'reports_index' %}" class="dropdown-item"><i class="material-icons">dashboard</i> Panel de Reportes</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             {% if user|can_view_sales_report %}
-                                <li><a href="{% url 'sales_report_by_product' %}" class="dropdown-item">Ventas</a></li>
+                                <li><a href="{% url 'daily_report' %}" class="dropdown-item">Ventas del Día</a></li>
+                                <li><a href="{% url 'sales_report_by_product' %}" class="dropdown-item">Ventas por Producto</a></li>
                             {% endif %}
                             {% if user|can_view_order_history %}
                                 <li><a href="{% url 'report_orders' %}" class="dropdown-item">Comandas</a></li>
                             {% endif %}
                             {% if user|can_view_inventory %}
+                                <li><a href="{% url 'report_inventory' %}" class="dropdown-item">Inventario</a></li>
                                 <li><a href="{% url 'report_movements' %}" class="dropdown-item">Movimientos</a></li>
                             {% endif %}
                         </ul>

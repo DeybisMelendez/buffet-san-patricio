@@ -33,7 +33,20 @@ SECRET_KEY = os.environ.get(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "") == "True"
-ALLOWED_HOSTS = ["*"]
+
+# Configure ALLOWED_HOSTS based on environment
+if DEBUG:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+else:
+    allowed_hosts_env = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+    if allowed_hosts_env:
+        ALLOWED_HOSTS = [
+            host.strip() for host in allowed_hosts_env.split(",") if host.strip()
+        ]
+    else:
+        # In production, DJANGO_ALLOWED_HOSTS must be set
+        # Fallback to empty list to enforce security
+        ALLOWED_HOSTS = ["*"]
 
 
 # Application definition

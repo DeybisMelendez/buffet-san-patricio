@@ -12,15 +12,34 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from users.utils import (has_valid_role, user_can_add_inventory_movement,
-                         user_can_manage_inventory_full, user_can_manage_menu,
-                         user_can_mark_paid, user_can_view_inventory,
-                         user_can_view_reports, user_can_view_sales_report)
+from users.utils import (
+    has_valid_role,
+    user_can_add_inventory_movement,
+    user_can_manage_inventory_full,
+    user_can_manage_menu,
+    user_can_mark_paid,
+    user_can_view_inventory,
+    user_can_view_reports,
+    user_can_view_sales_report,
+)
 
 from .forms import ProductIngredientForm
-from .models import (Company, DispatchArea, Ingredient, IngredientMovement,
-                     Order, OrderItem, Product, ProductCategory,
-                     ProductIngredient, Table, Warehouse)
+from .models import (
+    CashRegister,
+    Company,
+    DispatchArea,
+    Ingredient,
+    IngredientMovement,
+    Invoice,
+    InvoiceItem,
+    Order,
+    OrderItem,
+    Product,
+    ProductCategory,
+    ProductIngredient,
+    Table,
+    Warehouse,
+)
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -86,18 +105,75 @@ def table_orders(request, table_id):
 @login_required
 @user_passes_test(user_can_mark_paid)
 def mark_table_paid(request, table_id):
-    """Marca todas las órdenes no pagadas de una mesa como pagadas."""
+    """Marca todas las órdenes no pagadas de una mesa como pagadas y genera factura."""
     table = get_object_or_404(Table, id=table_id)
-    unpaid = Order.objects.filter(table=table, is_paid=False)
+    orders = Order.objects.filter(table=table, is_paid=False).prefetch_related(
+        "orderitem_set__product"
+    )
 
-    if not unpaid.exists():
+    if not orders.exists():
         messages.info(request, f"ℹ️ No hay comandas pendientes para {table.name}.")
-    else:
-        count = unpaid.update(is_paid=True)
-        messages.success(
-            request,
-            f"✅ {count} comandas de la mesa {table.name} marcadas como pagadas.",
+        return redirect("table_list")
+
+    with transaction.atomic():
+        subtotal = Decimal("0")
+        items_data = []
+
+        for order in orders:
+            for item in order.orderitem_set.all():
+                line_total = item.quantity * item.product.price
+                subtotal += line_total
+                items_data.append(
+                    {
+                        "product": item.product,
+                        "quantity": item.quantity,
+                        "unit_price": item.product.price,
+                        "total": line_total,
+                    }
+                )
+
+        if not items_data:
+            messages.warning(request, "⚠️ No hay productos para facturar.")
+            return redirect("table_orders", table_id=table.id)
+
+        active_register = CashRegister.get_active()
+        if not active_register:
+            messages.error(
+                request,
+                "❌ No hay una caja abierta. Abre un turno en 'Caja' antes de facturar.",
+            )
+            return redirect("table_orders", table_id=table.id)
+
+        cashier = active_register.user
+
+        invoice = Invoice.objects.create(
+            table=table,
+            user=request.user,
+            cashier=cashier,
+            subtotal=subtotal,
+            total=subtotal,
+            payment_method="CONTADO",
         )
+
+        for item_data in items_data:
+            InvoiceItem.objects.create(
+                invoice=invoice,
+                product=item_data["product"],
+                quantity=item_data["quantity"],
+                unit_price=item_data["unit_price"],
+                total=item_data["total"],
+            )
+
+        orders.update(is_paid=True)
+
+        active_register.total_contado += subtotal
+        active_register.total_sales += subtotal
+        active_register.save()
+
+    messages.success(
+        request,
+        f"✅ Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
+    )
 
     return redirect("table_list")
 
@@ -182,7 +258,9 @@ def edit_order(request, order_id):
         return redirect("order_detail", order_id=order.id)
 
     return render(
-        request, "pos/edit_order.html", {"order": order, "tables": tables, "users": users}
+        request,
+        "pos/edit_order.html",
+        {"order": order, "tables": tables, "users": users},
     )
 
 
@@ -345,7 +423,16 @@ def purchase_ingredients(request):
         )
         return redirect("purchase_ingredients")
 
-    return render(request, "inventory/purchase_ingredients.html", {"ingredients": ingredients})
+    return render(
+        request, "inventory/purchase_ingredients.html", {"ingredients": ingredients}
+    )
+
+
+@login_required
+@user_passes_test(user_can_view_reports)
+def reports_index(request):
+    """Página principal de reportes."""
+    return render(request, "reports/index.html")
 
 
 @login_required
@@ -498,7 +585,13 @@ def report_movements(request):
     return render(
         request,
         "reports/report_movements.html",
-        {"movements": moves, "start": start, "end": end, "search": search},
+        {
+            "movements": moves,
+            "start": start,
+            "end": end,
+            "search": search,
+            "api_url": f"/api/movements/?start={start.strftime('%Y-%m-%dT%H:%M')}&end={end.strftime('%Y-%m-%dT%H:%M')}&search={search or ''}",
+        },
     )
 
 
@@ -585,6 +678,7 @@ def sales_report_by_product(request):
         "start": start,
         "end": end,
         "totals_by_dispatch_area": totals_by_dispatch_area,
+        "api_url": f"/api/sales-by-product/?start={start.strftime('%Y-%m-%dT%H:%M')}&end={end.strftime('%Y-%m-%dT%H:%M')}",
     }
     return render(request, "reports/sales_report_by_product.html", context)
 
@@ -621,6 +715,416 @@ def export_sales_by_product_csv(request):
         )
 
     return response
+
+
+# ==========================
+# 📊 APIs JSON PARA REPORTES
+# ==========================
+
+
+@login_required
+@user_passes_test(user_can_view_sales_report)
+def api_sales_today(request):
+    """API JSON: Ventas del día actual."""
+    today = datetime.today().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
+
+    items = (
+        OrderItem.objects.filter(
+            order__is_paid=True, order__created_at__range=(start, end)
+        )
+        .select_related("product", "order")
+        .values(
+            "product__name",
+            "product__dispatch_area__name",
+            "product__price",
+        )
+        .annotate(
+            total_qty=Sum("quantity"),
+            total_sales=Sum(F("quantity") * F("product__price")),
+        )
+        .order_by("product__dispatch_area__name", "product__name")
+    )
+
+    data = [
+        {
+            "dispatch_area": i["product__dispatch_area__name"] or "Sin área",
+            "product": i["product__name"],
+            "price": float(i["product__price"]),
+            "quantity": i["total_qty"],
+            "total": float(i["total_sales"] or 0),
+        }
+        for i in items
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@user_passes_test(user_can_view_reports)
+def api_orders(request):
+    """API JSON: Lista de comandas."""
+    orders = (
+        Order.objects.all()
+        .select_related("table", "user")
+        .order_by("-created_at")[:100]
+    )
+
+    data = [
+        {
+            "id": o.id,
+            "table": o.table.name if o.table else "Sin mesa",
+            "total": float(o.get_total()),
+            "status": o.get_status_display(),
+            "created_at": o.created_at.strftime("%d/%m/%Y %H:%M"),
+            "user": o.user.username if o.user else "—",
+        }
+        for o in orders
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@user_passes_test(user_can_view_inventory)
+def api_inventory(request):
+    """API JSON: Inventario actual con paginación."""
+    queryset = Ingredient.objects.select_related("warehouse").order_by("name")
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(name__icontains=search)
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        try:
+            field, direction = sort.split(",")
+            if direction == "desc":
+                field = f"-{field}"
+            queryset = queryset.order_by(field)
+        except ValueError:
+            pass
+
+    try:
+        page = int(request.GET.get("page", 1))
+        limit = int(request.GET.get("limit", 25))
+    except ValueError:
+        page = 1
+        limit = 25
+
+    if limit == 0:
+        items = list(
+            queryset.values("id", "name", "stock_quantity", "unit", "warehouse__name")
+        )
+        data = [
+            {
+                "id": i["id"],
+                "name": i["name"],
+                "stock": float(i["stock_quantity"]),
+                "unit": dict(Ingredient.UNITS).get(i["unit"], i["unit"]),
+                "warehouse": i["warehouse__name"] or "—",
+            }
+            for i in items
+        ]
+        return JsonResponse({"count": len(data), "results": data}, safe=False)
+
+    total = queryset.count()
+    start = (page - 1) * limit
+    end = start + limit
+    items = list(
+        queryset.values("id", "name", "stock_quantity", "unit", "warehouse__name")[
+            start:end
+        ]
+    )
+
+    data = [
+        {
+            "id": i["id"],
+            "name": i["name"],
+            "stock": float(i["stock_quantity"]),
+            "unit": dict(Ingredient.UNITS).get(i["unit"], i["unit"]),
+            "warehouse": i["warehouse__name"] or "—",
+        }
+        for i in items
+    ]
+
+    return JsonResponse({"count": total, "results": data}, safe=False)
+
+
+@login_required
+@user_passes_test(user_can_view_inventory)
+def api_movements(request):
+    """API JSON: Movimientos de inventario con paginación."""
+    start, end = parse_date_range(request)
+
+    queryset = IngredientMovement.objects.filter(
+        created_at__range=(start, end)
+    ).select_related("ingredient", "user")
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(
+            Q(reason__icontains=search) | Q(ingredient__name__icontains=search)
+        )
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        try:
+            field, direction = sort.split(",")
+            if direction == "desc":
+                field = f"-{field}"
+            queryset = queryset.order_by(field)
+        except ValueError:
+            queryset = queryset.order_by("-created_at")
+    else:
+        queryset = queryset.order_by("-created_at")
+
+    try:
+        page = int(request.GET.get("page", 1))
+        limit = int(request.GET.get("limit", 25))
+    except ValueError:
+        page = 1
+        limit = 25
+
+    if limit == 0:
+        items = list(
+            queryset.values(
+                "id",
+                "created_at",
+                "ingredient__name",
+                "quantity",
+                "reason",
+                "user__username",
+            )
+        )
+        data = [
+            {
+                "id": i["id"],
+                "date": i["created_at"].strftime("%d/%m/%Y %H:%M"),
+                "ingredient": i["ingredient__name"],
+                "quantity": float(i["quantity"]),
+                "reason": i["reason"] or "—",
+                "user": i["user__username"] or "—",
+            }
+            for i in items
+        ]
+        return JsonResponse({"count": len(data), "results": data}, safe=False)
+
+    total = queryset.count()
+    start = (page - 1) * limit
+    end = start + limit
+    items = list(
+        queryset.values(
+            "id",
+            "created_at",
+            "ingredient__name",
+            "quantity",
+            "reason",
+            "user__username",
+        )[start:end]
+    )
+
+    data = [
+        {
+            "id": i["id"],
+            "date": i["created_at"].strftime("%d/%m/%Y %H:%M"),
+            "ingredient": i["ingredient__name"],
+            "quantity": float(i["quantity"]),
+            "reason": i["reason"] or "—",
+            "user": i["user__username"] or "—",
+        }
+        for i in items
+    ]
+
+    return JsonResponse({"count": total, "results": data}, safe=False)
+
+
+@login_required
+@user_passes_test(user_can_view_sales_report)
+def api_sales_by_product(request):
+    """API JSON: Ventas por producto con paginación."""
+    start, end = parse_date_range(request)
+
+    queryset = (
+        OrderItem.objects.filter(
+            order__is_paid=True, order__created_at__range=(start, end)
+        )
+        .select_related("product", "product__dispatch_area")
+        .values("product__name", "product__dispatch_area__name", "product__price")
+        .annotate(
+            total_qty=Sum("quantity"),
+            total_sales=Sum(F("quantity") * F("product__price")),
+            price=F("product__price"),
+        )
+    )
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(product__name__icontains=search)
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        try:
+            field, direction = sort.split(",")
+            sort_field = field
+            if field == "dispatch_area":
+                sort_field = "product__dispatch_area__name"
+            elif field == "product":
+                sort_field = "product__name"
+            elif field == "price":
+                sort_field = "product__price"
+            elif field == "quantity":
+                sort_field = "total_qty"
+            elif field == "total":
+                sort_field = "total_sales"
+            if direction == "desc":
+                sort_field = f"-{sort_field}"
+            queryset = queryset.order_by(sort_field)
+        except ValueError:
+            queryset = queryset.order_by(
+                "product__dispatch_area__name", "product__name"
+            )
+    else:
+        queryset = queryset.order_by("product__dispatch_area__name", "product__name")
+
+    try:
+        page = int(request.GET.get("page", 1))
+        limit = int(request.GET.get("limit", 25))
+    except ValueError:
+        page = 1
+        limit = 25
+
+    if limit == 0:
+        items = list(queryset)
+        data = [
+            {
+                "dispatch_area": i["product__dispatch_area__name"] or "Sin área",
+                "product": i["product__name"],
+                "price": float(i["price"]),
+                "quantity": i["total_qty"],
+                "total": float(i["total_sales"] or 0),
+            }
+            for i in items
+        ]
+        return JsonResponse({"count": len(data), "results": data}, safe=False)
+
+    total = queryset.count()
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    items = list(queryset[start_idx:end_idx])
+
+    data = [
+        {
+            "dispatch_area": i["product__dispatch_area__name"] or "Sin área",
+            "product": i["product__name"],
+            "price": float(i["price"]),
+            "quantity": i["total_qty"],
+            "total": float(i["total_sales"] or 0),
+        }
+        for i in items
+    ]
+
+    return JsonResponse({"count": total, "results": data}, safe=False)
+
+
+@login_required
+@user_passes_test(user_can_view_reports)
+def api_orders_report(request):
+    """API JSON: Reporte de comandas con paginación."""
+    start, end = parse_date_range(request)
+    table_id = request.GET.get("table")
+
+    queryset = (
+        OrderItem.objects.filter(order__created_at__range=(start, end))
+        .select_related("order", "product", "order__table", "order__user")
+        .order_by("-order__created_at", "-id")
+    )
+
+    if table_id:
+        queryset = queryset.filter(order__table_id=table_id)
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(
+            Q(product__name__icontains=search)
+            | Q(order__table__name__icontains=search)
+            | Q(order__user__username__icontains=search)
+        )
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        try:
+            field, direction = sort.split(",")
+            sort_field = field
+            if field == "date":
+                sort_field = "order__created_at"
+            elif field == "order_id":
+                sort_field = "order__id"
+            elif field == "user":
+                sort_field = "order__user__username"
+            elif field == "table":
+                sort_field = "order__table__name"
+            elif field == "quantity":
+                sort_field = "quantity"
+            elif field == "product":
+                sort_field = "product__name"
+            elif field == "price":
+                sort_field = "product__price"
+            elif field == "total":
+                sort_field = "order__id"
+            if direction == "desc":
+                sort_field = f"-{sort_field}"
+            queryset = queryset.order_by(sort_field)
+        except ValueError:
+            pass
+
+    try:
+        page = int(request.GET.get("page", 1))
+        limit = int(request.GET.get("limit", 25))
+    except ValueError:
+        page = 1
+        limit = 25
+
+    if limit == 0:
+        items = list(queryset)
+        data = [
+            {
+                "id": i.id,
+                "date": (
+                    i.order.created_at.strftime("%d/%m/%Y %H:%M") if i.order else "—"
+                ),
+                "order_id": i.order.id if i.order else None,
+                "user": i.order.user.username if i.order and i.order.user else "—",
+                "table": i.order.table.name if i.order and i.order.table else "—",
+                "quantity": i.quantity,
+                "product": i.product.name,
+                "price": float(i.product.price),
+                "total": float(i.get_total() or 0),
+            }
+            for i in items
+        ]
+        return JsonResponse({"count": len(data), "results": data}, safe=False)
+
+    total = queryset.count()
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    items = list(queryset[start_idx:end_idx])
+
+    data = [
+        {
+            "id": i.id,
+            "date": i.order.created_at.strftime("%d/%m/%Y %H:%M") if i.order else "—",
+            "order_id": i.order.id if i.order else None,
+            "user": i.order.user.username if i.order and i.order.user else "—",
+            "table": i.order.table.name if i.order and i.order.table else "—",
+            "quantity": i.quantity,
+            "product": i.product.name,
+            "price": float(i.product.price),
+            "total": float(i.get_total() or 0),
+        }
+        for i in items
+    ]
+
+    return JsonResponse({"count": total, "results": data}, safe=False)
 
 
 # ==========================
@@ -1043,7 +1547,9 @@ def product_recipes(request, product_id):
 def ingredient_list(request):
     """Lista todos los ingredientes."""
     ingredients = Ingredient.objects.all().select_related("warehouse").order_by("name")
-    return render(request, "inventory/ingredient_list.html", {"ingredients": ingredients})
+    return render(
+        request, "inventory/ingredient_list.html", {"ingredients": ingredients}
+    )
 
 
 @login_required
@@ -1215,10 +1721,15 @@ def company_settings(request):
 @user_passes_test(has_valid_role)
 def dashboard(request):
     """Dashboard principal con gráficos adaptados al grupo del usuario."""
-    from users.utils import (is_administrador, is_cajero, is_cocinero,
-                             is_servicio, is_supervisor,
-                             user_can_view_inventory,
-                             user_can_view_sales_report)
+    from users.utils import (
+        is_administrador,
+        is_cajero,
+        is_cocinero,
+        is_servicio,
+        is_supervisor,
+        user_can_view_inventory,
+        user_can_view_sales_report,
+    )
 
     # Obtener fecha actual
     today = timezone.now().date()
@@ -1345,9 +1856,8 @@ def api_ingredients(request):
 @login_required
 def api_products(request):
     """API endpoint que retorna lista de productos en formato JSON para Grid.js."""
-    products = (
-        Product.objects.select_related("category", "dispatch_area")
-        .order_by("name")
+    products = Product.objects.select_related("category", "dispatch_area").order_by(
+        "name"
     )
     data = [
         {
@@ -1404,43 +1914,308 @@ def api_tables(request):
     return JsonResponse(data, safe=False)
 
 
+# ==========================
+# 🧾 FACTURACIÓN
+# ==========================
+
+
+def user_can_invoice(user):
+    """Verifica si el usuario puede facturar."""
+    return user.has_perm("orders.add_invoice") or user.has_perm("orders.change_order")
+
+
+def user_can_view_invoices(user):
+    """Verifica si el usuario puede ver facturas."""
+    return user.has_perm("orders.view_invoice")
+
+
+def user_can_manage_cash_register(user):
+    """Verifica si el usuario puede gestionar arqueo de caja."""
+    allowed_groups = ["Cajero", "Supervisor", "Administrador"]
+    return user.groups.filter(name__in=allowed_groups).exists() or user.is_superuser
+
+
 @login_required
-def api_orders(request):
-    """API endpoint que retorna lista de órdenes en formato JSON para Grid.js."""
-    orders = (
-        Order.objects.select_related("table", "user")
-        .order_by("-created_at")
+@user_passes_test(user_can_invoice)
+def invoice_table(request, table_id):
+    """Genera una factura para todos los items de una mesa."""
+    table = get_object_or_404(Table, id=table_id)
+    orders = Order.objects.filter(table=table, is_paid=False).prefetch_related(
+        "orderitem_set__product"
     )
+
+    if not orders.exists():
+        messages.info(request, f"ℹ️ No hay comandas pendientes para {table.name}.")
+        return redirect("table_orders", table_id=table.id)
+
+    if request.method == "POST":
+        payment_method = request.POST.get("payment_method", "CONTADO")
+
+        with transaction.atomic():
+            subtotal = Decimal("0")
+            items_data = []
+
+            for order in orders:
+                for item in order.orderitem_set.all():
+                    line_total = item.quantity * item.product.price
+                    subtotal += line_total
+                    items_data.append(
+                        {
+                            "product": item.product,
+                            "quantity": item.quantity,
+                            "unit_price": item.product.price,
+                            "total": line_total,
+                        }
+                    )
+
+            if not items_data:
+                messages.warning(request, "⚠️ No hay productos para facturar.")
+                return redirect("table_orders", table_id=table.id)
+
+            active_register = CashRegister.get_active()
+            if not active_register:
+                messages.error(
+                    request,
+                    "❌ No hay una caja abierta. Abre un turno en 'Caja' antes de facturar.",
+                )
+                return redirect("table_orders", table_id=table.id)
+
+            cashier = active_register.user
+
+            invoice = Invoice.objects.create(
+                table=table,
+                user=request.user,
+                cashier=cashier,
+                subtotal=subtotal,
+                total=subtotal,
+                payment_method=payment_method,
+            )
+
+            for item_data in items_data:
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    product=item_data["product"],
+                    quantity=item_data["quantity"],
+                    unit_price=item_data["unit_price"],
+                    total=item_data["total"],
+                )
+
+            orders.update(is_paid=True)
+
+            if active_register:
+                if payment_method == "CONTADO":
+                    active_register.total_contado += subtotal
+                else:
+                    active_register.total_credito += subtotal
+                active_register.total_sales += subtotal
+                active_register.save()
+
+            messages.success(
+                request,
+                f"✅ Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
+            )
+
+            if request.POST.get("print") == "yes":
+                return redirect("print_invoice", invoice_id=invoice.id)
+
+            return redirect("table_list")
+
+    consolidated = {}
+    for order in orders:
+        for item in order.orderitem_set.all():
+            key = item.product.id
+            if key in consolidated:
+                consolidated[key]["quantity"] += item.quantity
+                consolidated[key]["total"] += item.quantity * item.product.price
+            else:
+                consolidated[key] = {
+                    "product": item.product,
+                    "quantity": item.quantity,
+                    "unit_price": item.product.price,
+                    "total": item.quantity * item.product.price,
+                }
+
+    items_list = list(consolidated.values())
+    total = sum(item["total"] for item in items_list)
+
+    return render(
+        request,
+        "invoices/invoice_form.html",
+        {
+            "table": table,
+            "items": items_list,
+            "total": total,
+        },
+    )
+
+
+@login_required
+@user_passes_test(user_can_view_invoices)
+def invoice_list(request):
+    """Lista todas las facturas."""
+    invoices = Invoice.objects.select_related("table", "user", "cashier")[:100]
+    return render(request, "invoices/invoice_list.html", {"invoices": invoices})
+
+
+@login_required
+@user_passes_test(user_can_view_invoices)
+def print_invoice(request, invoice_id):
+    """Imprime una factura en formato térmico."""
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    items = invoice.get_items()
+    company = Company.objects.first()
+
+    return render(
+        request,
+        "invoices/print_invoice.html",
+        {"invoice": invoice, "items": items, "company": company},
+    )
+
+
+@login_required
+@user_passes_test(user_can_view_invoices)
+def api_invoices(request):
+    """API JSON: Lista de facturas."""
+    invoices = (
+        Invoice.objects.all()
+        .select_related("table", "user", "cashier")
+        .order_by("-created_at")[:100]
+    )
+
     data = [
         {
-            "id": o.id,
-            "table": o.table.name if o.table else None,
-            "user": o.user.username if o.user else None,
-            "created_at": o.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": o.get_status_display(),
-            "total": float(o.get_total()),
+            "id": i.id,
+            "invoice_number": i.invoice_number,
+            "table": i.table.name if i.table else "Sin mesa",
+            "user": i.user.username if i.user else "—",
+            "cashier": i.cashier.username if i.cashier else "—",
+            "total": float(i.total),
+            "payment_method": i.payment_method,
+            "created_at": i.created_at.strftime("%d/%m/%Y %H:%M"),
         }
-        for o in orders
+        for i in invoices
     ]
     return JsonResponse(data, safe=False)
 
 
+# ==========================
+# 💰 ARQUEO DE CAJA
+# ==========================
+
+
 @login_required
-def api_movements(request):
-    """API endpoint que retorna lista de movimientos de inventario en formato JSON."""
-    movements = (
-        IngredientMovement.objects.select_related("ingredient", "user")
-        .order_by("-created_at")
+@user_passes_test(user_can_manage_cash_register)
+def cash_register_list(request):
+    """Lista todos los arqueos de caja."""
+    cash_registers = CashRegister.objects.select_related("user")[:50]
+    active = CashRegister.get_active()
+    return render(
+        request,
+        "cash/register_list.html",
+        {"cash_registers": cash_registers, "active_register": active},
     )
-    data = [
-        {
-            "id": m.id,
-            "ingredient": m.ingredient.name,
-            "quantity": float(m.quantity),
-            "reason": m.reason or "",
-            "user": m.user.username if m.user else None,
-            "created_at": m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+
+
+@login_required
+@user_passes_test(user_can_manage_cash_register)
+def cash_register_open(request):
+    """Abre un nuevo turno de caja."""
+    active = CashRegister.get_active()
+
+    if active:
+        messages.info(
+            request,
+            f"ℹ️ Ya hay un turno abierto desde {active.created_at.strftime('%H:%M')}",
+        )
+        return redirect("cash_register_detail", register_id=active.id)
+
+    if request.method == "POST":
+        try:
+            opening_amount = Decimal(request.POST.get("opening_amount", "0"))
+        except Exception:
+            messages.error(request, "❌ Monto de apertura inválido.")
+            return redirect("cash_register_open")
+
+        cash_register = CashRegister.objects.create(
+            user=request.user,
+            opening_amount=opening_amount,
+        )
+
+        messages.success(
+            request, f"✅ Turno #{cash_register.id} abierto con C$ {opening_amount:.2f}"
+        )
+        return redirect("cash_register_detail", register_id=cash_register.id)
+
+    return render(request, "cash/register_open.html")
+
+
+@login_required
+@user_passes_test(user_can_manage_cash_register)
+def cash_register_detail(request, register_id):
+    """Muestra el detalle del arqueo actual."""
+    cash_register = get_object_or_404(CashRegister, id=register_id)
+    return render(request, "cash/register_detail.html", {"register": cash_register})
+
+
+@login_required
+@user_passes_test(user_can_manage_cash_register)
+def cash_register_close(request, register_id):
+    """Cierra un turno de caja."""
+    cash_register = get_object_or_404(CashRegister, id=register_id)
+
+    if cash_register.closing_time:
+        messages.info(request, "ℹ️ Este turno ya está cerrado.")
+        return redirect("cash_register_list")
+
+    if request.method == "POST":
+        try:
+            closing_amount = Decimal(request.POST.get("closing_amount", "0"))
+        except Exception:
+            messages.error(request, "❌ Monto de cierre inválido.")
+            return redirect("cash_register_close", register_id=register_id)
+
+        notes = request.POST.get("notes", "").strip()
+
+        cash_register.closing_amount = closing_amount
+        cash_register.closing_time = timezone.now()
+        cash_register.notes = notes
+        cash_register.save()
+
+        expected = cash_register.opening_amount + cash_register.total_contado
+        difference = closing_amount - expected
+
+        if difference == 0:
+            messages.success(request, "✅ Turno cerrado. ¡Caja cuadrada!")
+        elif difference > 0:
+            messages.warning(request, f"⚠️ Sobran C$ {difference:.2f} en caja.")
+        else:
+            messages.warning(request, f"⚠️ Faltan C$ {abs(difference):.2f} en caja.")
+
+        return redirect("cash_register_list")
+
+    expected = cash_register.opening_amount + cash_register.total_contado
+    return render(
+        request,
+        "cash/register_close.html",
+        {"register": cash_register, "expected": expected},
+    )
+
+
+@login_required
+def api_cash_register_status(request):
+    """API: Retorna si hay un turno activo."""
+    active = CashRegister.get_active()
+    if active:
+        data = {
+            "active": True,
+            "id": active.id,
+            "user": active.user.username if active.user else "—",
+            "opening_amount": float(active.opening_amount),
+            "total_sales": float(active.total_sales),
+            "total_contado": float(active.total_contado),
+            "total_credito": float(active.total_credito),
+            "created_at": active.created_at.strftime("%H:%M"),
         }
-        for m in movements
-    ]
-    return JsonResponse(data, safe=False)
+    else:
+        data = {"active": False}
+    return JsonResponse(data)

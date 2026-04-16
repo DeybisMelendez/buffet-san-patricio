@@ -1,9 +1,19 @@
 {% extends "layout.html" %}
-{% load humanize %}
+{% load static %}
+
 {% block title %}Reporte de Ajustes de Inventario{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet">
+<style>
+    .gridjs-wrapper { box-shadow: none; }
+    .gridjs-table { width: 100%; }
+</style>
+{% endblock %}
+
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">Reporte de Ajustes de Inventario</h1>
+        <h1 class="mb-4"><i class="material-icons">swap_horiz</i> Reporte de Ajustes de Inventario</h1>
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Filtros</h5>
@@ -42,31 +52,87 @@
                 </form>
             </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>U/M</th>
-                        <th>Ingrediente</th>
-                        <th>Razón</th>
-                        <th class="text-end">Cantidad</th>
-                        <th>Usuario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for mov in movements %}
-                        <tr>
-                            <td>{{ mov.created_at|date:"d/m/Y H:i" }}</td>
-                            <td>{{ mov.ingredient.unit }}</td>
-                            <td>{{ mov.ingredient.name }}</td>
-                            <td>{{ mov.reason }}</td>
-                            <td class="text-end">{{ mov.quantity|intcomma }}</td>
-                            <td>{{ mov.user }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        
+        <div class="card">
+            <div class="card-body">
+                <div id="movements"></div>
+            </div>
         </div>
+        
+        <p class="mt-3">
+            <small class="text-body-secondary">Mostrando ajustes entre {{ start|date:"d/m/Y H:i" }} y {{ end|date:"d/m/Y H:i" }}</small>
+        </p>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
+<script>
+(function() {
+    'use strict';
+    
+    const apiUrl = '/api/movements/?start={{ start|date:"Y-m-d\\TH:i" }}&end={{ end|date:"Y-m-d\\TH:i" }}{% if search %}&search={{ search }}{% endif %}';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableElement = document.getElementById('movements');
+        if (!tableElement) return;
+        
+        const grid = new gridjs.Grid({
+            columns: [
+                { name: 'Fecha', id: 'date', sort: { enabled: true } },
+                { name: 'Ingrediente', id: 'ingredient', sort: { enabled: true } },
+                { 
+                    name: 'Cantidad', 
+                    id: 'quantity', 
+                    sort: { enabled: true },
+                    formatter: function(cell) {
+                        return cell >= 0 ? '+' + cell.toFixed(2) : cell.toFixed(2);
+                    }
+                },
+                { name: 'Razón', id: 'reason', sort: { enabled: true } },
+                { name: 'Usuario', id: 'user', sort: { enabled: true } }
+            ],
+            server: {
+                url: apiUrl,
+                then: function(data) {
+                    return data.results.map(function(m) {
+                        return [
+                            m.date,
+                            m.ingredient,
+                            m.quantity >= 0 ? '+' + m.quantity.toFixed(2) : m.quantity.toFixed(2),
+                            m.reason,
+                            m.user
+                        ];
+                    });
+                },
+                total: function(data) {
+                    return data.count;
+                }
+            },
+            search: {
+                enabled: true,
+                placeholder: 'Buscar...'
+            },
+            sort: {
+                enabled: true
+            },
+            pagination: {
+                enabled: true,
+                limit: 25,
+                limits: [10, 25, 50, 100],
+                summary: true,
+                labels: {
+                    first: '«',
+                    last: '»',
+                    prev: '‹',
+                    next: '›'
+                }
+            },
+            language: 'es-ES'
+        });
+        
+        grid.render(tableElement);
+    });
+})();
+</script>
 {% endblock %}

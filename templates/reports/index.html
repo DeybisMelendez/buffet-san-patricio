@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% load user_tags %}
+{% block title %}Reportes{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4"><i class="material-icons">assessment</i> Reportes</h1>
+        <p class="text-body-secondary mb-4">Accede a los diferentes reportes del sistema.</p>
+        
+        <div class="row g-4">
+            {% if user|can_view_sales_report %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="material-icons text-primary">point_of_sale</i> Ventas del Día</h5>
+                        <p class="card-text text-body-secondary">Resumen de ventas pagadas el día de hoy.</p>
+                        <a href="{% url 'daily_report' %}" class="btn btn-primary">Ver Reporte</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="material-icons text-primary">inventory_2</i> Ventas por Producto</h5>
+                        <p class="card-text text-body-secondary">Detalle de ventas por producto en un período.</p>
+                        <a href="{% url 'sales_report_by_product' %}" class="btn btn-primary">Ver Reporte</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user|can_view_order_history %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="material-icons text-success">receipt_long</i> Comandas</h5>
+                        <p class="card-text text-body-secondary">Lista de todas las comandas del sistema.</p>
+                        <a href="{% url 'report_orders' %}" class="btn btn-success">Ver Reporte</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user|can_view_inventory %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="material-icons text-warning">inventory</i> Inventario</h5>
+                        <p class="card-text text-body-secondary">Stock actual de todos los ingredientes.</p>
+                        <a href="{% url 'report_inventory' %}" class="btn btn-warning">Ver Reporte</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="material-icons text-warning">swap_horiz</i> Movimientos</h5>
+                        <p class="card-text text-body-secondary">Historial de movimientos de inventario.</p>
+                        <a href="{% url 'report_movements' %}" class="btn btn-warning">Ver Reporte</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

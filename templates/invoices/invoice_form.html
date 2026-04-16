@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% block title %}Facturar Mesa {{ table.name }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">Facturar Mesa {{ table.name }}</h1>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Resumen de Consumo</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Cantidad</th>
+                                <th>Producto</th>
+                                <th class="text-end">P. Unitario</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                                <tr>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.product.name }}</td>
+                                    <td class="text-end">C$ {{ item.unit_price|floatformat:2|intcomma }}</td>
+                                    <td class="text-end">C$ {{ item.total|floatformat:2|intcomma }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <th colspan="3" class="text-end">TOTAL:</th>
+                                <th class="text-end">C$ {{ total|floatformat:2|intcomma }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <form method="post" class="card">
+            {% csrf_token %}
+            <div class="card-body">
+                <h5 class="card-title">Confirmar Factura</h5>
+                <div class="mb-3">
+                    <label class="form-label">Forma de Pago</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input"
+                                   type="radio"
+                                   name="payment_method"
+                                   id="payment_contado"
+                                   value="CONTADO"
+                                   checked>
+                            <label class="form-check-label" for="payment_contado">
+                                <i class="material-icons text-success">payments</i> Contado
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input"
+                                   type="radio"
+                                   name="payment_method"
+                                   id="payment_credito"
+                                   value="CREDITO">
+                            <label class="form-check-label" for="payment_credito">
+                                <i class="material-icons text-warning">credit_card</i> Crédito
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="print_check"
+                           name="print"
+                           value="yes">
+                    <label class="form-check-label" for="print_check">Imprimir factura después de generar</label>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="material-icons">receipt</i> Generar Factura
+                    </button>
+                    <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}

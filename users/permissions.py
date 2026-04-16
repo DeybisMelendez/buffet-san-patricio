@@ -84,6 +84,20 @@ FULL_MANAGEMENT_PERMS = [
     "change_orderitem",
     "delete_orderitem",
     "view_orderitem",
+    # Facturación
+    "add_invoice",
+    "change_invoice",
+    "delete_invoice",
+    "view_invoice",
+    "add_invoiceitem",
+    "change_invoiceitem",
+    "delete_invoiceitem",
+    "view_invoiceitem",
+    # Arqueo de caja
+    "add_cashregister",
+    "change_cashregister",
+    "delete_cashregister",
+    "view_cashregister",
 ]
 
 # Permisos de usuario y grupo (solo administrador)
@@ -140,6 +154,13 @@ GROUP_PERMISSIONS = {
         "add_orderitem",
         "change_orderitem",
         "delete_orderitem",
+        # Facturación
+        "add_invoice",
+        "view_invoice",
+        # Arqueo de caja
+        "add_cashregister",
+        "view_cashregister",
+        "change_cashregister",
         # Reportes
         # Nota: Los reportes no tienen permisos específicos, se controlan por vistas
     ],
@@ -171,6 +192,13 @@ GROUP_PERMISSIONS = {
         "view_ingredient",
         "add_ingredientmovement",
         "view_ingredientmovement",
+        # Facturación
+        "add_invoice",
+        "view_invoice",
+        # Arqueo de caja
+        "add_cashregister",
+        "view_cashregister",
+        "change_cashregister",
     ],
 }
 

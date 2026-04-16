@@ -4,7 +4,26 @@
 {% block title %}Comandas - Mesa {{ table.name }}{% endblock %}
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">Comandas de Mesa {{ table.name }}</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Comandas de Mesa {{ table.name }}</h1>
+            <div class="d-flex gap-2 align-items-center">
+                {% if user|can_mark_paid and orders %}
+                    <a href="{% url 'invoice_table' table.id %}" class="btn btn-success">
+                        <i class="material-icons">receipt</i> Facturar
+                    </a>
+                {% endif %}
+                <a href="{% url 'create_order' table.id %}" class="btn btn-primary">
+                    <i class="material-icons">add</i> Nueva Comanda
+                </a>
+            </div>
+        </div>
+        {% if user|can_mark_paid %}
+            <div class="alert alert-warning d-flex align-items-center mb-4"
+                 role="alert">
+                <i class="material-icons me-2">info</i>
+                <span>Para cobrar y generar factura, haz clic en <strong>"Facturar"</strong>. Se requerirá una caja abierta.</span>
+            </div>
+        {% endif %}
         {% if orders %}
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {% for order in orders %}

@@ -173,6 +173,12 @@ def filter_can_view_order_history(user):
     return user.has_perm("orders.view_order")
 
 
+@register.filter(name="can_view_invoices")
+def filter_can_view_invoices(user):
+    """Verifica si el usuario puede ver facturas."""
+    return user.has_perm("orders.view_invoice") or user.is_superuser
+
+
 @register.filter(name="can_view_products")
 def filter_can_view_products(user):
     """Verifica si el usuario puede ver productos."""

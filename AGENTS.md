@@ -281,6 +281,7 @@ No continuous integration pipeline is configured. If adding one, consider:
 10. When working on HTML, CSS, or JavaScript, always review `docs/frontend.md` for context on frontend architecture and Bootstrap 5 usage.
 11. Use Google Material Icons via CDN (`<span class="material-icons">icon</span>`) for all icons.
 12. Always activate the virtual environment (`.env/bin/activate`) before running any Python commands.
+13. Use **GridJS** for listings, tables, or reports requiring search, filters, sorting, and pagination. See `docs/frontend.md` for implementation details.
 
 ---
 
