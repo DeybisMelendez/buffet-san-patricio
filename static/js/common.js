@@ -1,5 +1,5 @@
 // ============================================
-// BOA POS - Common JavaScript
+// Buffet San Patricio - Common JavaScript
 // Funciones comunes para toda la aplicación
 // ============================================
 

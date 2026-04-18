@@ -1,10 +1,10 @@
-# Agent Guidelines for Boa POS
+# Agent Guidelines for Buffet San Patricio
 
-This document provides guidelines for AI agents working on the `Boa POS` Django project. It includes build/lint/test commands, code style conventions, and project-specific patterns.
+This document provides guidelines for AI agents working on the `Buffet San Patricio` Django project. It includes build/lint/test commands, code style conventions, and project-specific patterns.
 
 ## Project Description
 
-**Boa POS** is a simple restaurant order management system designed for small businesses. It handles tables, orders, inventory management, and sales reporting with minimal complexity.
+**Buffet San Patricio** is a simple restaurant order management system designed for small businesses. It handles tables, orders, inventory management, and sales reporting with minimal complexity.
 
 ## Project Overview
 
@@ -13,6 +13,7 @@ This document provides guidelines for AI agents working on the `Boa POS` Django 
 - **Frontend**: AlpineJS + Bootstrap 5 (CDN)
 - **Language**: Python 3.12+
 - **Locale**: Spanish (Nicaragua) – user-facing strings in Spanish
+- **Brand**: "Buffet San Patricio" – use icon-only (`dinner_dining` or `restaurant`) in header due to long name
 
 ## Development Philosophy
 
@@ -274,7 +275,7 @@ No continuous integration pipeline is configured. If adding one, consider:
 3. Keep the **user interface in Spanish** (labels, messages, `verbose_name`).
 4. Develop with **simplicity and minimalism** – avoid complex solutions.
 5. Follow the existing import grouping and string style (double quotes).
-6. Use Django’s built‑in utilities (`get_object_or_404`, `messages`, `transaction.atomic`).
+6. Use Django's built‑in utilities (`get_object_or_404`, `messages`, `transaction.atomic`).
 7. Keep frontend changes minimal – this is a server‑side Django application.
 8. When in doubt, mimic the patterns found in `orders/views.py` and `orders/models.py`.
 9. Run linting and formatting commands on individual files (`black path/to/file.py`, `flake8 path/to/file.py`, `djlint --reformat path/to/template.html`, etc.) after making changes to ensure code quality.
@@ -282,7 +283,8 @@ No continuous integration pipeline is configured. If adding one, consider:
 11. Use Google Material Icons via CDN (`<span class="material-icons">icon</span>`) for all icons.
 12. Always activate the virtual environment (`.env/bin/activate`) before running any Python commands.
 13. Use **GridJS** for listings, tables, or reports requiring search, filters, sorting, and pagination. See `docs/frontend.md` for implementation details.
+14. **Brand name**: When changing "Boa POS" references, use "Buffet San Patricio" in full for page titles and footer. Use icon-only (`dinner_dining` or `restaurant`) in the header navbar brand since the name is long.
 
 ---
 
-_Last updated: 2026‑03‑03_
+_Last updated: 2026‑04‑17_
