@@ -1,6 +1,6 @@
-# Especificaciones Frontend - Boa POS
+# Especificaciones Frontend - Buffet San Patricio
 
-Este documento define las convenciones y guías para el desarrollo frontend del proyecto Boa POS.
+Este documento define las convenciones y guías para el desarrollo frontend del sistema Buffet San Patricio.
 
 ## Filosofía
 

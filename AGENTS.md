@@ -1,180 +1,221 @@
-# Agent Guidelines for Buffet San Patricio
+# Agente - Buffet San Patricio
 
-This document provides guidelines for AI agents working on the `Buffet San Patricio` Django project. It includes build/lint/test commands, code style conventions, and project-specific patterns.
+Este documento proporciona instrucciones y guías para agentes de IA que trabajan en el proyecto Django **Buffet San Patricio**.
 
-## Project Description
+## Descripción del Proyecto
 
-**Buffet San Patricio** is a simple restaurant order management system designed for small businesses. It handles tables, orders, inventory management, and sales reporting with minimal complexity.
+**Buffet San Patricio** es un sistema de gestión integral para restaurantes tipo buffet. Maneja mesas, comandas, inventario con control de recetas, facturación, arqueo de caja y reportes de ventas.
 
-## Project Overview
+### Funcionalidades Principales
+
+- **POS (Mesas y Comandas)**: Gestión de mesas, creación de órdenes, impresión de comandas
+- **Menú**: Productos, categorías, áreas de despacho, recetas (producto-ingredientes)
+- **Inventario**: Ingredientes, movimientos de entrada/salida, ajuste de stock
+- **Facturación**: Facturas con métodos de pago (contado/crédito)
+- **Arqueo de Caja**: Control de turnos y cuadre diario
+- **Reportes**: Ventas por producto, inventario, comandas, exportaciones CSV
+- **Dashboard**: Panel principal con gráficos adaptivos al rol
+
+## Resumen del Proyecto
 
 - **Framework**: Django 5.2.7
-- **Database**: SQLite (default)
+- **Base de datos**: SQLite (`db.sqlite3`)
 - **Frontend**: AlpineJS + Bootstrap 5 (CDN)
-- **Language**: Python 3.12+
-- **Locale**: Spanish (Nicaragua) – user-facing strings in Spanish
-- **Brand**: "Buffet San Patricio" – use icon-only (`dinner_dining` or `restaurant`) in header due to long name
+- **Tablas interactivas**: GridJS
+- **Iconos**: Google Material Icons (CDN)
+- **Lenguaje**: Python 3.12+
+- **Localización**: Español (Nicaragua)
 
-## Development Philosophy
+## Filosofía de Desarrollo
 
-- **Code Language**: Write all code in English (function names, variable names, class names)
-- **Documentation Language**: Write comments, docstrings, and documentation in Spanish
-- **User Interface**: The system should be in Spanish (user-facing strings, labels, messages)
-- **Simplicity**: Always develop with simplicity and minimalism. Avoid complex or difficult solutions.
-- **Practicality**: Focus on practical, working solutions that are easy to understand and maintain.
+- **Código**: Todos los identificadores en inglés (clases, funciones, variables)
+- **Documentación**: Comentarios y docstrings en español
+- **Interfaz**: Usuario completamente en español (etiquetas, mensajes, verbose_name)
+- **Simplicidad**: Priorizar soluciones simples y mantenibles
+- **Prácticidad**: Enfocarse en soluciones funcionales y fáciles de entender
 
-## Build & Development Commands
+## Estructura del Proyecto
 
-### Django Management Commands
+```
+buffet-san-patricio/
+├── core/                  # Configuración Django
+├── orders/                # App principal
+│   ├── models.py         # Modelos: Table, Product, Order, Invoice, etc.
+│   ├── views.py          # ~2200 líneas de vistas y lógica de negocio
+│   └── urls.py           # URLs con aliases inglés y español
+├── users/                 # App de usuarios
+│   ├── permissions.py    # 5 grupos con permisos predefinidos
+│   └── utils.py          # Helpers de verificación de roles
+├── templates/             # Templates HTML
+│   ├── layout.html       # Template base
+│   ├── pos/              # Mesas y comandas
+│   ├── menu/             # Gestión de productos
+│   ├── inventory/        # Inventario
+│   ├── invoices/         # Facturación
+│   ├── cash/             # Arqueo de caja
+│   └── reports/          # Reportes
+└── docs/
+    ├── SYSTEM.md         # Documentación completa del sistema
+    └── frontend.md       # Guías de frontend
+```
+
+## Módulos del Sistema
+
+### 1. POS - Mesas y Comandas
+- Lista de mesas con totales pendientes
+- Crear/editar órdenes por mesa
+- Marcar órdenes como pagadas
+- Impresión de comandas
+
+### 2. Menú - Productos
+- CRUD de productos con categoría y área de despacho
+- Gestión de recetas (relación producto-ingredientes)
+- CRUD de categorías y áreas de despacho
+
+### 3. Inventario
+- CRUD de ingredientes con unidades de medida
+- Movimientos de inventario (entradas/salidas)
+- Ajuste de inventario físico
+- Registro de compras
+
+### 4. Facturación
+- Generación de facturas consolidadas por mesa
+- Métodos de pago: CONTADO y CREDITO
+- Impresión de facturas
+
+### 5. Arqueo de Caja
+- Apertura y cierre de turnos
+- Control de ventas contado/crédito
+- Cálculo de diferencia (sobra/falta)
+
+### 6. Reportes
+- Saldo de inventario
+- Movimientos de inventario
+- Ventas por producto
+- Comandas por período
+- Exportación CSV
+
+## Sistema de Permisos
+
+### Grupos Fijos
+
+| Grupo | Descripción |
+|-------|-------------|
+| `Servicio` | Meseros - crear/ver órdenes |
+| `Cocinero` | Cocina - ver órdenes e ingredientes |
+| `Cajero` | Caja - facturación y arqueo |
+| `Supervisor` | Encargados - inventario y cierres |
+| `Administrador` | Gerencia - acceso total |
+
+Los permisos se definen en `users/permissions.py` y se asignan a cada grupo.
+
+## Comandos de Desarrollo
+
+### Django
 
 ```bash
-# Run development server
+# Servidor de desarrollo
 python manage.py runserver
 
-# Apply migrations
+# Aplicar migraciones
 python manage.py migrate
 
-# Create new migration files
+# Crear migraciones después de cambios en modelos
 python manage.py makemigrations
 
-# Run Django shell
+# Shell de Django
 python manage.py shell
 
-# Collect static files
+# Recolectar archivos estáticos
 python manage.py collectstatic
 ```
 
-### Testing & Verification
+### Linting y Formateo
 
-**IMPORTANT**: Do NOT write Python tests for this project. The verification of functionality should be done manually by the developer/user through the browser.
-
-**Verification Protocol**:
-
-1. After making changes, ask the developer to test the functionality directly in the browser
-2. Do not create or modify test files (`tests.py`)
-3. Focus on ensuring the code works correctly in the actual application context
-4. The developer is responsible for verifying that the system functions correctly
-
-If tests need to be run for existing code (though none exist), use Django's built‑in test framework:
+**Importante**: Ejecutar en archivos individuales modificados, no en todo el proyecto.
 
 ```bash
-# Run all tests (empty test files exist)
-python manage.py test
-```
-
-### Linting & Formatting
-
-The project includes Python linting and formatting tools. Run these commands on individual files to ensure code quality (not on the whole project):
-
-```bash
-# Format code with Black (for specific files)
+# Formatear código Python
 black path/to/file.py
 
-# Sort imports with isort (for specific files)
+# Ordenar imports
 isort path/to/file.py
 
-# Check code style with flake8 (for specific files)
+# Verificar estilo
 flake8 path/to/file.py --max-line-length=100
 
-# Type checking with mypy (for specific files)
+# Type checking
 mypy path/to/file.py
 
-# Format HTML templates with djlint (for specific files)
+# Formatear templates HTML
 djlint --reformat path/to/template.html
 ```
 
-**Nota importante**: Los comandos de formateo están separados por lenguaje:
+**Separación de herramientas por lenguaje**:
+- **Python**: `black`, `isort`, `flake8`, `mypy`
+- **HTML**: `djlint`
+- No mezclar herramientas entre lenguajes
 
-- **Para Python**: usar `black`, `isort`, `flake8`, `mypy`
-- **Para HTML**: usar `djlint`
-  No mezclar herramientas entre lenguajes (ej. no usar `black` en archivos HTML ni `djlint` en archivos Python).
+### Herramientas Instaladas
 
-**Tools installed**:
+- Black 26.1.0 – formateo de código
+- isort 8.0.0 – ordenamiento de imports
+- flake8 7.3.0 – verificación de estilo
+- mypy 1.19.1 – type checking
+- djlint – formateo de templates HTML
 
-- **Black 26.1.0** – code formatting
-- **isort 8.0.0** – import sorting
-- **flake8 7.3.0** – style guide enforcement
-- **mypy 1.19.1** – static type checking
-- **djlint** – HTML template formatting
-
-Configuration files should be added as needed (`pyproject.toml`, `.flake8`, `.isort.cfg`, `mypy.ini`).
-
-### Frontend Assets
-
-- No build process (CSS/JS are served directly).
-- Templates use AlpineJS (CDN) for interactivity.
-- **Styles**: Bootstrap 5 (CDN) + custom CSS only when needed.
-- **Icons**: Google Material Icons (CDN).
-- Prettier is ignored via `.prettierignore`; no Prettier configuration present.
-
-## Code Style Guidelines
+## Convenciones de Código
 
 ### Imports
 
-Group imports in the following order, each group separated by a blank line:
-
-1. Standard library imports
-2. Third‑party imports (Django, etc.)
-3. Local app imports
-
-Use parentheses for multi‑line imports and break lines after 79 characters.
+Orden obligatorio con líneas en blanco entre grupos:
 
 ```python
+# 1. Stdlib
 import csv
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
+# 2. Third-party
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import F, Sum
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
-from django.db.models import Q
 
+# 3. Local
 from .models import (
-    Ingredient, IngredientMovement, Order, OrderItem, Product,
-    ProductCategory, Table
+    CashRegister, Company, Ingredient, IngredientMovement,
+    Invoice, InvoiceItem, Order, OrderItem, Product,
+    ProductCategory, ProductIngredient, Table
 )
 ```
 
-### Naming Conventions
+### Nomenclatura
 
-- **Class names**: `CamelCase` (e.g., `ProductCategory`, `DispatchArea`)
-- **Function/method names**: `snake_case` (e.g., `parse_date_range`, `get_total`)
-- **Variable names**: `snake_case` (e.g., `total_due`, `order_items`)
-- **Constants**: `UPPER_SNAKE_CASE` (e.g., `UNITS`)
-
-**Language**: All identifiers (class names, function names, variable names) must be in **English**. Only user‑facing strings (labels, messages) should be in Spanish.
+| Tipo | Convención | Ejemplo |
+|------|------------|---------|
+| Clases | CamelCase | `ProductCategory`, `CashRegister` |
+| Funciones/métodos | snake_case | `parse_date_range`, `get_total` |
+| Variables | snake_case | `total_due`, `order_items` |
+| Constantes | UPPER_SNAKE_CASE | `UNITS`, `PAYMENT_METHODS` |
 
 ### Strings
 
-- Use **double quotes** (`"`) for string literals (including docstrings).
-- Use f‑strings for formatting (e.g., `f"Mesa {self.name}"`).
-- User‑facing strings should be in **Spanish** (Nicaragua locale). Use Django's `verbose_name` and `verbose_name_plural` in models.
+- Usar comillas dobles (`"`) para literales
+- Usar f-strings para formateo: `f"Mesa {self.name}"`
+- Interfaz en español: `verbose_name="Nombre"`, `messages.success(request, "✅ Pedido creado")`
 
 ```python
-name = models.CharField(max_length=255, unique=True, verbose_name="Nombre")
+name = models.CharField(max_length=255, verbose_name="Nombre")
 ```
 
-### Models
-
-- Define `__str__` methods that return a human‑readable representation.
-- Use `verbose_name` and `verbose_name_plural` for Spanish labels.
-- For choices, define a `UNITS`‑like list of 2‑tuples.
-- Add custom methods for business logic (e.g., `add_stock`, `apply_movement`).
-- Override `save()` when necessary, but call `super().save()`.
-
-Example:
+### Modelos
 
 ```python
 class Ingredient(models.Model):
     UNITS = [
         ("oz", "Onzas"),
         ("lb", "Libras"),
-        # ...
     ]
 
     def add_stock(self, amount):
@@ -185,106 +226,164 @@ class Ingredient(models.Model):
         return f"{self.name} ({self.stock_quantity} {self.unit})"
 ```
 
-### Views
+### Vistas
 
-- Use function‑based views with decorators (`@login_required`, `@user_passes_test`).
-- Use `get_object_or_404` for retrieving objects.
-- Use Django’s `messages` framework for user feedback (success, info, warning, error).
-- Use `transaction.atomic` for database operations that must succeed or fail together.
-- Annotate queries with `F`, `Sum`, `Q` objects for performance and clarity.
-- Use `select_related` and `prefetch_related` to reduce database queries.
+```python
+@login_required
+@user_passes_test(has_valid_role)
+def table_list(request):
+    """Muestra todas las mesas y su total pendiente."""
+    tables = Table.objects.all().order_by("name")
+    return render(request, "pos/table_list.html", {"tables": tables})
+```
 
 ### Templates
 
-- Base template: `templates/layout.html`
-- Use `{% load static %}` and `{% load user_tags %}` as needed.
-- Extend blocks `{% block title %}` and `{% block body %}`.
-- Use AlpineJS for simple interactivity; avoid writing complex JavaScript.
-- Keep HTML semantic; use Bootstrap classes primarily, custom CSS only when needed.
+- Extender de `layout.html`
+- Usar bloques `{% block title %}` y `{% block body %}`
+- CSS adicional con `{% block extra_css %}`
+- JS adicional con `{% block extra_js %}`
+- Iconos: `<span class="material-icons">icon_name</span>`
 
-### Error Handling
+## Frontend
 
-- Use `try`/`except` for expected exceptions (e.g., decimal conversion).
-- Display user‑friendly error messages via `messages.error`.
-- Let Django handle 404/500 errors (no custom error views defined).
+### Stack
 
-### Comments & Documentation
+- **AlpineJS**: Interactividad simple (toggles, modales)
+- **Bootstrap 5**: Framework CSS principal (CDN)
+- **GridJS**: Tablas con búsqueda, ordenamiento, paginación
+- **Material Icons**: Iconos (CDN)
 
-- Write all comments and docstrings in **Spanish**.
-- Use **section headers** with emojis to group related code blocks.
-- Write docstrings for functions and classes (in Spanish).
-- Use inline comments sparingly; prefer clear variable and function names.
+### GridJS - Listados y Reportes
 
-Example:
+Usar GridJS cuando se necesite:
+- Búsqueda general de registros
+- Filtros por columna
+- Ordenamiento
+- Paginación
+- Exportación a Excel
 
-```python
-# ==========================
-# 🧾 INVENTARIO Y MOVIMIENTOS
-# ==========================
+**CDN necesario:**
+```html
+<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 ```
 
-## Frontend Guidelines
+La implementación completa está en `docs/frontend.md`.
 
-Detailed frontend specifications are documented in [`docs/frontend.md`](docs/frontend.md). Key points:
+### CSS Personalizado
 
-### Architecture
+- Solo cuando Bootstrap no pueda manejar el estilo
+- Ubicación: `static/css/`
+- Usar clases de Bootstrap primero (utilities, components)
 
-- **Interactivity**: Use AlpineJS for simple interactivity; avoid custom JavaScript when possible.
-- **JavaScript**: If required, place in `static/js/` with descriptive filenames.
-- **Styles**: Bootstrap 5 (CDN) as primary CSS framework. Use utility classes and components.
-- **Icons**: Google Material Icons (CDN) - use `<span class="material-icons">icon_name</span>`.
-- **Template extensions**: Use `{% block extra_css %}` and `{% block extra_js %}` in templates to add page-specific assets.
+## Patrones de Negocio
 
-### Bootstrap Usage
+### Crear Orden con Receta
 
-- Use Bootstrap 5 utility classes for layout, spacing, typography, and colors.
-- Use Bootstrap components (cards, modals, forms, tables, navbars) when available.
-- Custom CSS should only be used for project-specific styles that Bootstrap cannot handle.
-- Keep HTML semantic; avoid excessive div nesting.
+```python
+# Al crear OrderItem, se descuenta automáticamente del inventario
+class OrderItem(models.Model):
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Descontar ingredientes según receta
+        for prod_ing in ProductIngredient.objects.filter(product=self.product):
+            total_required = prod_ing.quantity * Decimal(self.quantity)
+            IngredientMovement.objects.create(
+                ingredient=prod_ing.ingredient,
+                quantity=-total_required,
+                user=self.order.user,
+                reason=f"Uso en {self.product.name}, Comanda #{self.order.id}",
+            )
+```
 
-### Maintenance
+### Facturación Consolidada
 
-- When creating new CSS files, update `docs/frontend.md` and this `AGENTS.md`.
+Cuando se factura una mesa:
+1. Se consolidan todos los items de las órdenes pendientes
+2. Se crea una Invoice con los items
+3. Se marcan las órdenes como pagadas
+4. Se actualiza el arqueo de caja según método de pago
 
-## Environment & Configuration
+### Arqueo de Caja
 
-- Environment variables are loaded from `.secret` (see `core/settings.py`).
-- The `.env` directory contains the Python virtual environment; always activate it before running any Python commands (e.g., `source .env/bin/activate`).
-- Database is SQLite (`db.sqlite3`); keep it out of version control.
+- Solo un turno activo a la vez
+- Ventas CONTADO suman a `total_contado`
+- Ventas CREDITO suman a `total_credito`
+- Al cerrar, se calcula diferencia vs efectivo en caja
 
-## CI/CD
+## URLs del Sistema
 
-No continuous integration pipeline is configured. If adding one, consider:
+### Aliases
 
-- Running Django tests
-- Checking for missing migrations (`python manage.py makemigrations --check`)
-- Linting with `flake8` (now available)
-- Formatting with `black` (now available)
+Todas las URLs tienen aliases en inglés (`product_list`) y español (`productos/`). Usar los aliases en inglés en el código (`url 'product_list'`).
 
-## Additional Notes
+### Principales
 
-- **Cursor/Copilot rules**: No `.cursorrules`, `.cursor/rules/`, or `.github/copilot-instructions.md` files present.
-- **Git hooks**: No pre‑commit or pre‑push hooks configured.
-- **Dependencies**: Listed in `requirements.txt`; core Django packages plus linting/formatting tools (black, flake8, isort, mypy).
-- **Static files**: Served from `static/` directory; Bootstrap 5 and AlpineJS via CDN.
+| URL | Alias | Descripción |
+|-----|-------|-------------|
+| `/pos/` | `table_list` | Lista de mesas |
+| `/pos/table/<id>/new/` | `create_order` | Crear orden |
+| `/menu/products/` | `product_list` | Productos |
+| `/menu/products/<id>/recipes/` | `product_recipes` | Recetas |
+| `/inventory/ingredients/` | `ingredient_list` | Ingredientes |
+| `/inventory/adjust/` | `inventory_movement` | Ajuste inventario |
+| `/inventory/purchase/` | `purchase_ingredients` | Compras |
+| `/reports/` | `reports_index` | Panel reportes |
+| `/cash/` | `cash_register_list` | Arqueo de caja |
+| `/invoices/` | `invoice_list` | Facturas |
+| `/dashboard/` | `dashboard` | Dashboard |
+| `/empresa/configuracion/` | `company_settings` | Config empresa |
 
-## Summary for Agents
+## API Endpoints JSON
 
-1. **DO NOT write Python tests** – ask the developer to test functionality directly in the browser.
-2. Write **code in English**, **comments/documentation in Spanish**.
-3. Keep the **user interface in Spanish** (labels, messages, `verbose_name`).
-4. Develop with **simplicity and minimalism** – avoid complex solutions.
-5. Follow the existing import grouping and string style (double quotes).
-6. Use Django's built‑in utilities (`get_object_or_404`, `messages`, `transaction.atomic`).
-7. Keep frontend changes minimal – this is a server‑side Django application.
-8. When in doubt, mimic the patterns found in `orders/views.py` and `orders/models.py`.
-9. Run linting and formatting commands on individual files (`black path/to/file.py`, `flake8 path/to/file.py`, `djlint --reformat path/to/template.html`, etc.) after making changes to ensure code quality.
-10. When working on HTML, CSS, or JavaScript, always review `docs/frontend.md` for context on frontend architecture and Bootstrap 5 usage.
-11. Use Google Material Icons via CDN (`<span class="material-icons">icon</span>`) for all icons.
-12. Always activate the virtual environment (`.env/bin/activate`) before running any Python commands.
-13. Use **GridJS** for listings, tables, or reports requiring search, filters, sorting, and pagination. See `docs/frontend.md` for implementation details.
-14. **Brand name**: When changing "Boa POS" references, use "Buffet San Patricio" in full for page titles and footer. Use icon-only (`dinner_dining` or `restaurant`) in the header navbar brand since the name is long.
+| Endpoint | Descripción |
+|----------|-------------|
+| `/api/ingredients/` | Ingredientes |
+| `/api/products/` | Productos |
+| `/api/categories/` | Categorías |
+| `/api/dispatch-areas/` | Áreas despacho |
+| `/api/tables/` | Mesas |
+| `/api/orders/` | Órdenes |
+| `/api/invoices/` | Facturas |
+| `/api/movements/` | Movimientos inventario |
+| `/api/inventory/` | Inventario paginado |
+| `/api/sales-by-product/` | Ventas por producto |
+| `/api/orders-report/` | Reporte de órdenes |
+| `/api/sales-today/` | Ventas del día |
+| `/api/cash/status/` | Estado de caja |
+
+## Errores Comunes
+
+1. **No usar `transaction.atomic`** en operaciones que modifican múltiples tablas
+2. **No validar datos del POST** antes de usarlos
+3. **No usar `get_object_or_404`** para obtener objetos por ID
+4. **Olvidar `@login_required`** en vistas
+5. **Olvidar verificar permisos** con `@user_passes_test`
+
+## Recursos
+
+- [Documentación del Sistema](docs/SYSTEM.md)
+- [Guía de Frontend](docs/frontend.md)
+- [Django Docs](https://docs.djangoproject.com/en/5.2/)
+- [Bootstrap 5](https://getbootstrap.com/docs/5.3/)
+- [GridJS](https://gridjs.io/)
+- [Material Icons](https://fonts.google.com/icons)
+
+## Resumen para Agentes
+
+1. **NO escribir tests Python** – verificar manualmente en el navegador
+2. **Código en inglés**, comentarios/documentación en español
+3. **Interfaz en español** (labels, mensajes, verbose_name)
+4. **Simplicidad** – evitar soluciones complejas
+5. **Seguir patrones existentes** en `orders/views.py` y `orders/models.py`
+6. **Ejecutar linting** (`black`, `flake8`, `djlint`) en archivos modificados
+7. **Usar GridJS** para tablas con búsqueda/paginación
+8. **Activar venv** (`.env/bin/activate`) antes de comandos Python
+9. **Credenciales en `.secret`** – no hardcodear
+10. **Consultar `docs/SYSTEM.md`** para entender el sistema completo
 
 ---
 
-_Last updated: 2026‑04‑17_
+_Last updated: 2026-04-17_
