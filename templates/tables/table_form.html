@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="material-icons">table_restaurant</i> {{ title }}
+        </h1>
+        {% include "includes/_messages.html" %}
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Nombre de la Mesa</label>
+                        <input type="text"
+                               name="name"
+                               id="id_name"
+                               class="form__control"
+                               value="{{ form.name.value|default:'' }}"
+                               placeholder="Ej: 1, 2, A, VIP1"
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-success">
+                            <i class="material-icons">save</i> Guardar
+                        </button>
+                        <a href="{% url 'table_management_list' %}" class="btn btn-secondary">
+                            <i class="material-icons">arrow_back</i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

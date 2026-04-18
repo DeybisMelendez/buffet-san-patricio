@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import ProductIngredient
+from .models import ProductIngredient, Table
 
 
 class ProductIngredientForm(forms.ModelForm):
@@ -46,3 +46,27 @@ class ProductIngredientForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+
+class TableForm(forms.ModelForm):
+    """Formulario para crear y editar mesas."""
+
+    class Meta:
+        model = Table
+        fields = ["name"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form__control", "placeholder": "Nombre de la mesa"}
+            ),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if not name:
+            raise forms.ValidationError("El nombre de la mesa es obligatorio.")
+        existing = Table.objects.filter(name=name)
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError("Ya existe una mesa con este nombre.")
+        return name.upper()

@@ -12,34 +12,16 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from users.utils import (
-    has_valid_role,
-    user_can_add_inventory_movement,
-    user_can_manage_inventory_full,
-    user_can_manage_menu,
-    user_can_mark_paid,
-    user_can_view_inventory,
-    user_can_view_reports,
-    user_can_view_sales_report,
-)
+from users.utils import (has_valid_role, user_can_add_inventory_movement,
+                         user_can_manage_inventory_full, user_can_manage_menu,
+                         user_can_mark_paid, user_can_view_inventory,
+                         user_can_view_reports, user_can_view_sales_report)
 
-from .forms import ProductIngredientForm
-from .models import (
-    CashRegister,
-    Company,
-    DispatchArea,
-    Ingredient,
-    IngredientMovement,
-    Invoice,
-    InvoiceItem,
-    Order,
-    OrderItem,
-    Product,
-    ProductCategory,
-    ProductIngredient,
-    Table,
-    Warehouse,
-)
+from .forms import ProductIngredientForm, TableForm
+from .models import (CashRegister, Company, DispatchArea, Ingredient,
+                     IngredientMovement, Invoice, InvoiceItem, Order,
+                     OrderItem, Product, ProductCategory, ProductIngredient,
+                     Table, Warehouse)
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -1456,6 +1438,95 @@ def dispatch_area_delete(request, area_id):
 
 
 # ==========================
+# 🍽️ GESTIÓN DE MESAS
+# ==========================
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def table_management_list(request):
+    """Lista todas las mesas activas."""
+    tables = Table.objects.all().order_by("name")
+    return render(request, "tables/table_list.html", {"tables": tables})
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def table_management_create(request):
+    """Crea una nueva mesa."""
+    if request.method == "POST":
+        form = TableForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Mesa creada exitosamente.")
+            return redirect("table_management_list")
+        else:
+            messages.error(request, f"❌ Error: {form.errors}")
+    else:
+        form = TableForm()
+    return render(
+        request, "tables/table_form.html", {"form": form, "title": "Crear Mesa"}
+    )
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def table_management_detail(request, table_id):
+    """Muestra el detalle de una mesa."""
+    table = get_object_or_404(Table, id=table_id)
+    return render(request, "tables/table_detail.html", {"table": table})
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def table_management_edit(request, table_id):
+    """Edita una mesa existente."""
+    table = get_object_or_404(Table, id=table_id)
+    if request.method == "POST":
+        form = TableForm(request.POST, instance=table)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, f"✅ Mesa '{table.name}' actualizada exitosamente."
+            )
+            return redirect("table_management_list")
+        else:
+            messages.error(request, f"❌ Error: {form.errors}")
+    else:
+        form = TableForm(instance=table)
+    return render(
+        request,
+        "tables/table_form.html",
+        {"form": form, "table": table, "title": "Editar Mesa"},
+    )
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def table_management_delete(request, table_id):
+    """Elimina una mesa (soft delete)."""
+    table = get_object_or_404(Table, id=table_id)
+    if request.method == "POST":
+        table.soft_delete()
+        messages.success(request, f"✅ Mesa '{table.name}' eliminada exitosamente.")
+        return redirect("table_management_list")
+    return render(request, "tables/table_confirm_delete.html", {"table": table})
+
+
+@login_required
+@user_passes_test(has_valid_role)
+def table_management_restore(request, table_id):
+    """Restaura una mesa eliminada."""
+    table = get_object_or_404(Table, id=table_id)
+    if not table.is_deleted:
+        messages.warning(request, "⚠️ La mesa no está eliminada.")
+        return redirect("table_management_list")
+    table.restore()
+    messages.success(request, f"✅ Mesa '{table.name}' restaurada exitosamente.")
+    return redirect("table_management_list")
+
+
+# ==========================
 # 📋 GESTIÓN DE RECETAS
 # ==========================
 
@@ -1721,15 +1792,10 @@ def company_settings(request):
 @user_passes_test(has_valid_role)
 def dashboard(request):
     """Dashboard principal con gráficos adaptados al grupo del usuario."""
-    from users.utils import (
-        is_administrador,
-        is_cajero,
-        is_cocinero,
-        is_servicio,
-        is_supervisor,
-        user_can_view_inventory,
-        user_can_view_sales_report,
-    )
+    from users.utils import (is_administrador, is_cajero, is_cocinero,
+                             is_servicio, is_supervisor,
+                             user_can_view_inventory,
+                             user_can_view_sales_report)
 
     # Obtener fecha actual
     today = timezone.now().date()

@@ -1,10 +1,32 @@
 from decimal import Decimal
 
 from django.db import models
+from django.utils import timezone
+
+
+class TableManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
 
 
 class Table(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+    is_deleted = models.BooleanField(default=False, verbose_name="Eliminado")
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Fecha de eliminación"
+    )
+
+    objects = TableManager()
+
+    def soft_delete(self):
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save()
 
     def __str__(self):
         return f"Mesa {self.name}"
