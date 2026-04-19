@@ -112,7 +112,7 @@ def mark_table_paid(request, table_id):
     )
 
     if not orders.exists():
-        messages.info(request, f"ℹ️ No hay comandas pendientes para {table.name}.")
+        messages.info(request, f" No hay comandas pendientes para {table.name}.")
         return redirect("table_list")
 
     with transaction.atomic():
@@ -133,14 +133,14 @@ def mark_table_paid(request, table_id):
                 )
 
         if not items_data:
-            messages.warning(request, "⚠️ No hay productos para facturar.")
+            messages.warning(request, " No hay productos para facturar.")
             return redirect("table_orders", table_id=table.id)
 
         active_register = CashRegister.get_active()
         if not active_register:
             messages.error(
                 request,
-                "❌ No hay una caja abierta. Abre un turno en 'Caja' antes de facturar.",
+                " No hay una caja abierta. Abre un turno en 'Caja' antes de facturar.",
             )
             return redirect("table_orders", table_id=table.id)
 
@@ -172,7 +172,7 @@ def mark_table_paid(request, table_id):
 
     messages.success(
         request,
-        f"✅ Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
+        f" Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
     )
 
     return redirect("table_list")
@@ -206,13 +206,13 @@ def create_order(request, table_id):
 
         if created_items:
             messages.success(
-                request, f"✅ Comanda #{order.id} creada con {created_items} productos."
+                request, f" Comanda #{order.id} creada con {created_items} productos."
             )
             context["order"] = order
             return render(request, "pos/create_order.html", context)
 
         order.delete()
-        messages.warning(request, "⚠️ No se seleccionaron productos.")
+        messages.warning(request, " No se seleccionaron productos.")
         return redirect("create_order", table_id=table.id)
 
     return render(request, "pos/create_order.html", context)
@@ -229,9 +229,9 @@ def order_detail(request, order_id):
         if not order.is_paid:
             order.is_paid = True
             order.save()
-            messages.success(request, f"✅ Comanda #{order.id} marcada como pagada.")
+            messages.success(request, f" Comanda #{order.id} marcada como pagada.")
         else:
-            messages.info(request, f"ℹ️ La comanda #{order.id} ya estaba pagada.")
+            messages.info(request, f" La comanda #{order.id} ya estaba pagada.")
         return redirect("table_list")
 
     return render(
@@ -254,7 +254,7 @@ def edit_order(request, order_id):
         order.user_id = request.POST.get("user") or None
         order.is_paid = request.POST.get("is_paid") == "on"
         order.save()
-        messages.success(request, f"✅ Comanda #{order.id} actualizada correctamente.")
+        messages.success(request, f" Comanda #{order.id} actualizada correctamente.")
         return redirect("order_detail", order_id=order.id)
 
     return render(
@@ -272,7 +272,7 @@ def print_order(request, order_id):
     items = order.orderitem_set.select_related("product").all()
 
     if not items.exists():
-        messages.warning(request, f"⚠️ La comanda #{order.id} no tiene productos.")
+        messages.warning(request, f" La comanda #{order.id} no tiene productos.")
 
     return render(
         request,
@@ -334,7 +334,7 @@ def daily_report(request):
             summary[name]["qty"] += item.quantity
             summary[name]["subtotal"] += subtotal
 
-    messages.info(request, f"📊 Ventas del {target_date}: {total_sales:.2f} total.")
+    messages.info(request, f" Ventas del {target_date}: {total_sales:.2f} total.")
     return render(
         request,
         "orders/daily_report.html",
@@ -372,7 +372,7 @@ def inventory_movement(request):
                 try:
                     found_qty = Decimal(found_str)
                 except Exception:
-                    messages.error(request, f"❌ Valor inválido para {ing.name}.")
+                    messages.error(request, f" Valor inválido para {ing.name}.")
                     continue
                 diff = found_qty - ing.stock_quantity
                 if diff != 0:
@@ -384,9 +384,9 @@ def inventory_movement(request):
                     )
                     count += 1
         if count:
-            messages.success(request, f"✅ {count} ajustes aplicados.")
+            messages.success(request, f" {count} ajustes aplicados.")
         else:
-            messages.info(request, "ℹ️ No se realizaron ajustes.")
+            messages.info(request, " No se realizaron ajustes.")
     return render(request, "inventory/inventory.html", {"ingredients": ingredients})
 
 
@@ -406,7 +406,7 @@ def purchase_ingredients(request):
                 try:
                     qty = Decimal(qty_str)
                 except Exception:
-                    messages.error(request, f"❌ Cantidad inválida para {ing.name}.")
+                    messages.error(request, f" Cantidad inválida para {ing.name}.")
                     continue
                 if qty > 0:
                     IngredientMovement.objects.create(
@@ -417,9 +417,9 @@ def purchase_ingredients(request):
                     )
                     count += 1
         (
-            messages.success(request, f"✅ {count} compras registradas.")
+            messages.success(request, f" {count} compras registradas.")
             if count
-            else messages.info(request, "ℹ️ No se registró ninguna compra.")
+            else messages.info(request, " No se registró ninguna compra.")
         )
         return redirect("purchase_ingredients")
 
@@ -718,7 +718,7 @@ def export_sales_by_product_csv(request):
 
 
 # ==========================
-# 📊 APIs JSON PARA REPORTES
+#  APIs JSON PARA REPORTES
 # ==========================
 
 
@@ -1158,7 +1158,7 @@ def product_create(request):
         price = request.POST.get("price")
 
         if not name or not price:
-            messages.error(request, "❌ Nombre y precio son obligatorios.")
+            messages.error(request, " Nombre y precio son obligatorios.")
         else:
             try:
                 product = Product.objects.create(
@@ -1168,11 +1168,11 @@ def product_create(request):
                     price=Decimal(price),
                 )
                 messages.success(
-                    request, f"✅ Producto '{product.name}' creado exitosamente."
+                    request, f" Producto '{product.name}' creado exitosamente."
                 )
                 return redirect("product_list")
             except Exception as e:
-                messages.error(request, f"❌ Error al crear producto: {e}")
+                messages.error(request, f" Error al crear producto: {e}")
 
     return render(
         request,
@@ -1200,7 +1200,7 @@ def product_edit(request, product_id):
         price = request.POST.get("price")
 
         if not name or not price:
-            messages.error(request, "❌ Nombre y precio son obligatorios.")
+            messages.error(request, " Nombre y precio son obligatorios.")
         else:
             try:
                 product.name = name
@@ -1209,11 +1209,11 @@ def product_edit(request, product_id):
                 product.price = Decimal(price)
                 product.save()
                 messages.success(
-                    request, f"✅ Producto '{product.name}' actualizado exitosamente."
+                    request, f" Producto '{product.name}' actualizado exitosamente."
                 )
                 return redirect("product_list")
             except Exception as e:
-                messages.error(request, f"❌ Error al actualizar producto: {e}")
+                messages.error(request, f" Error al actualizar producto: {e}")
 
     return render(
         request,
@@ -1238,11 +1238,11 @@ def product_delete(request, product_id):
             product_name = product.name
             product.soft_delete()
             messages.success(
-                request, f"✅ Producto '{product_name}' eliminado exitosamente."
+                request, f" Producto '{product_name}' eliminado exitosamente."
             )
             return redirect("product_list")
         except Exception as e:
-            messages.error(request, f"❌ Error al eliminar producto: {e}")
+            messages.error(request, f" Error al eliminar producto: {e}")
             return redirect("product_list")
 
     return render(request, "menu/product_confirm_delete.html", {"product": product})
@@ -1254,10 +1254,10 @@ def product_restore(request, product_id):
     """Restaura un producto eliminado."""
     product = get_object_or_404(Product.all_objects, id=product_id)
     if not product.is_deleted:
-        messages.warning(request, "⚠️ El producto no está eliminado.")
+        messages.warning(request, " El producto no está eliminado.")
         return redirect("product_list")
     product.restore()
-    messages.success(request, f"✅ Producto '{product.name}' restaurado exitosamente.")
+    messages.success(request, f" Producto '{product.name}' restaurado exitosamente.")
     return redirect("product_list")
 
 
@@ -1282,16 +1282,16 @@ def category_create(request):
         name = request.POST.get("name")
 
         if not name:
-            messages.error(request, "❌ El nombre de la categoría es obligatorio.")
+            messages.error(request, " El nombre de la categoría es obligatorio.")
         else:
             try:
                 category = ProductCategory.objects.create(name=name)
                 messages.success(
-                    request, f"✅ Categoría '{category.name}' creada exitosamente."
+                    request, f" Categoría '{category.name}' creada exitosamente."
                 )
                 return redirect("category_list")
             except Exception as e:
-                messages.error(request, f"❌ Error al crear categoría: {e}")
+                messages.error(request, f" Error al crear categoría: {e}")
 
     return render(request, "menu/category_form.html", {"title": "Crear Categoría"})
 
@@ -1306,17 +1306,17 @@ def category_edit(request, category_id):
         name = request.POST.get("name")
 
         if not name:
-            messages.error(request, "❌ El nombre de la categoría es obligatorio.")
+            messages.error(request, " El nombre de la categoría es obligatorio.")
         else:
             try:
                 category.name = name
                 category.save()
                 messages.success(
-                    request, f"✅ Categoría '{category.name}' actualizada exitosamente."
+                    request, f" Categoría '{category.name}' actualizada exitosamente."
                 )
                 return redirect("category_list")
             except Exception as e:
-                messages.error(request, f"❌ Error al actualizar categoría: {e}")
+                messages.error(request, f" Error al actualizar categoría: {e}")
 
     return render(
         request,
@@ -1339,11 +1339,11 @@ def category_delete(request, category_id):
             category_name = category.name
             category.soft_delete()
             messages.success(
-                request, f"✅ Categoría '{category_name}' eliminada exitosamente."
+                request, f" Categoría '{category_name}' eliminada exitosamente."
             )
             return redirect("category_list")
         except Exception as e:
-            messages.error(request, f"❌ Error al eliminar categoría: {e}")
+            messages.error(request, f" Error al eliminar categoría: {e}")
             return redirect("category_list")
 
     return render(
@@ -1362,11 +1362,11 @@ def category_restore(request, category_id):
     """Restaura una categoría eliminada."""
     category = get_object_or_404(ProductCategory.all_objects, id=category_id)
     if not category.is_deleted:
-        messages.warning(request, "⚠️ La categoría no está eliminada.")
+        messages.warning(request, " La categoría no está eliminada.")
         return redirect("category_list")
     category.restore()
     messages.success(
-        request, f"✅ Categoría '{category.name}' restaurada exitosamente."
+        request, f" Categoría '{category.name}' restaurada exitosamente."
     )
     return redirect("category_list")
 
@@ -1393,19 +1393,19 @@ def dispatch_area_create(request):
 
         if not name:
             messages.error(
-                request, "❌ El nombre del área de despacho es obligatorio."
+                request, " El nombre del área de despacho es obligatorio."
             )  # noqa: E501
         else:
             try:
                 area = DispatchArea.objects.create(name=name)
                 messages.success(
                     request,
-                    f"✅ Área de despacho '{area.name}' creada exitosamente.",
+                    f" Área de despacho '{area.name}' creada exitosamente.",
                 )
                 return redirect("dispatch_area_list")
             except Exception as e:
                 messages.error(
-                    request, f"❌ Error al crear área de despacho: {e}"
+                    request, f" Error al crear área de despacho: {e}"
                 )  # noqa: E501
 
     return render(
@@ -1426,7 +1426,7 @@ def dispatch_area_edit(request, area_id):
 
         if not name:
             messages.error(
-                request, "❌ El nombre del área de despacho es obligatorio."
+                request, " El nombre del área de despacho es obligatorio."
             )  # noqa: E501
         else:
             try:
@@ -1434,12 +1434,12 @@ def dispatch_area_edit(request, area_id):
                 area.save()
                 messages.success(
                     request,
-                    f"✅ Área de despacho '{area.name}' actualizada exitosamente.",
+                    f" Área de despacho '{area.name}' actualizada exitosamente.",
                 )
                 return redirect("dispatch_area_list")
             except Exception as e:
                 messages.error(
-                    request, f"❌ Error al actualizar área de despacho: {e}"
+                    request, f" Error al actualizar área de despacho: {e}"
                 )  # noqa: E501
 
     return render(
@@ -1464,11 +1464,11 @@ def dispatch_area_delete(request, area_id):
             area.soft_delete()
             messages.success(
                 request,
-                f"✅ Área de despacho '{area_name}' eliminada exitosamente.",
+                f" Área de despacho '{area_name}' eliminada exitosamente.",
             )
             return redirect("dispatch_area_list")
         except Exception as e:
-            messages.error(request, f"❌ Error al eliminar área de despacho: {e}")
+            messages.error(request, f" Error al eliminar área de despacho: {e}")
             return redirect("dispatch_area_list")
 
     return render(
@@ -1487,11 +1487,11 @@ def dispatch_area_restore(request, area_id):
     """Restaura un área de despacho eliminada."""
     area = get_object_or_404(DispatchArea.all_objects, id=area_id)
     if not area.is_deleted:
-        messages.warning(request, "⚠️ El área de despacho no está eliminada.")
+        messages.warning(request, " El área de despacho no está eliminada.")
         return redirect("dispatch_area_list")
     area.restore()
     messages.success(
-        request, f"✅ Área de despacho '{area.name}' restaurada exitosamente."
+        request, f" Área de despacho '{area.name}' restaurada exitosamente."
     )
     return redirect("dispatch_area_list")
 
@@ -1517,10 +1517,10 @@ def table_management_create(request):
         form = TableForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "✅ Mesa creada exitosamente.")
+            messages.success(request, " Mesa creada exitosamente.")
             return redirect("table_management_list")
         else:
-            messages.error(request, f"❌ Error: {form.errors}")
+            messages.error(request, f" Error: {form.errors}")
     else:
         form = TableForm()
     return render(
@@ -1546,11 +1546,11 @@ def table_management_edit(request, table_id):
         if form.is_valid():
             form.save()
             messages.success(
-                request, f"✅ Mesa '{table.name}' actualizada exitosamente."
+                request, f" Mesa '{table.name}' actualizada exitosamente."
             )
             return redirect("table_management_list")
         else:
-            messages.error(request, f"❌ Error: {form.errors}")
+            messages.error(request, f" Error: {form.errors}")
     else:
         form = TableForm(instance=table)
     return render(
@@ -1567,7 +1567,7 @@ def table_management_delete(request, table_id):
     table = get_object_or_404(Table, id=table_id)
     if request.method == "POST":
         table.soft_delete()
-        messages.success(request, f"✅ Mesa '{table.name}' eliminada exitosamente.")
+        messages.success(request, f" Mesa '{table.name}' eliminada exitosamente.")
         return redirect("table_management_list")
     return render(request, "tables/table_confirm_delete.html", {"table": table})
 
@@ -1578,10 +1578,10 @@ def table_management_restore(request, table_id):
     """Restaura una mesa eliminada."""
     table = get_object_or_404(Table, id=table_id)
     if not table.is_deleted:
-        messages.warning(request, "⚠️ La mesa no está eliminada.")
+        messages.warning(request, " La mesa no está eliminada.")
         return redirect("table_management_list")
     table.restore()
-    messages.success(request, f"✅ Mesa '{table.name}' restaurada exitosamente.")
+    messages.success(request, f" Mesa '{table.name}' restaurada exitosamente.")
     return redirect("table_management_list")
 
 
@@ -1631,7 +1631,7 @@ def product_recipes(request, product_id):
                         if instance.ingredient_id in ingredient_ids:
                             messages.error(
                                 request,
-                                f"❌ El ingrediente '{instance.ingredient.name}' está duplicado.",
+                                f" El ingrediente '{instance.ingredient.name}' está duplicado.",
                             )
                             return redirect("product_recipes", product_id=product.id)
                         ingredient_ids.append(instance.ingredient_id)
@@ -1644,13 +1644,13 @@ def product_recipes(request, product_id):
                     for obj in formset.deleted_objects:
                         obj.delete()
 
-                    messages.success(request, "✅ Receta actualizada exitosamente.")
+                    messages.success(request, " Receta actualizada exitosamente.")
                     return redirect("product_recipes", product_id=product.id)
 
             except Exception as e:
-                messages.error(request, f"❌ Error al guardar receta: {e}")
+                messages.error(request, f" Error al guardar receta: {e}")
         else:
-            messages.error(request, "❌ Corrige los errores en el formulario.")
+            messages.error(request, " Corrige los errores en el formulario.")
     else:
         formset = ProductIngredientFormSet(
             queryset=queryset,
@@ -1694,7 +1694,7 @@ def ingredient_create(request):
         warehouse_id = request.POST.get("warehouse") or None
 
         if not name or not unit:
-            messages.error(request, "❌ Nombre y unidad son obligatorios.")
+            messages.error(request, " Nombre y unidad son obligatorios.")
         else:
             try:
                 ingredient = Ingredient.objects.create(
@@ -1703,11 +1703,11 @@ def ingredient_create(request):
                     warehouse_id=warehouse_id,
                 )
                 messages.success(
-                    request, f"✅ Ingrediente '{ingredient.name}' creado exitosamente."
+                    request, f" Ingrediente '{ingredient.name}' creado exitosamente."
                 )
                 return redirect("ingredient_list")
             except Exception as e:
-                messages.error(request, f"❌ Error al crear ingrediente: {e}")
+                messages.error(request, f" Error al crear ingrediente: {e}")
 
     return render(
         request,
@@ -1733,7 +1733,7 @@ def ingredient_edit(request, ingredient_id):
         warehouse_id = request.POST.get("warehouse") or None
 
         if not name or not unit:
-            messages.error(request, "❌ Nombre y unidad son obligatorios.")
+            messages.error(request, " Nombre y unidad son obligatorios.")
         else:
             try:
                 ingredient.name = name
@@ -1742,11 +1742,11 @@ def ingredient_edit(request, ingredient_id):
                 ingredient.save()
                 messages.success(
                     request,
-                    f"✅ Ingrediente '{ingredient.name}' actualizado exitosamente.",
+                    f" Ingrediente '{ingredient.name}' actualizado exitosamente.",
                 )
                 return redirect("ingredient_list")
             except Exception as e:
-                messages.error(request, f"❌ Error al actualizar ingrediente: {e}")
+                messages.error(request, f" Error al actualizar ingrediente: {e}")
 
     return render(
         request,
@@ -1775,11 +1775,11 @@ def ingredient_delete(request, ingredient_id):
             ingredient_name = ingredient.name
             ingredient.soft_delete()
             messages.success(
-                request, f"✅ Ingrediente '{ingredient_name}' eliminado exitosamente."
+                request, f" Ingrediente '{ingredient_name}' eliminado exitosamente."
             )
             return redirect("ingredient_list")
         except Exception as e:
-            messages.error(request, f"❌ Error al eliminar ingrediente: {e}")
+            messages.error(request, f" Error al eliminar ingrediente: {e}")
             return redirect("ingredient_list")
 
     return render(
@@ -1799,11 +1799,11 @@ def ingredient_restore(request, ingredient_id):
     """Restaura un ingrediente eliminado."""
     ingredient = get_object_or_404(Ingredient.all_objects, id=ingredient_id)
     if not ingredient.is_deleted:
-        messages.warning(request, "⚠️ El ingrediente no está eliminado.")
+        messages.warning(request, " El ingrediente no está eliminado.")
         return redirect("ingredient_list")
     ingredient.restore()
     messages.success(
-        request, f"✅ Ingrediente '{ingredient.name}' restaurado exitosamente."
+        request, f" Ingrediente '{ingredient.name}' restaurado exitosamente."
     )
     return redirect("ingredient_list")
 
@@ -1848,17 +1848,17 @@ def company_settings(request):
         try:
             company.save()
             messages.success(
-                request, "✅ Configuración de empresa guardada exitosamente."
+                request, " Configuración de empresa guardada exitosamente."
             )
             return redirect("company_settings")
         except Exception as e:
-            messages.error(request, f"❌ Error al guardar configuración: {e}")
+            messages.error(request, f" Error al guardar configuración: {e}")
 
     return render(request, "settings/company_settings.html", {"company": company})
 
 
 # ==========================
-# 📊 DASHBOARD
+#  DASHBOARD
 # ==========================
 
 
@@ -2090,7 +2090,7 @@ def invoice_table(request, table_id):
     )
 
     if not orders.exists():
-        messages.info(request, f"ℹ️ No hay comandas pendientes para {table.name}.")
+        messages.info(request, f" No hay comandas pendientes para {table.name}.")
         return redirect("table_orders", table_id=table.id)
 
     if request.method == "POST":
@@ -2114,14 +2114,14 @@ def invoice_table(request, table_id):
                     )
 
             if not items_data:
-                messages.warning(request, "⚠️ No hay productos para facturar.")
+                messages.warning(request, " No hay productos para facturar.")
                 return redirect("table_orders", table_id=table.id)
 
             active_register = CashRegister.get_active()
             if not active_register:
                 messages.error(
                     request,
-                    "❌ No hay una caja abierta. Abre un turno en 'Caja' antes de facturar.",
+                    " No hay una caja abierta. Abre un turno en 'Caja' antes de facturar.",
                 )
                 return redirect("table_orders", table_id=table.id)
 
@@ -2157,7 +2157,7 @@ def invoice_table(request, table_id):
 
             messages.success(
                 request,
-                f"✅ Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
+                f" Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
             )
 
             if request.POST.get("print") == "yes":
@@ -2270,7 +2270,7 @@ def cash_register_open(request):
     if active:
         messages.info(
             request,
-            f"ℹ️ Ya hay un turno abierto desde {active.created_at.strftime('%H:%M')}",
+            f" Ya hay un turno abierto desde {active.created_at.strftime('%H:%M')}",
         )
         return redirect("cash_register_detail", register_id=active.id)
 
@@ -2278,7 +2278,7 @@ def cash_register_open(request):
         try:
             opening_amount = Decimal(request.POST.get("opening_amount", "0"))
         except Exception:
-            messages.error(request, "❌ Monto de apertura inválido.")
+            messages.error(request, " Monto de apertura inválido.")
             return redirect("cash_register_open")
 
         cash_register = CashRegister.objects.create(
@@ -2287,7 +2287,7 @@ def cash_register_open(request):
         )
 
         messages.success(
-            request, f"✅ Turno #{cash_register.id} abierto con C$ {opening_amount:.2f}"
+            request, f" Turno #{cash_register.id} abierto con C$ {opening_amount:.2f}"
         )
         return redirect("cash_register_detail", register_id=cash_register.id)
 
@@ -2309,14 +2309,14 @@ def cash_register_close(request, register_id):
     cash_register = get_object_or_404(CashRegister, id=register_id)
 
     if cash_register.closing_time:
-        messages.info(request, "ℹ️ Este turno ya está cerrado.")
+        messages.info(request, " Este turno ya está cerrado.")
         return redirect("cash_register_list")
 
     if request.method == "POST":
         try:
             closing_amount = Decimal(request.POST.get("closing_amount", "0"))
         except Exception:
-            messages.error(request, "❌ Monto de cierre inválido.")
+            messages.error(request, " Monto de cierre inválido.")
             return redirect("cash_register_close", register_id=register_id)
 
         notes = request.POST.get("notes", "").strip()
@@ -2330,11 +2330,11 @@ def cash_register_close(request, register_id):
         difference = closing_amount - expected
 
         if difference == 0:
-            messages.success(request, "✅ Turno cerrado. ¡Caja cuadrada!")
+            messages.success(request, " Turno cerrado. ¡Caja cuadrada!")
         elif difference > 0:
-            messages.warning(request, f"⚠️ Sobran C$ {difference:.2f} en caja.")
+            messages.warning(request, f" Sobran C$ {difference:.2f} en caja.")
         else:
-            messages.warning(request, f"⚠️ Faltan C$ {abs(difference):.2f} en caja.")
+            messages.warning(request, f" Faltan C$ {abs(difference):.2f} en caja.")
 
         return redirect("cash_register_list")
 
