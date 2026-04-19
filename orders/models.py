@@ -4,19 +4,24 @@ from django.db import models
 from django.utils import timezone
 
 
-class TableManager(models.Manager):
+class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
 
 
-class Table(models.Model):
-    name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+class AllObjectsManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset()
+
+
+class SoftDeleteModel(models.Model):
     is_deleted = models.BooleanField(default=False, verbose_name="Eliminado")
     deleted_at = models.DateTimeField(
         null=True, blank=True, verbose_name="Fecha de eliminación"
     )
 
-    objects = TableManager()
+    objects = SoftDeleteManager()
+    all_objects = AllObjectsManager()
 
     def soft_delete(self):
         self.is_deleted = True
@@ -28,32 +33,39 @@ class Table(models.Model):
         self.deleted_at = None
         self.save()
 
+    class Meta:
+        abstract = True
+
+
+class Table(SoftDeleteModel):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+
     def __str__(self):
         return f"Mesa {self.name}"
 
 
-class ProductCategory(models.Model):
+class ProductCategory(SoftDeleteModel):
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
 
-class DispatchArea(models.Model):
+class DispatchArea(SoftDeleteModel):
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
 
-class Warehouse(models.Model):
+class Warehouse(SoftDeleteModel):
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
 
-class Product(models.Model):
+class Product(SoftDeleteModel):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(
         ProductCategory, on_delete=models.SET_NULL, null=True, blank=True
@@ -67,7 +79,7 @@ class Product(models.Model):
         return self.name
 
 
-class Ingredient(models.Model):
+class Ingredient(SoftDeleteModel):
     UNITS = [
         ("oz", "Onzas"),
         ("lb", "Libras"),

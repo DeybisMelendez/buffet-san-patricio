@@ -60,6 +60,11 @@ urlpatterns = [
         name="product_delete",
     ),
     path(
+        "menu/products/<int:product_id>/restore/",
+        views.product_restore,
+        name="product_restore",
+    ),
+    path(
         "menu/products/<int:product_id>/recipes/",
         views.product_recipes,
         name="product_recipes",
@@ -76,6 +81,11 @@ urlpatterns = [
         views.category_delete,
         name="category_delete",
     ),
+    path(
+        "menu/categories/<int:category_id>/restore/",
+        views.category_restore,
+        name="category_restore",
+    ),
     path("menu/dispatch-areas/", views.dispatch_area_list, name="dispatch_area_list"),
     path(
         "menu/dispatch-areas/new/",
@@ -91,6 +101,11 @@ urlpatterns = [
         "menu/dispatch-areas/<int:area_id>/delete/",
         views.dispatch_area_delete,
         name="dispatch_area_delete",
+    ),
+    path(
+        "menu/dispatch-areas/<int:area_id>/restore/",
+        views.dispatch_area_restore,
+        name="dispatch_area_restore",
     ),
     # Alias español
     path("productos/", views.product_list, name="product_list_alt"),
@@ -134,10 +149,29 @@ urlpatterns = [
         name="dispatch_area_edit_alt",
     ),
     path(
-        "areas-despacho/<int:area_id>/eliminar/",
+        "menu/dispatch-areas/<int:area_id>/eliminar/",
         views.dispatch_area_delete,
         name="dispatch_area_delete_alt",
     ),
+    path(
+        "menu/dispatch-areas/<int:area_id>/restaurar/",
+        views.dispatch_area_restore,
+        name="dispatch_area_restore_alt",
+    ),
+    # Alias español productos
+    path(
+        "productos/<int:product_id>/restaurar/",
+        views.product_restore,
+        name="product_restore_alt",
+    ),
+    # Alias español categorías
+    path(
+        "categorias/<int:category_id>/restaurar/",
+        views.category_restore,
+        name="category_restore_alt",
+    ),
+    # ==========================
+    # 🍽️ GESTIÓN DE MESAS
     # ==========================
     # 🍽️ GESTIÓN DE MESAS
     # ==========================
@@ -211,6 +245,11 @@ urlpatterns = [
         views.ingredient_delete,
         name="ingredient_delete",
     ),
+    path(
+        "inventory/ingredients/<int:ingredient_id>/restore/",
+        views.ingredient_restore,
+        name="ingredient_restore",
+    ),
     path("inventory/adjust/", views.inventory_movement, name="inventory_movement"),
     path(
         "inventory/purchase/", views.purchase_ingredients, name="purchase_ingredients"
@@ -227,6 +266,11 @@ urlpatterns = [
         "ingredientes/<int:ingredient_id>/eliminar/",
         views.ingredient_delete,
         name="ingredient_delete_alt",
+    ),
+    path(
+        "ingredientes/<int:ingredient_id>/restaurar/",
+        views.ingredient_restore,
+        name="ingredient_restore_alt",
     ),
     path(
         "ingredientes/movimientos/",

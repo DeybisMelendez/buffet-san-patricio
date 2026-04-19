@@ -12,16 +12,34 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from users.utils import (has_valid_role, user_can_add_inventory_movement,
-                         user_can_manage_inventory_full, user_can_manage_menu,
-                         user_can_mark_paid, user_can_view_inventory,
-                         user_can_view_reports, user_can_view_sales_report)
+from users.utils import (
+    has_valid_role,
+    user_can_add_inventory_movement,
+    user_can_manage_inventory_full,
+    user_can_manage_menu,
+    user_can_mark_paid,
+    user_can_view_inventory,
+    user_can_view_reports,
+    user_can_view_sales_report,
+)
 
 from .forms import ProductIngredientForm, TableForm
-from .models import (CashRegister, Company, DispatchArea, Ingredient,
-                     IngredientMovement, Invoice, InvoiceItem, Order,
-                     OrderItem, Product, ProductCategory, ProductIngredient,
-                     Table, Warehouse)
+from .models import (
+    CashRegister,
+    Company,
+    DispatchArea,
+    Ingredient,
+    IngredientMovement,
+    Invoice,
+    InvoiceItem,
+    Order,
+    OrderItem,
+    Product,
+    ProductCategory,
+    ProductIngredient,
+    Table,
+    Warehouse,
+)
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -1212,13 +1230,13 @@ def product_edit(request, product_id):
 @login_required
 @user_passes_test(user_can_manage_menu)
 def product_delete(request, product_id):
-    """Elimina un producto."""
+    """Elimina un producto (soft delete)."""
     product = get_object_or_404(Product, id=product_id)
 
     if request.method == "POST":
         try:
             product_name = product.name
-            product.delete()
+            product.soft_delete()
             messages.success(
                 request, f"✅ Producto '{product_name}' eliminado exitosamente."
             )
@@ -1228,6 +1246,19 @@ def product_delete(request, product_id):
             return redirect("product_list")
 
     return render(request, "menu/product_confirm_delete.html", {"product": product})
+
+
+@login_required
+@user_passes_test(user_can_manage_menu)
+def product_restore(request, product_id):
+    """Restaura un producto eliminado."""
+    product = get_object_or_404(Product.all_objects, id=product_id)
+    if not product.is_deleted:
+        messages.warning(request, "⚠️ El producto no está eliminado.")
+        return redirect("product_list")
+    product.restore()
+    messages.success(request, f"✅ Producto '{product.name}' restaurado exitosamente.")
+    return redirect("product_list")
 
 
 # ==========================
@@ -1297,7 +1328,7 @@ def category_edit(request, category_id):
 @login_required
 @user_passes_test(user_can_manage_menu)
 def category_delete(request, category_id):
-    """Elimina una categoría."""
+    """Elimina una categoría (soft delete)."""
     category = get_object_or_404(ProductCategory, id=category_id)
 
     # Verificar si hay productos usando esta categoría
@@ -1306,7 +1337,7 @@ def category_delete(request, category_id):
     if request.method == "POST":
         try:
             category_name = category.name
-            category.delete()
+            category.soft_delete()
             messages.success(
                 request, f"✅ Categoría '{category_name}' eliminada exitosamente."
             )
@@ -1323,6 +1354,21 @@ def category_delete(request, category_id):
             "products_using_category": products_using_category,
         },
     )
+
+
+@login_required
+@user_passes_test(user_can_manage_menu)
+def category_restore(request, category_id):
+    """Restaura una categoría eliminada."""
+    category = get_object_or_404(ProductCategory.all_objects, id=category_id)
+    if not category.is_deleted:
+        messages.warning(request, "⚠️ La categoría no está eliminada.")
+        return redirect("category_list")
+    category.restore()
+    messages.success(
+        request, f"✅ Categoría '{category.name}' restaurada exitosamente."
+    )
+    return redirect("category_list")
 
 
 # ==========================
@@ -1406,7 +1452,7 @@ def dispatch_area_edit(request, area_id):
 @login_required
 @user_passes_test(user_can_manage_menu)
 def dispatch_area_delete(request, area_id):
-    """Elimina un área de despacho."""
+    """Elimina un área de despacho (soft delete)."""
     area = get_object_or_404(DispatchArea, id=area_id)
 
     # Verificar si hay productos usando esta área
@@ -1415,16 +1461,14 @@ def dispatch_area_delete(request, area_id):
     if request.method == "POST":
         try:
             area_name = area.name
-            area.delete()
+            area.soft_delete()
             messages.success(
                 request,
                 f"✅ Área de despacho '{area_name}' eliminada exitosamente.",
             )
             return redirect("dispatch_area_list")
         except Exception as e:
-            messages.error(
-                request, f"❌ Error al eliminar área de despacho: {e}"
-            )  # noqa: E501
+            messages.error(request, f"❌ Error al eliminar área de despacho: {e}")
             return redirect("dispatch_area_list")
 
     return render(
@@ -1435,6 +1479,21 @@ def dispatch_area_delete(request, area_id):
             "products_using_area": products_using_area,
         },
     )
+
+
+@login_required
+@user_passes_test(user_can_manage_menu)
+def dispatch_area_restore(request, area_id):
+    """Restaura un área de despacho eliminada."""
+    area = get_object_or_404(DispatchArea.all_objects, id=area_id)
+    if not area.is_deleted:
+        messages.warning(request, "⚠️ El área de despacho no está eliminada.")
+        return redirect("dispatch_area_list")
+    area.restore()
+    messages.success(
+        request, f"✅ Área de despacho '{area.name}' restaurada exitosamente."
+    )
+    return redirect("dispatch_area_list")
 
 
 # ==========================
@@ -1704,7 +1763,7 @@ def ingredient_edit(request, ingredient_id):
 @login_required
 @user_passes_test(user_can_manage_inventory_full)
 def ingredient_delete(request, ingredient_id):
-    """Elimina un ingrediente."""
+    """Elimina un ingrediente (soft delete)."""
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
 
     # Verificar si hay movimientos o recetas usando este ingrediente
@@ -1714,7 +1773,7 @@ def ingredient_delete(request, ingredient_id):
     if request.method == "POST":
         try:
             ingredient_name = ingredient.name
-            ingredient.delete()
+            ingredient.soft_delete()
             messages.success(
                 request, f"✅ Ingrediente '{ingredient_name}' eliminado exitosamente."
             )
@@ -1732,6 +1791,21 @@ def ingredient_delete(request, ingredient_id):
             "recipes_count": recipes_count,
         },
     )
+
+
+@login_required
+@user_passes_test(user_can_manage_inventory_full)
+def ingredient_restore(request, ingredient_id):
+    """Restaura un ingrediente eliminado."""
+    ingredient = get_object_or_404(Ingredient.all_objects, id=ingredient_id)
+    if not ingredient.is_deleted:
+        messages.warning(request, "⚠️ El ingrediente no está eliminado.")
+        return redirect("ingredient_list")
+    ingredient.restore()
+    messages.success(
+        request, f"✅ Ingrediente '{ingredient.name}' restaurado exitosamente."
+    )
+    return redirect("ingredient_list")
 
 
 # ==========================
@@ -1792,10 +1866,15 @@ def company_settings(request):
 @user_passes_test(has_valid_role)
 def dashboard(request):
     """Dashboard principal con gráficos adaptados al grupo del usuario."""
-    from users.utils import (is_administrador, is_cajero, is_cocinero,
-                             is_servicio, is_supervisor,
-                             user_can_view_inventory,
-                             user_can_view_sales_report)
+    from users.utils import (
+        is_administrador,
+        is_cajero,
+        is_cocinero,
+        is_servicio,
+        is_supervisor,
+        user_can_view_inventory,
+        user_can_view_sales_report,
+    )
 
     # Obtener fecha actual
     today = timezone.now().date()
