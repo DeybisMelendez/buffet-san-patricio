@@ -39,6 +39,9 @@ class SoftDeleteModel(models.Model):
 
 class Table(SoftDeleteModel):
     name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+    pending_billing = models.BooleanField(
+        default=False, verbose_name="Pendiente en caja"
+    )
 
     def __str__(self):
         return f"Mesa {self.name}"
@@ -227,6 +230,13 @@ class Invoice(models.Model):
     payment_method = models.CharField(
         max_length=10, choices=PAYMENT_METHODS, default="CONTADO"
     )
+    amount_received = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Monto recibido",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
@@ -240,6 +250,12 @@ class Invoice(models.Model):
                 (last_invoice.invoice_number + 1) if last_invoice else 1
             )
         super().save(*args, **kwargs)
+
+    @property
+    def change_amount(self):
+        if self.payment_method == "CONTADO" and self.amount_received is not None:
+            return self.amount_received - self.total
+        return None
 
     def get_items(self):
         return self.invoiceitem_set.select_related("product")

@@ -63,7 +63,7 @@
             <div>Fecha: {{ invoice.created_at|date:"d/m/Y" }}</div>
             <div>Hora: {{ invoice.created_at|time:"H:i" }}</div>
             {% if invoice.table %}<div>Mesa: {{ invoice.table.name }}</div>{% endif %}
-            {% if invoice.user %}<div>Atendió: {{ invoice.user.username }}</div>{% endif %}
+            {% if invoice.user %}<div>Atendio: {{ invoice.user.username }}</div>{% endif %}
         </div>
         <div class="border-bottom mb-2"></div>
         <table class="mb-2">
@@ -97,13 +97,17 @@
         </table>
         <div class="mb-2">
             <div>
-                Método de Pago:
+                Metodo de Pago:
                 {% if invoice.payment_method == 'CONTADO' %}
                     CONTADO
                 {% else %}
-                    CRÉDITO
+                    CREDITO
                 {% endif %}
             </div>
+            {% if invoice.payment_method == 'CONTADO' and invoice.amount_received %}
+                <div>Recibido: C$ {{ invoice.amount_received|floatformat:2 }}</div>
+                <div class="fw-bold">Cambio: C$ {{ invoice.change_amount|floatformat:2 }}</div>
+            {% endif %}
         </div>
         <div class="border-top mb-2"></div>
         <div class="text-center mb-2">

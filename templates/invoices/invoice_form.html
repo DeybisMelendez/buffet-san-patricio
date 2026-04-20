@@ -39,51 +39,115 @@
                 </div>
             </div>
         </div>
-        <form method="post" class="card">
-            {% csrf_token %}
-            <div class="card-body">
-                <h5 class="card-title">Confirmar Factura</h5>
-                <div class="mb-3">
-                    <label class="form-label">Forma de Pago</label>
-                    <div class="d-flex gap-3">
-                        <div class="form-check">
-                            <input class="form-check-input"
-                                   type="radio"
-                                   name="payment_method"
-                                   id="payment_contado"
-                                   value="CONTADO"
-                                   checked>
-                            <label class="form-check-label" for="payment_contado">
-                                <i class="material-icons text-success">payments</i> Contado
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input"
-                                   type="radio"
-                                   name="payment_method"
-                                   id="payment_credito"
-                                   value="CREDITO">
-                            <label class="form-check-label" for="payment_credito">
-                                <i class="material-icons text-warning">credit_card</i> Crédito
-                            </label>
+        {% if is_cashier %}
+            <form method="post" class="card" x-data="invoiceForm({{ total }})">
+                {% csrf_token %}
+                <div class="card-body">
+                    <h5 class="card-title">Confirmar Factura</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Forma de Pago</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="payment_method"
+                                       id="payment_contado"
+                                       value="CONTADO"
+                                       x-model="paymentMethod"
+                                       checked>
+                                <label class="form-check-label" for="payment_contado">
+                                    <i class="material-icons text-success">payments</i> Contado
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="payment_method"
+                                       id="payment_credito"
+                                       value="CREDITO"
+                                       x-model="paymentMethod">
+                                <label class="form-check-label" for="payment_credito">
+                                    <i class="material-icons text-warning">credit_card</i> Crédito
+                                </label>
+                            </div>
                         </div>
                     </div>
+                    <div class="mb-3" x-show="paymentMethod === 'CONTADO'" x-transition>
+                        <label class="form-label" for="amount_received">Monto Recibido (C$)</label>
+                        <input type="number"
+                               class="form-control"
+                               id="amount_received"
+                               name="amount_received"
+                               step="0.01"
+                               min="0"
+                               x-model.number="amountReceived"
+                               placeholder="0.00">
+                        <div class="form-text">Ingrese el monto recibido del cliente</div>
+                    </div>
+                    <div class="alert alert-secondary"
+                         x-show="paymentMethod === 'CONTADO' && amountReceived > 0"
+                         x-transition>
+                        <strong>Cambio:</strong> C$ <span x-text="change.toFixed(2)"></span>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               id="print_check"
+                               name="print"
+                               value="yes">
+                        <label class="form-check-label" for="print_check">Imprimir factura después de generar</label>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-success"
+                                :disabled="paymentMethod === 'CONTADO' && (!amountReceived || amountReceived < total)">
+                            <i class="material-icons">receipt</i> Cobrar y Generar Factura
+                        </button>
+                        <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
                 </div>
-                <div class="mb-3 form-check">
-                    <input type="checkbox"
-                           class="form-check-input"
-                           id="print_check"
-                           name="print"
-                           value="yes">
-                    <label class="form-check-label" for="print_check">Imprimir factura después de generar</label>
+            </form>
+        {% else %}
+            {% if has_pending_billing %}
+                <div class="alert alert-warning d-flex align-items-center mb-4"
+                     role="alert">
+                    <i class="material-icons me-2">hourglass_top</i>
+                    <span>Esta mesa ya fue enviada a caja y esta pendiente de cobro.</span>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success">
-                        <i class="material-icons">receipt</i> Generar Factura
-                    </button>
-                    <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Cancelar</a>
-                </div>
-            </div>
-        </form>
+            {% else %}
+                <form method="post" class="card">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                            <i class="material-icons me-2">info</i>
+                            <span>Para cobrar y generar la factura, envia esta mesa a caja.</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="material-icons">send</i> Enviar a Caja
+                            </button>
+                            <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Volver</a>
+                        </div>
+                    </div>
+                </form>
+            {% endif %}
+        {% endif %}
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            window.invoiceForm = function(total) {
+                return {
+                    total: total,
+                    paymentMethod: 'CONTADO',
+                    amountReceived: null,
+                    get change() {
+                        if (this.amountReceived && this.amountReceived >= this.total) {
+                            return this.amountReceived - this.total;
+                        }
+                        return 0;
+                    }
+                };
+            };
+        });
+    </script>
 {% endblock %}

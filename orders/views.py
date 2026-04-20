@@ -1365,9 +1365,7 @@ def category_restore(request, category_id):
         messages.warning(request, " La categoría no está eliminada.")
         return redirect("category_list")
     category.restore()
-    messages.success(
-        request, f" Categoría '{category.name}' restaurada exitosamente."
-    )
+    messages.success(request, f" Categoría '{category.name}' restaurada exitosamente.")
     return redirect("category_list")
 
 
@@ -1545,9 +1543,7 @@ def table_management_edit(request, table_id):
         form = TableForm(request.POST, instance=table)
         if form.is_valid():
             form.save()
-            messages.success(
-                request, f" Mesa '{table.name}' actualizada exitosamente."
-            )
+            messages.success(request, f" Mesa '{table.name}' actualizada exitosamente.")
             return redirect("table_management_list")
         else:
             messages.error(request, f" Error: {form.errors}")
@@ -2080,6 +2076,33 @@ def user_can_manage_cash_register(user):
     return user.groups.filter(name__in=allowed_groups).exists() or user.is_superuser
 
 
+def user_can_cashier(user):
+    """Verifica si el usuario tiene rol de cajero (puede procesar cobros)."""
+    return user.has_perm("orders.add_invoice")
+
+
+@login_required
+def table_send_to_billing(request, table_id):
+    """Marca una mesa como pendiente de cobro (la envia a la cola del cajero)."""
+    table = get_object_or_404(Table, id=table_id)
+    orders = Order.objects.filter(table=table, is_paid=False)
+
+    if not orders.exists():
+        messages.info(request, f" No hay comandas pendientes para {table.name}.")
+        return redirect("table_orders", table_id=table.id)
+
+    if request.method == "POST":
+        table.pending_billing = True
+        table.save()
+        messages.success(
+            request,
+            f" Mesa {table.name} enviada a caja para cobro.",
+        )
+        return redirect("table_list")
+
+    return redirect("table_orders", table_id=table.id)
+
+
 @login_required
 @user_passes_test(user_can_invoice)
 def invoice_table(request, table_id):
@@ -2093,8 +2116,34 @@ def invoice_table(request, table_id):
         messages.info(request, f" No hay comandas pendientes para {table.name}.")
         return redirect("table_orders", table_id=table.id)
 
+    consolidated = {}
+    for order in orders:
+        for item in order.orderitem_set.all():
+            key = item.product.id
+            if key in consolidated:
+                consolidated[key]["quantity"] += item.quantity
+                consolidated[key]["total"] += item.quantity * item.product.price
+            else:
+                consolidated[key] = {
+                    "product": item.product,
+                    "quantity": item.quantity,
+                    "unit_price": item.product.price,
+                    "total": item.quantity * item.product.price,
+                }
+
+    items_list = list(consolidated.values())
+    total = sum(item["total"] for item in items_list)
+
+    is_cashier = user_can_cashier(request.user)
+    has_pending_billing = table.pending_billing
+
     if request.method == "POST":
+        if not is_cashier:
+            messages.error(request, " Solo un cajero puede procesar el cobro.")
+            return redirect("table_orders", table_id=table.id)
+
         payment_method = request.POST.get("payment_method", "CONTADO")
+        amount_received_str = request.POST.get("amount_received", "").strip()
 
         with transaction.atomic():
             subtotal = Decimal("0")
@@ -2125,15 +2174,33 @@ def invoice_table(request, table_id):
                 )
                 return redirect("table_orders", table_id=table.id)
 
-            cashier = active_register.user
+            amount_received = None
+            if payment_method == "CONTADO":
+                try:
+                    amount_received = (
+                        Decimal(amount_received_str) if amount_received_str else None
+                    )
+                except Exception:
+                    messages.error(request, " Monto recibido inválido.")
+                    return render(
+                        request,
+                        "invoices/invoice_form.html",
+                        {
+                            "table": table,
+                            "items": items_list,
+                            "total": total,
+                            "is_cashier": is_cashier,
+                        },
+                    )
 
             invoice = Invoice.objects.create(
                 table=table,
                 user=request.user,
-                cashier=cashier,
+                cashier=request.user,
                 subtotal=subtotal,
                 total=subtotal,
                 payment_method=payment_method,
+                amount_received=amount_received,
             )
 
             for item_data in items_data:
@@ -2146,6 +2213,8 @@ def invoice_table(request, table_id):
                 )
 
             orders.update(is_paid=True)
+            table.pending_billing = False
+            table.save()
 
             if active_register:
                 if payment_method == "CONTADO":
@@ -2165,24 +2234,6 @@ def invoice_table(request, table_id):
 
             return redirect("table_list")
 
-    consolidated = {}
-    for order in orders:
-        for item in order.orderitem_set.all():
-            key = item.product.id
-            if key in consolidated:
-                consolidated[key]["quantity"] += item.quantity
-                consolidated[key]["total"] += item.quantity * item.product.price
-            else:
-                consolidated[key] = {
-                    "product": item.product,
-                    "quantity": item.quantity,
-                    "unit_price": item.product.price,
-                    "total": item.quantity * item.product.price,
-                }
-
-    items_list = list(consolidated.values())
-    total = sum(item["total"] for item in items_list)
-
     return render(
         request,
         "invoices/invoice_form.html",
@@ -2190,6 +2241,8 @@ def invoice_table(request, table_id):
             "table": table,
             "items": items_list,
             "total": total,
+            "is_cashier": is_cashier,
+            "has_pending_billing": has_pending_billing,
         },
     )
 
@@ -2254,10 +2307,29 @@ def cash_register_list(request):
     """Lista todos los arqueos de caja."""
     cash_registers = CashRegister.objects.select_related("user")[:50]
     active = CashRegister.get_active()
+
+    pending_tables = []
+    for table in Table.objects.filter(pending_billing=True).order_by("name"):
+        total_due = (
+            Order.objects.filter(table=table, is_paid=False)
+            .annotate(
+                order_total=Sum(
+                    F("orderitem__quantity") * F("orderitem__product__price")
+                )
+            )
+            .aggregate(total=Sum("order_total"))["total"]
+            or 0
+        )
+        pending_tables.append({"table": table, "total_due": total_due})
+
     return render(
         request,
         "cash/register_list.html",
-        {"cash_registers": cash_registers, "active_register": active},
+        {
+            "cash_registers": cash_registers,
+            "active_register": active,
+            "pending_tables": pending_tables,
+        },
     )
 
 

@@ -20,6 +20,11 @@ urlpatterns = [
         "pos/table/<int:table_id>/pay/", views.mark_table_paid, name="mark_table_paid"
     ),
     path("pos/table/<int:table_id>/new/", views.create_order, name="create_order"),
+    path(
+        "pos/table/<int:table_id>/send-to-billing/",
+        views.table_send_to_billing,
+        name="table_send_to_billing",
+    ),
     path("pos/order/<int:order_id>/", views.order_detail, name="order_detail"),
     path("pos/order/<int:order_id>/edit/", views.edit_order, name="edit_order"),
     path("pos/order/<int:order_id>/print/", views.print_order, name="print_order"),
