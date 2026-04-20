@@ -201,9 +201,13 @@ class OrderItem(models.Model):
 
 
 class Invoice(models.Model):
-    PAYMENT_METHODS = [
-        ("CONTADO", "Contado"),
-        ("CREDITO", "Crédito"),
+    PAYMENT_TYPES = [
+        ("EFECTIVO", "Efectivo"),
+        ("TARJETA_CREDITO", "Tarjeta Crédito"),
+        ("TARJETA_DEBITO", "Tarjeta Débito"),
+        ("TRANSFERENCIA", "Transferencia"),
+        ("OTRO", "Otro"),
+        ("PENDIENTE", "Pendiente"),
     ]
 
     invoice_number = models.PositiveIntegerField(unique=True)
@@ -224,8 +228,25 @@ class Invoice(models.Model):
     )
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    payment_method = models.CharField(
-        max_length=10, choices=PAYMENT_METHODS, default="CONTADO"
+    payment_type = models.CharField(
+        max_length=20, choices=PAYMENT_TYPES, default="PENDIENTE"
+    )
+    amount_received = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Monto recibido",
+    )
+    payment_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha de pago",
+    )
+    notes = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Notas",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
@@ -240,6 +261,12 @@ class Invoice(models.Model):
                 (last_invoice.invoice_number + 1) if last_invoice else 1
             )
         super().save(*args, **kwargs)
+
+    @property
+    def change_amount(self):
+        if self.payment_type == "EFECTIVO" and self.amount_received is not None:
+            return self.amount_received - self.total
+        return None
 
     def get_items(self):
         return self.invoiceitem_set.select_related("product")
@@ -277,7 +304,17 @@ class CashRegister(models.Model):
     )
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_contado = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_credito = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_tarjeta_credito = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
+    total_tarjeta_debito = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
+    total_transferencia = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
+    total_otros = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_pendiente = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     closing_time = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

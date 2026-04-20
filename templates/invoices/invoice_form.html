@@ -39,51 +39,110 @@
                 </div>
             </div>
         </div>
-        <form method="post" class="card">
-            {% csrf_token %}
-            <div class="card-body">
-                <h5 class="card-title">Confirmar Factura</h5>
-                <div class="mb-3">
-                    <label class="form-label">Forma de Pago</label>
-                    <div class="d-flex gap-3">
-                        <div class="form-check">
-                            <input class="form-check-input"
-                                   type="radio"
-                                   name="payment_method"
-                                   id="payment_contado"
-                                   value="CONTADO"
-                                   checked>
-                            <label class="form-check-label" for="payment_contado">
-                                <i class="material-icons text-success">payments</i> Contado
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input"
-                                   type="radio"
-                                   name="payment_method"
-                                   id="payment_credito"
-                                   value="CREDITO">
-                            <label class="form-check-label" for="payment_credito">
-                                <i class="material-icons text-warning">credit_card</i> Crédito
-                            </label>
-                        </div>
+        {% if is_cashier %}
+            <form method="post" class="card" x-data="invoiceForm({{ total }})">
+                {% csrf_token %}
+                <div class="card-body">
+                    <h5 class="card-title">Confirmar Factura</h5>
+                    <div class="mb-3">
+                        <label class="form-label" for="notes">Notas (opcional)</label>
+                        <textarea class="form-control"
+                                  id="notes"
+                                  name="notes"
+                                  rows="2"
+                                  placeholder="Agregar nota sobre la factura..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="payment_type">Tipo de Pago</label>
+                        <select class="form-select"
+                                id="payment_type"
+                                name="payment_type"
+                                x-model="paymentType"
+                                required>
+                            <option value="PENDIENTE">Pendiente (Credito)</option>
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="TARJETA_CREDITO">Tarjeta Credito</option>
+                            <option value="TARJETA_DEBITO">Tarjeta Debito</option>
+                            <option value="TRANSFERENCIA">Transferencia</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                        <div class="form-text">Selecciona "Pendiente" para guardar como credito (se imprimira voucher).</div>
+                    </div>
+                    <div class="mb-3" x-show="paymentType === 'EFECTIVO'" x-transition>
+                        <label class="form-label" for="amount_received">Monto Recibido (C$)</label>
+                        <input type="number"
+                               class="form-control"
+                               id="amount_received"
+                               name="amount_received"
+                               step="0.01"
+                               min="0"
+                               x-model.number="amountReceived"
+                               placeholder="0.00">
+                        <div class="form-text">Ingrese el monto recibido del cliente</div>
+                    </div>
+                    <div class="alert alert-secondary"
+                         x-show="paymentType === 'EFECTIVO' && amountReceived > 0"
+                         x-transition>
+                        <strong>Cambio:</strong> C$ <span x-text="change.toFixed(2)"></span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-success"
+                                x-show="paymentType === 'PENDIENTE'">
+                            <i class="material-icons">save</i>
+                            <span>Guardar como Credito</span>
+                        </button>
+                        <button type="submit"
+                                class="btn btn-success"
+                                x-show="paymentType !== 'PENDIENTE'"
+                                :disabled="paymentType === 'EFECTIVO' && (!amountReceived || amountReceived < total)">
+                            <i class="material-icons">payments</i>
+                            <span>Cobrar y Generar Factura</span>
+                        </button>
+                        <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Cancelar</a>
                     </div>
                 </div>
-                <div class="mb-3 form-check">
-                    <input type="checkbox"
-                           class="form-check-input"
-                           id="print_check"
-                           name="print"
-                           value="yes">
-                    <label class="form-check-label" for="print_check">Imprimir factura después de generar</label>
+            </form>
+        {% else %}
+            <form method="post" class="card" x-data="invoiceForm({{ total }})">
+                {% csrf_token %}
+                <input type="hidden" name="payment_type" value="PENDIENTE">
+                <div class="card-body">
+                    <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+                        <i class="material-icons me-2">info</i>
+                        <span>Al presionar "Guardar como Credito" se generara la factura como pendiente de pago.</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="notes">Notas (opcional)</label>
+                        <textarea class="form-control"
+                                  id="notes"
+                                  name="notes"
+                                  rows="2"
+                                  placeholder="Agregar nota sobre la factura..."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="material-icons">save</i> Guardar como Credito
+                        </button>
+                        <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Volver</a>
+                    </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success">
-                        <i class="material-icons">receipt</i> Generar Factura
-                    </button>
-                    <a href="{% url 'table_orders' table.id %}" class="btn btn-secondary">Cancelar</a>
-                </div>
-            </div>
-        </form>
+            </form>
+        {% endif %}
     </div>
+    <script>
+        window.invoiceForm = function(total) {
+            return {
+                total: total,
+                paymentType: 'PENDIENTE',
+                amountReceived: null,
+                get change() {
+                    if (this.amountReceived && this.amountReceived >= this.total) {
+                        return this.amountReceived - this.total;
+                    }
+                    return 0;
+                }
+            };
+        };
+    </script>
 {% endblock %}

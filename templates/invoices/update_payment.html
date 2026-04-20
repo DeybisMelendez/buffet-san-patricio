@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% block title %}Cobrar Factura {{ invoice.invoice_number }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">Cobrar Factura #{{ invoice.invoice_number }}</h1>
+        {% if invoice.table %}<h3>Mesa {{ invoice.table.name }}</h3>{% endif %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Total a Pagar</h5>
+            </div>
+            <div class="card-body">
+                <h2 class="text-success">C$ {{ invoice.total|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+        <form method="post"
+              class="card"
+              x-data="updatePaymentForm({{ invoice.total }})">
+            {% csrf_token %}
+            <div class="card-body">
+                <h5 class="card-title">Confirmar Pago</h5>
+                <div class="mb-3">
+                    <label class="form-label" for="notes">Notas (opcional)</label>
+                    <textarea class="form-control"
+                              id="notes"
+                              name="notes"
+                              rows="2"
+                              placeholder="Agregar nota sobre el pago..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="payment_type">Tipo de Pago</label>
+                    <select class="form-select"
+                            id="payment_type"
+                            name="payment_type"
+                            x-model="paymentType"
+                            required>
+                        <option value="">Seleccionar...</option>
+                        <option value="EFECTIVO">Efectivo</option>
+                        <option value="TARJETA_CREDITO">Tarjeta Credito</option>
+                        <option value="TARJETA_DEBITO">Tarjeta Debito</option>
+                        <option value="TRANSFERENCIA">Transferencia</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+                <div class="mb-3" x-show="paymentType === 'EFECTIVO'" x-transition>
+                    <label class="form-label" for="amount_received">Monto Recibido (C$)</label>
+                    <input type="number"
+                           class="form-control"
+                           id="amount_received"
+                           name="amount_received"
+                           step="0.01"
+                           min="0"
+                           x-model.number="amountReceived"
+                           placeholder="0.00">
+                    <div class="form-text">Ingrese el monto recibido del cliente</div>
+                </div>
+                <div class="alert alert-secondary"
+                     x-show="paymentType === 'EFECTIVO' && amountReceived > 0"
+                     x-transition>
+                    <strong>Cambio:</strong> C$ <span x-text="change.toFixed(2)"></span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit"
+                            class="btn btn-success"
+                            :disabled="!paymentType || (paymentType === 'EFECTIVO' && (!amountReceived || amountReceived < total))">
+                        <i class="material-icons">payments</i> Cobrar
+                    </button>
+                    <a href="{% url 'cash_register_list' %}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            window.updatePaymentForm = function(total) {
+                return {
+                    total: total,
+                    paymentType: '',
+                    amountReceived: null,
+                    get change() {
+                        if (this.amountReceived && this.amountReceived >= this.total) {
+                            return this.amountReceived - this.total;
+                        }
+                        return 0;
+                    }
+                };
+            };
+        });
+    </script>
+{% endblock %}

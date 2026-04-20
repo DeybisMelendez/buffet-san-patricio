@@ -384,6 +384,11 @@ urlpatterns = [
     ),
     path("invoices/", views.invoice_list, name="invoice_list"),
     path("invoices/<int:invoice_id>/print/", views.print_invoice, name="print_invoice"),
+    path(
+        "invoices/<int:invoice_id>/update-payment/",
+        views.update_invoice_payment,
+        name="update_invoice_payment",
+    ),
     path("api/invoices/", views.api_invoices, name="api_invoices"),
     # ==========================
     # 💰 ARQUEO DE CAJA
@@ -396,9 +401,19 @@ urlpatterns = [
         name="cash_register_detail",
     ),
     path(
+        "cash/pending/",
+        views.cash_pending_invoices,
+        name="cash_pending_invoices",
+    ),
+    path(
         "cash/<int:register_id>/close/",
         views.cash_register_close,
         name="cash_register_close",
+    ),
+    path(
+        "cash/<int:register_id>/print/",
+        views.print_cash_register,
+        name="print_cash_register",
     ),
     path(
         "cash/status/", views.api_cash_register_status, name="api_cash_register_status"

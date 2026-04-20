@@ -152,7 +152,7 @@ def mark_table_paid(request, table_id):
             cashier=cashier,
             subtotal=subtotal,
             total=subtotal,
-            payment_method="CONTADO",
+            payment_type="EFECTIVO",
         )
 
         for item_data in items_data:
@@ -1365,9 +1365,7 @@ def category_restore(request, category_id):
         messages.warning(request, " La categoría no está eliminada.")
         return redirect("category_list")
     category.restore()
-    messages.success(
-        request, f" Categoría '{category.name}' restaurada exitosamente."
-    )
+    messages.success(request, f" Categoría '{category.name}' restaurada exitosamente.")
     return redirect("category_list")
 
 
@@ -1545,9 +1543,7 @@ def table_management_edit(request, table_id):
         form = TableForm(request.POST, instance=table)
         if form.is_valid():
             form.save()
-            messages.success(
-                request, f" Mesa '{table.name}' actualizada exitosamente."
-            )
+            messages.success(request, f" Mesa '{table.name}' actualizada exitosamente.")
             return redirect("table_management_list")
         else:
             messages.error(request, f" Error: {form.errors}")
@@ -2080,6 +2076,11 @@ def user_can_manage_cash_register(user):
     return user.groups.filter(name__in=allowed_groups).exists() or user.is_superuser
 
 
+def user_can_cashier(user):
+    """Verifica si el usuario tiene rol de cajero (puede procesar cobros)."""
+    return user.has_perm("orders.add_invoice")
+
+
 @login_required
 @user_passes_test(user_can_invoice)
 def invoice_table(request, table_id):
@@ -2093,8 +2094,33 @@ def invoice_table(request, table_id):
         messages.info(request, f" No hay comandas pendientes para {table.name}.")
         return redirect("table_orders", table_id=table.id)
 
+    consolidated = {}
+    for order in orders:
+        for item in order.orderitem_set.all():
+            key = item.product.id
+            if key in consolidated:
+                consolidated[key]["quantity"] += item.quantity
+                consolidated[key]["total"] += item.quantity * item.product.price
+            else:
+                consolidated[key] = {
+                    "product": item.product,
+                    "quantity": item.quantity,
+                    "unit_price": item.product.price,
+                    "total": item.quantity * item.product.price,
+                }
+
+    items_list = list(consolidated.values())
+    total = sum(item["total"] for item in items_list)
+
+    is_cashier = user_can_cashier(request.user)
+
     if request.method == "POST":
-        payment_method = request.POST.get("payment_method", "CONTADO")
+        payment_type = request.POST.get("payment_type", "PENDIENTE")
+
+        if not is_cashier and payment_type != "PENDIENTE":
+            messages.error(request, " Solo un cajero puede procesar el cobro.")
+            return redirect("table_orders", table_id=table.id)
+        amount_received_str = request.POST.get("amount_received", "").strip()
 
         with transaction.atomic():
             subtotal = Decimal("0")
@@ -2125,15 +2151,47 @@ def invoice_table(request, table_id):
                 )
                 return redirect("table_orders", table_id=table.id)
 
-            cashier = active_register.user
+            amount_received = None
+            if payment_type == "EFECTIVO":
+                try:
+                    amount_received = (
+                        Decimal(amount_received_str) if amount_received_str else None
+                    )
+                except Exception:
+                    messages.error(request, " Monto recibido invalido.")
+                    return render(
+                        request,
+                        "invoices/invoice_form.html",
+                        {
+                            "table": table,
+                            "items": items_list,
+                            "total": total,
+                            "is_cashier": is_cashier,
+                        },
+                    )
+
+            manual_notes = request.POST.get("notes", "").strip()
+            auto_notes = ""
+            if payment_type == "PENDIENTE":
+                from django.utils import timezone
+
+                auto_notes = (
+                    f"Factura creada como pendiente el "
+                    f"{timezone.localtime(timezone.now()).strftime('%d/%m/%Y %H:%M:%S')}"
+                )
+            combined_notes = (
+                f"{manual_notes}\n{auto_notes}".strip() if manual_notes else auto_notes
+            )
 
             invoice = Invoice.objects.create(
                 table=table,
                 user=request.user,
-                cashier=cashier,
+                cashier=request.user,
                 subtotal=subtotal,
                 total=subtotal,
-                payment_method=payment_method,
+                payment_type=payment_type,
+                amount_received=amount_received,
+                notes=combined_notes,
             )
 
             for item_data in items_data:
@@ -2145,43 +2203,39 @@ def invoice_table(request, table_id):
                     total=item_data["total"],
                 )
 
-            orders.update(is_paid=True)
-
             if active_register:
-                if payment_method == "CONTADO":
-                    active_register.total_contado += subtotal
+                if payment_type == "PENDIENTE":
+                    active_register.total_pendiente += subtotal
+                    active_register.total_sales += subtotal
                 else:
-                    active_register.total_credito += subtotal
-                active_register.total_sales += subtotal
+                    orders.update(is_paid=True)
+
+                    active_register.total_sales += subtotal
+                    if payment_type == "EFECTIVO":
+                        active_register.total_contado += subtotal
+                    elif payment_type == "TARJETA_CREDITO":
+                        active_register.total_tarjeta_credito += subtotal
+                    elif payment_type == "TARJETA_DEBITO":
+                        active_register.total_tarjeta_debito += subtotal
+                    elif payment_type == "TRANSFERENCIA":
+                        active_register.total_transferencia += subtotal
+                    else:
+                        active_register.total_otros += subtotal
                 active_register.save()
 
-            messages.success(
-                request,
-                f" Factura #{invoice.invoice_number} generada por C$ {subtotal:.2f}",
-            )
-
-            if request.POST.get("print") == "yes":
-                return redirect("print_invoice", invoice_id=invoice.id)
-
-            return redirect("table_list")
-
-    consolidated = {}
-    for order in orders:
-        for item in order.orderitem_set.all():
-            key = item.product.id
-            if key in consolidated:
-                consolidated[key]["quantity"] += item.quantity
-                consolidated[key]["total"] += item.quantity * item.product.price
+            if payment_type == "PENDIENTE":
+                messages.success(
+                    request,
+                    f" Factura #{invoice.invoice_number} guardada como credito - "
+                    f"Pendiente de cobro.",
+                )
             else:
-                consolidated[key] = {
-                    "product": item.product,
-                    "quantity": item.quantity,
-                    "unit_price": item.product.price,
-                    "total": item.quantity * item.product.price,
-                }
+                messages.success(
+                    request,
+                    f" Factura #{invoice.invoice_number} cobrada por C$ {subtotal:.2f}",
+                )
 
-    items_list = list(consolidated.values())
-    total = sum(item["total"] for item in items_list)
+            return redirect("print_invoice", invoice_id=invoice.id)
 
     return render(
         request,
@@ -2190,16 +2244,185 @@ def invoice_table(request, table_id):
             "table": table,
             "items": items_list,
             "total": total,
+            "is_cashier": is_cashier,
         },
+    )
+
+
+@login_required
+@user_passes_test(user_can_cashier)
+def update_invoice_payment(request, invoice_id):
+    """Actualiza el tipo de pago de una factura PENDIENTE y la marca como cobrada."""
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+
+    if invoice.payment_type != "PENDIENTE":
+        messages.error(request, " Esta factura ya fue cobrada.")
+        return redirect("cash_register_list")
+
+    if not invoice.table:
+        messages.error(request, " La factura no tiene mesa asociada.")
+        return redirect("cash_register_list")
+
+    active_register = CashRegister.get_active()
+    if not active_register:
+        messages.error(
+            request,
+            " No hay una caja abierta. Abre un turno en 'Caja' antes de cobrar.",
+        )
+        return redirect("cash_register_list")
+
+    if request.method == "POST":
+        payment_type = request.POST.get("payment_type", "EFECTIVO")
+        amount_received_str = request.POST.get("amount_received", "").strip()
+
+        if payment_type == "PENDIENTE":
+            messages.error(request, " Debe seleccionar un tipo de pago valido.")
+            return redirect("update_invoice_payment", invoice_id=invoice_id)
+
+        amount_received = None
+        if payment_type == "EFECTIVO":
+            try:
+                amount_received = (
+                    Decimal(amount_received_str) if amount_received_str else None
+                )
+            except Exception:
+                messages.error(request, " Monto recibido invalido.")
+                return redirect("update_invoice_payment", invoice_id=invoice_id)
+
+        manual_notes = request.POST.get("notes", "").strip()
+        from django.utils import timezone
+
+        payment_datetime = timezone.localtime(timezone.now()).strftime(
+            "%d/%m/%Y %H:%M:%S"
+        )
+        payment_label = dict(Invoice.PAYMENT_TYPES).get(payment_type, payment_type)
+        auto_notes = (
+            f"Pagado el {payment_datetime} via {payment_label} - "
+            f"Cajero: {request.user.username}"
+        )
+        combined_notes = (
+            f"{manual_notes}\n{auto_notes}".strip() if manual_notes else auto_notes
+        )
+
+        with transaction.atomic():
+            invoice.payment_type = payment_type
+            invoice.amount_received = amount_received
+            invoice.payment_date = timezone.now()
+            invoice.notes = combined_notes
+            invoice.save()
+
+            orders = Order.objects.filter(table=invoice.table, is_paid=False)
+            orders.update(is_paid=True)
+
+            active_register.total_pendiente -= invoice.total
+            if payment_type == "EFECTIVO":
+                active_register.total_contado += invoice.total
+            elif payment_type == "TARJETA_CREDITO":
+                active_register.total_tarjeta_credito += invoice.total
+            elif payment_type == "TARJETA_DEBITO":
+                active_register.total_tarjeta_debito += invoice.total
+            elif payment_type == "TRANSFERENCIA":
+                active_register.total_transferencia += invoice.total
+            else:
+                active_register.total_otros += invoice.total
+            active_register.save()
+
+        messages.success(
+            request,
+            f" Factura #{invoice.invoice_number} cobrada por C$ {invoice.total:.2f}",
+        )
+        return redirect("print_invoice", invoice_id=invoice.id)
+
+    return render(
+        request,
+        "invoices/update_payment.html",
+        {"invoice": invoice},
     )
 
 
 @login_required
 @user_passes_test(user_can_view_invoices)
 def invoice_list(request):
-    """Lista todas las facturas."""
-    invoices = Invoice.objects.select_related("table", "user", "cashier")[:100]
-    return render(request, "invoices/invoice_list.html", {"invoices": invoices})
+    """Reporte de facturas con filtros por rango de fechas."""
+    start, end = parse_date_range(request)
+    context = {"start": start, "end": end}
+    return render(request, "invoices/invoice_list.html", context)
+
+
+@login_required
+@user_passes_test(user_can_view_invoices)
+def api_invoices(request):
+    """API JSON: Lista de facturas con paginación y filtros."""
+    start, end = parse_date_range(request)
+
+    invoices = Invoice.objects.select_related("table", "user", "cashier").filter(
+        created_at__gte=start, created_at__lte=end
+    )
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search)
+            | Q(table__name__icontains=search)
+            | Q(user__username__icontains=search)
+            | Q(cashier__username__icontains=search)
+        )
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        field, direction = sort.split(",")
+        if direction == "desc":
+            field = f"-{field}"
+        invoices = invoices.order_by(field)
+    else:
+        invoices = invoices.order_by("-created_at")
+
+    try:
+        page = int(request.GET.get("page", 1))
+        limit = int(request.GET.get("limit", 25))
+    except ValueError:
+        page = 1
+        limit = 25
+
+    if limit == 0:
+        items = list(
+            invoices.values(
+                "id",
+                "invoice_number",
+                "table__name",
+                "user__username",
+                "cashier__username",
+                "total",
+                "payment_type",
+                "created_at",
+            )
+        )
+        return JsonResponse({"count": len(items), "results": items})
+
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    items = list(
+        invoices.values(
+            "id",
+            "invoice_number",
+            "table__name",
+            "user__username",
+            "cashier__username",
+            "total",
+            "payment_type",
+            "created_at",
+        )[start_idx:end_idx]
+    )
+
+    for item in items:
+        item["table"] = item.pop("table__name") or "Sin mesa"
+        item["user"] = item.pop("user__username") or "—"
+        item["cashier"] = item.pop("cashier__username") or "—"
+        item["created_at"] = (
+            item["created_at"].strftime("%d/%m/%Y %H:%M") if item["created_at"] else ""
+        )
+
+    return JsonResponse({"count": invoices.count(), "results": items})
 
 
 @login_required
@@ -2218,29 +2441,31 @@ def print_invoice(request, invoice_id):
 
 
 @login_required
-@user_passes_test(user_can_view_invoices)
-def api_invoices(request):
-    """API JSON: Lista de facturas."""
-    invoices = (
-        Invoice.objects.all()
-        .select_related("table", "user", "cashier")
-        .order_by("-created_at")[:100]
+@user_passes_test(user_can_manage_cash_register)
+def print_cash_register(request, register_id):
+    """Imprime el arqueo de caja en formato térmico."""
+    cash_register = get_object_or_404(CashRegister, id=register_id)
+    company = Company.objects.first()
+
+    expected = cash_register.opening_amount + cash_register.total_contado
+    total_cobrado = (
+        cash_register.total_contado
+        + cash_register.total_tarjeta_credito
+        + cash_register.total_tarjeta_debito
+        + cash_register.total_transferencia
+        + cash_register.total_otros
     )
 
-    data = [
+    return render(
+        request,
+        "cash/print_cash_register.html",
         {
-            "id": i.id,
-            "invoice_number": i.invoice_number,
-            "table": i.table.name if i.table else "Sin mesa",
-            "user": i.user.username if i.user else "—",
-            "cashier": i.cashier.username if i.cashier else "—",
-            "total": float(i.total),
-            "payment_method": i.payment_method,
-            "created_at": i.created_at.strftime("%d/%m/%Y %H:%M"),
-        }
-        for i in invoices
-    ]
-    return JsonResponse(data, safe=False)
+            "register": cash_register,
+            "company": company,
+            "expected": expected,
+            "total_cobrado": total_cobrado,
+        },
+    )
 
 
 # ==========================
@@ -2251,13 +2476,48 @@ def api_invoices(request):
 @login_required
 @user_passes_test(user_can_manage_cash_register)
 def cash_register_list(request):
-    """Lista todos los arqueos de caja."""
-    cash_registers = CashRegister.objects.select_related("user")[:50]
+    """Lista todos los arqueos de caja con paginacion."""
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    cash_registers = CashRegister.objects.select_related("user").order_by("-id")
+    paginator = Paginator(cash_registers, 25)
+    page = request.GET.get("page", 1)
+
+    try:
+        registers_page = paginator.page(page)
+    except (PageNotAnInteger, EmptyPage):
+        registers_page = paginator.page(1)
+
     active = CashRegister.get_active()
+    active_expected = None
+    if active:
+        active_expected = active.opening_amount + active.total_contado
+
     return render(
         request,
         "cash/register_list.html",
-        {"cash_registers": cash_registers, "active_register": active},
+        {
+            "cash_registers": registers_page,
+            "active_register": active,
+            "active_expected": active_expected,
+        },
+    )
+
+
+@login_required
+@user_passes_test(user_can_manage_cash_register)
+def cash_pending_invoices(request):
+    """Lista todas las facturas pendientes de cobro."""
+    pending = (
+        Invoice.objects.filter(payment_type="PENDIENTE")
+        .select_related("table", "user", "cashier")
+        .order_by("-created_at")
+    )
+    total_pending = sum(inv.total for inv in pending)
+    return render(
+        request,
+        "cash/pending_invoices.html",
+        {"invoices": pending, "total_pending": total_pending},
     )
 
 
@@ -2299,7 +2559,38 @@ def cash_register_open(request):
 def cash_register_detail(request, register_id):
     """Muestra el detalle del arqueo actual."""
     cash_register = get_object_or_404(CashRegister, id=register_id)
-    return render(request, "cash/register_detail.html", {"register": cash_register})
+
+    end_time = (
+        cash_register.closing_time if cash_register.closing_time else timezone.now()
+    )
+    invoices = (
+        Invoice.objects.filter(
+            created_at__gte=cash_register.created_at,
+            created_at__lte=end_time,
+        )
+        .select_related("table", "cashier")
+        .order_by("-created_at")
+    )
+
+    expected = cash_register.opening_amount + cash_register.total_contado
+    total_cobrado = (
+        cash_register.total_contado
+        + cash_register.total_tarjeta_credito
+        + cash_register.total_tarjeta_debito
+        + cash_register.total_transferencia
+        + cash_register.total_otros
+    )
+
+    return render(
+        request,
+        "cash/register_detail.html",
+        {
+            "register": cash_register,
+            "invoices": invoices,
+            "expected": expected,
+            "total_cobrado": total_cobrado,
+        },
+    )
 
 
 @login_required
@@ -2358,7 +2649,7 @@ def api_cash_register_status(request):
             "opening_amount": float(active.opening_amount),
             "total_sales": float(active.total_sales),
             "total_contado": float(active.total_contado),
-            "total_credito": float(active.total_credito),
+            "total_pendiente": float(active.total_pendiente),
             "created_at": active.created_at.strftime("%H:%M"),
         }
     else:

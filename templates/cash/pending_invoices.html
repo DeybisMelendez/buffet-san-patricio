@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% block title %}Facturas Pendientes de Cobro{% endblock %}
+{% block body %}
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">
+                <i class="material-icons text-warning me-2">schedule</i>
+                Facturas Pendientes de Cobro
+            </h1>
+            <a href="{% url 'cash_register_list' %}" class="btn btn-secondary">
+                <i class="material-icons">arrow_back</i> Volver
+            </a>
+        </div>
+        {% if invoices %}
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        Total Pendiente: C$ {{ total_pending|floatformat:2|intcomma }}
+                        ({{ invoices.count }} factura{{ invoices.count|pluralize:"s" }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Factura</th>
+                                    <th>Mesa</th>
+                                    <th>Mesero</th>
+                                    <th>Cajero</th>
+                                    <th class="text-end">Total</th>
+                                    <th>Fecha</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                    <tr>
+                                        <td>#{{ invoice.invoice_number }}</td>
+                                        <td>{{ invoice.table.name|default:"-" }}</td>
+                                        <td>{{ invoice.user.username|default:"-" }}</td>
+                                        <td>{{ invoice.cashier.username|default:"-" }}</td>
+                                        <td class="text-end fw-bold">C$ {{ invoice.total|floatformat:2|intcomma }}</td>
+                                        <td>{{ invoice.created_at|date:"d/m/Y" }} {{ invoice.created_at|time:"H:i" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'update_invoice_payment' invoice.id %}"
+                                               class="btn btn-success btn-sm">
+                                                <i class="material-icons">payments</i> Cobrar
+                                            </a>
+                                            <a href="{% url 'print_invoice' invoice.id %}"
+                                               class="btn btn-secondary btn-sm"
+                                               target="_blank">
+                                                <i class="material-icons">print</i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="material-icons me-2">check_circle</i>
+                <span>No hay facturas pendientes de cobro.</span>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
