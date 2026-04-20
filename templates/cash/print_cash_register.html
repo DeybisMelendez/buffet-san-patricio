@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Arqueo #{{ register.id }}</title>
+        <style>
+        @page {
+            size: 80mm auto;
+            margin: 0;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            width: 70mm;
+            margin: 0 auto;
+            padding: 5mm;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .border-bottom { border-bottom: 1px dashed #000; }
+        .border-top { border-top: 1px dashed #000; }
+        .fw-bold { font-weight: bold; }
+        .mb-1 { margin-bottom: 2mm; }
+        .mb-2 { margin-bottom: 4mm; }
+        table { width: 100%; border-collapse: collapse; }
+        .difference { font-weight: bold; }
+        .positive { color: #000; }
+        .negative { color: #000; }
+        @media print {
+            body { width: 70mm; }
+            .no-print { display: none; }
+        }
+        </style>
+    </head>
+    <body>
+        <div class="text-center mb-2">
+            {% if company %}
+                {% if company.name %}
+                    <strong>{{ company.name }}</strong>
+                    {% if company.ruc %}
+                        <br>
+                        RUC: {{ company.ruc }}
+                    {% endif %}
+                    {% if company.address %}
+                        <br>
+                        {{ company.address }}
+                    {% endif %}
+                    {% if company.phone %}
+                        <br>
+                        Tel: {{ company.phone }}
+                    {% endif %}
+                    {% if company.slogan %}
+                        <br>
+                        <em>{{ company.slogan }}</em>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="border-bottom mb-2"></div>
+        <div class="mb-1 text-center fw-bold">ARQUEO DE CAJA</div>
+        <div class="text-center mb-2">Turno #{{ register.id }}</div>
+        <div class="mb-1">
+            <div>Fecha: {{ register.date|date:"d/m/Y" }}</div>
+            <div>Usuario: {{ register.user.username }}</div>
+            <div>Apertura: {{ register.created_at|date:"H:i" }}</div>
+            {% if register.closing_time %}<div>Cierre: {{ register.closing_time|date:"H:i" }}</div>{% endif %}
+        </div>
+        <div class="border-bottom mb-2"></div>
+        <div class="mb-1">
+            <div class="fw-bold mb-1">Control de Efectivo</div>
+            <div>Apertura: C$ {{ register.opening_amount|floatformat:2 }}</div>
+            <div>+ Ventas Efectivo: C$ {{ register.total_contado|floatformat:2 }}</div>
+            <div class="border-bottom"></div>
+            <div class="fw-bold">= Esperado: C$ {{ expected|floatformat:2 }}</div>
+        </div>
+        <div class="border-bottom mb-2"></div>
+        <div class="mb-1">
+            <div class="fw-bold mb-1">Desglose de Ventas</div>
+            <table>
+                <tr>
+                    <td>Efectivo:</td>
+                    <td class="text-right">C$ {{ register.total_contado|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Tarjeta Credito:</td>
+                    <td class="text-right">C$ {{ register.total_tarjeta_credito|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Tarjeta Debito:</td>
+                    <td class="text-right">C$ {{ register.total_tarjeta_debito|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Transferencia:</td>
+                    <td class="text-right">C$ {{ register.total_transferencia|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Otros:</td>
+                    <td class="text-right">C$ {{ register.total_otros|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Pendiente:</td>
+                    <td class="text-right">C$ {{ register.total_pendiente|floatformat:2 }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="border-top border-bottom mb-2">
+            <div class="fw-bold text-right pt-1">TOTAL: C$ {{ register.total_sales|floatformat:2 }}</div>
+        </div>
+        {% if register.closing_time %}
+            <div class="mb-1">
+                <div class="fw-bold mb-1">Cierre del Turno</div>
+                <div>Monto de Cierre: C$ {{ register.closing_amount|floatformat:2 }}</div>
+                <div>Efectivo Esperado: C$ {{ expected|floatformat:2 }}</div>
+                {% with register.get_difference as diff %}
+                    <div class="fw-bold">
+                        Diferencia:
+                        {% if diff > 0 %}+{% endif %}
+                        C$ {{ diff|floatformat:2 }}
+                    </div>
+                {% endwith %}
+            </div>
+            <div class="border-bottom mb-2"></div>
+        {% endif %}
+        {% if register.notes %}
+            <div class="mb-1">
+                <div class="fw-bold">Observaciones:</div>
+                <div>{{ register.notes|linebreaks }}</div>
+            </div>
+            <div class="border-bottom mb-2"></div>
+        {% endif %}
+        <div class="text-center mb-2">
+            {% if company %}
+                {% if company.slogan %}
+                    <em>{{ company.slogan }}</em>
+                    <br>
+                {% endif %}
+            {% endif %}
+            Gracias por su preferencia
+        </div>
+        <div class="no-print text-center">
+            <button onclick="window.print()" class="btn btn-primary mt-2">Imprimir</button>
+            <a href="{% url 'cash_register_list' %}" class="btn btn-secondary mt-2">Volver</a>
+        </div>
+        <script>
+            window.onload = function() {
+                window.print();
+            };
+        </script>
+    </body>
+</html>

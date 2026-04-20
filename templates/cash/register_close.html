@@ -3,62 +3,186 @@
 {% block title %}Cerrar Turno #{{ register.id }}{% endblock %}
 {% block body %}
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-danger text-white">
-                        <h4 class="mb-0">Cerrar Turno de Caja</h4>
+        <h1 class="mb-4">Cerrar Turno de Caja</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informacion del Turno</h5>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info mb-4">
-                            <div class="row">
-                                <div class="col-6">
-                                    <small>Monto de Apertura:</small>
-                                    <p class="mb-0 fw-bold">C$ {{ register.opening_amount|floatformat:2|intcomma }}</p>
-                                </div>
-                                <div class="col-6">
-                                    <small>Ventas en Efectivo:</small>
-                                    <p class="mb-0 fw-bold text-success">C$ {{ register.total_contado|floatformat:2|intcomma }}</p>
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="text-center">
-                                <small>Monto Esperado en Caja:</small>
-                                <h3 class="mb-0">C$ {{ expected|floatformat:2|intcomma }}</h3>
-                            </div>
-                        </div>
-                        <form method="post">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="closing_amount" class="form-label">Monto Real en Caja (C$)</label>
-                                <input type="number"
-                                       class="form-control form-control-lg"
-                                       id="closing_amount"
-                                       name="closing_amount"
-                                       step="0.01"
-                                       min="0"
-                                       value="{{ expected|stringformat:'f' }}"
-                                       required>
-                                <div class="form-text">Ingrese el efectivo que hay físicamente en caja.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="notes" class="form-label">Observaciones (opcional)</label>
-                                <textarea class="form-control"
-                                          id="notes"
-                                          name="notes"
-                                          rows="3"
-                                          placeholder="Notas adicionales sobre el turno..."></textarea>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-danger btn-lg">
-                                    <i class="material-icons">lock</i> Cerrar Turno
-                                </button>
-                                <a href="{% url 'cash_register_list' %}"
-                                   class="btn btn-secondary btn-lg">Cancelar</a>
-                            </div>
-                        </form>
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td>
+                                    <strong>Turno:</strong>
+                                </td>
+                                <td class="text-end">#{{ register.id }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong>Fecha:</strong>
+                                </td>
+                                <td class="text-end">{{ register.date }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong>Usuario:</strong>
+                                </td>
+                                <td class="text-end">{{ register.user.username }}</td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Control de Efectivo</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td>
+                                    <strong>Monto de Apertura:</strong>
+                                </td>
+                                <td class="text-end">C$ {{ register.opening_amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong>+ Efectivo Recibido:</strong>
+                                </td>
+                                <td class="text-end">C$ {{ register.total_contado|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td>
+                                    <strong>= Efectivo Esperado:</strong>
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ expected|floatformat:2|intcomma }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Resumen de Ventas del Turno</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tipo de Pago</th>
+                                <th class="text-end">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-success me-2">payments</i> Efectivo
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ register.total_contado|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-info me-2">credit_card</i> Tarjeta Credito
+                                </td>
+                                <td class="text-end">C$ {{ register.total_tarjeta_credito|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-primary me-2">credit_card</i> Tarjeta Debito
+                                </td>
+                                <td class="text-end">C$ {{ register.total_tarjeta_debito|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-secondary me-2">account_balance</i> Transferencia
+                                </td>
+                                <td class="text-end">C$ {{ register.total_transferencia|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-secondary me-2">more_horiz</i> Otros
+                                </td>
+                                <td class="text-end">C$ {{ register.total_otros|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td>
+                                    <i class="material-icons text-warning me-2">schedule</i> Pendiente (Credito)
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ register.total_pendiente|floatformat:2|intcomma }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <td>
+                                    <strong>TOTAL VENTAS</strong>
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ register.total_sales|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong>TOTAL COBRADO</strong>
+                                </td>
+                                <td class="text-end fw-bold text-success">
+                                    C$ {{ register.total_contado|add:register.total_tarjeta_credito|add:register.total_tarjeta_debito|add:register.total_transferencia|add:register.total_otros|floatformat:2|intcomma }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="material-icons">lock</i> Cerrar Turno
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded text-center bg-light">
+                                <small class="text-muted">Efectivo Esperado en Caja</small>
+                                <h3 class="mb-0 text-success">C$ {{ expected|floatformat:2|intcomma }}</h3>
+                                <small class="text-muted">(Apertura + Ventas en Efectivo)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="closing_amount" class="form-label">
+                                <strong>Efectivo Real en Caja (C$)</strong>
+                            </label>
+                            <input type="number"
+                                   class="form-control form-control-lg"
+                                   id="closing_amount"
+                                   name="closing_amount"
+                                   step="0.01"
+                                   min="0"
+                                   value="{{ expected|stringformat:'f' }}"
+                                   required>
+                            <div class="form-text">Ingrese la cantidad de efectivo que hay fisicamente en caja.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Observaciones (opcional)</label>
+                        <textarea class="form-control"
+                                  id="notes"
+                                  name="notes"
+                                  rows="3"
+                                  placeholder="Notas adicionales sobre el turno, ventas del dia, incidentes, etc."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="material-icons">lock</i> Confirmar Cierre de Turno
+                        </button>
+                        <a href="{% url 'cash_register_detail' register.id %}"
+                           class="btn btn-secondary btn-lg">Cancelar</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

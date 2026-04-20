@@ -19,26 +19,18 @@
                     <h5 class="mb-0">Turno Activo</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <small class="text-muted">Usuario</small>
-                            <p class="mb-0 fw-bold">{{ active_register.user.username }}</p>
-                        </div>
-                        <div class="col-md-3">
+                    <div class="row text-center">
+                        <div class="col-4">
                             <small class="text-muted">Apertura</small>
-                            <p class="mb-0 fw-bold">C$ {{ active_register.opening_amount|floatformat:2|intcomma }}</p>
+                            <h4 class="mb-0">C$ {{ active_register.opening_amount|floatformat:2|intcomma }}</h4>
                         </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Contado</small>
-                            <p class="mb-0 fw-bold text-success">C$ {{ active_register.total_contado|floatformat:2|intcomma }}</p>
+                        <div class="col-4">
+                            <small class="text-muted">Ventas Efectivo</small>
+                            <h4 class="mb-0 text-success">C$ {{ active_register.total_contado|floatformat:2|intcomma }}</h4>
                         </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Credito</small>
-                            <p class="mb-0 fw-bold text-warning">C$ {{ active_register.total_credito|floatformat:2|intcomma }}</p>
-                        </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Total</small>
-                            <p class="mb-0 fw-bold">C$ {{ active_register.total_sales|floatformat:2|intcomma }}</p>
+                        <div class="col-4">
+                            <small class="text-muted">= Esperado</small>
+                            <h4 class="mb-0 fw-bold">C$ {{ active_expected|floatformat:2|intcomma }}</h4>
                         </div>
                     </div>
                     <div class="mt-3">
@@ -100,8 +92,7 @@
                             <th>Fecha</th>
                             <th>Usuario</th>
                             <th class="text-end">Apertura</th>
-                            <th class="text-end">Contado</th>
-                            <th class="text-end">Credito</th>
+                            <th class="text-end">Ventas</th>
                             <th class="text-end">Cierre</th>
                             <th class="text-end">Diferencia</th>
                             <th>Estado</th>
@@ -115,8 +106,7 @@
                                 <td>{{ reg.date|date:"d/m/Y" }}</td>
                                 <td>{{ reg.user.username }}</td>
                                 <td class="text-end">C$ {{ reg.opening_amount|floatformat:2|intcomma }}</td>
-                                <td class="text-end">C$ {{ reg.total_contado|floatformat:2|intcomma }}</td>
-                                <td class="text-end">C$ {{ reg.total_credito|floatformat:2|intcomma }}</td>
+                                <td class="text-end">C$ {{ reg.total_sales|floatformat:2|intcomma }}</td>
                                 <td class="text-end">
                                     {% if reg.closing_amount %}
                                         C$ {{ reg.closing_amount|floatformat:2|intcomma }}
@@ -157,6 +147,33 @@
                     </tbody>
                 </table>
             </div>
+            {% if cash_registers.has_other_pages %}
+                <nav aria-label="Paginacion de arqueos">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if cash_registers.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ cash_registers.previous_page_number }}">Anterior</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                        {% endif %}
+                        {% for num in cash_registers.paginator.page_range %}
+                            {% if cash_registers.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > cash_registers.number|add:'-3' and num < cash_registers.number|add:'3' %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if cash_registers.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ cash_registers.next_page_number }}">Siguiente</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
         {% else %}
             <div class="alert alert-info">No hay arqueos registrados.</div>
         {% endif %}

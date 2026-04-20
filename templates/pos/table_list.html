@@ -14,16 +14,11 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             {% for item in table_data %}
                 <div class="col">
-                    <div class="card h-100 {% if item.table.pending_billing %}border-warning{% endif %}">
+                    <div class="card h-100">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
                                 <i class="material-icons text-primary">table_restaurant</i> Mesa {{ item.table.name }}
                             </h5>
-                            {% if item.table.pending_billing %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="material-icons" style="font-size: 1rem;">hourglass_top</i> Pendiente
-                                </span>
-                            {% endif %}
                         </div>
                         <div class="card-body">
                             <p class="card-text">
@@ -37,18 +32,8 @@
                                    title="Crear nueva orden"><i class="material-icons">add</i></a>
                                 <a href="{% url 'table_orders' item.table.id %}"
                                    class="btn btn-secondary"
-                                   title="Ver órdenes de la mesa"><i class="material-icons">list_alt</i></a>
-                                {% if item.total_due > 0 and not item.table.pending_billing and not user|can_cashier %}
-                                    <form method="post"
-                                          action="{% url 'table_send_to_billing' item.table.id %}"
-                                          style="display:inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-success" title="Enviar a caja">
-                                            <i class="material-icons">send</i>
-                                        </button>
-                                    </form>
-                                {% endif %}
-                                {% if item.table.pending_billing and user|can_cashier %}
+                                   title="Ver ordenes de la mesa"><i class="material-icons">list_alt</i></a>
+                                {% if item.total_due > 0 and user|can_cashier %}
                                     <a href="{% url 'invoice_table' item.table.id %}"
                                        class="btn btn-success"
                                        title="Cobrar mesa">

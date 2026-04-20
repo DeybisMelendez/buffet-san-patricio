@@ -3,45 +3,40 @@
 {% block title %}Detalle Arqueo #{{ register.id }}{% endblock %}
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">Turno #{{ register.id }}</h1>
-        <div class="row">
+        <h1 class="mb-4">
+            Turno #{{ register.id }}
+            {% if register.closing_time %}
+                <span class="badge bg-secondary">Cerrado</span>
+            {% else %}
+                <span class="badge bg-success">Abierto</span>
+            {% endif %}
+        </h1>
+        <div class="row mb-4">
             <div class="col-md-6">
-                <div class="card mb-4">
+                <div class="card h-100">
                     <div class="card-header">
-                        <h5 class="mb-0">Información del Turno</h5>
+                        <h5 class="mb-0">Informacion del Turno</h5>
                     </div>
                     <div class="card-body">
-                        <table class="table table-borderless">
+                        <table class="table table-borderless mb-0">
                             <tr>
                                 <td>
                                     <strong>Fecha:</strong>
                                 </td>
-                                <td>{{ register.date }}</td>
+                                <td class="text-end">{{ register.date }}</td>
                             </tr>
                             <tr>
                                 <td>
                                     <strong>Usuario:</strong>
                                 </td>
-                                <td>{{ register.user.username }}</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <strong>Estado:</strong>
-                                </td>
-                                <td>
-                                    {% if register.closing_time %}
-                                        <span class="badge bg-secondary">Cerrado</span>
-                                    {% else %}
-                                        <span class="badge bg-success">Abierto</span>
-                                    {% endif %}
-                                </td>
+                                <td class="text-end">{{ register.user.username }}</td>
                             </tr>
                             {% if register.closing_time %}
                                 <tr>
                                     <td>
-                                        <strong>Hora de Cierre:</strong>
+                                        <strong>Hora Cierre:</strong>
                                     </td>
-                                    <td>{{ register.closing_time|date:"H:i" }}</td>
+                                    <td class="text-end">{{ register.closing_time|date:"H:i" }}</td>
                                 </tr>
                             {% endif %}
                         </table>
@@ -49,71 +44,178 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Movimientos</h5>
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Control de Efectivo</h5>
                     </div>
                     <div class="card-body">
-                        <table class="table table-borderless">
+                        <table class="table table-borderless mb-0">
                             <tr>
                                 <td>
-                                    <strong>Monto de Apertura:</strong>
+                                    <strong>Apertura:</strong>
                                 </td>
                                 <td class="text-end">C$ {{ register.opening_amount|floatformat:2|intcomma }}</td>
                             </tr>
                             <tr>
                                 <td>
-                                    <strong>Total Contado:</strong>
+                                    <strong>+ Ventas Efectivo:</strong>
                                 </td>
-                                <td class="text-end text-success">C$ {{ register.total_contado|floatformat:2|intcomma }}</td>
+                                <td class="text-end">C$ {{ register.total_contado|floatformat:2|intcomma }}</td>
                             </tr>
-                            <tr>
+                            <tr class="table-success">
                                 <td>
-                                    <strong>Total Crédito:</strong>
+                                    <strong>= Efectivo Esperado:</strong>
                                 </td>
-                                <td class="text-end text-warning">C$ {{ register.total_credito|floatformat:2|intcomma }}</td>
+                                <td class="text-end fw-bold">C$ {{ expected|floatformat:2|intcomma }}</td>
                             </tr>
-                            <tr class="table-secondary">
-                                <td>
-                                    <strong>Total Ventas:</strong>
-                                </td>
-                                <td class="text-end">
-                                    <strong>C$ {{ register.total_sales|floatformat:2|intcomma }}</strong>
-                                </td>
-                            </tr>
-                            {% if register.closing_time %}
-                                <tr>
-                                    <td>
-                                        <strong>Monto de Cierre:</strong>
-                                    </td>
-                                    <td class="text-end">C$ {{ register.closing_amount|floatformat:2|intcomma }}</td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <strong>Monto Esperado:</strong>
-                                    </td>
-                                    <td class="text-end">C$ {{ expected|floatformat:2|intcomma }}</td>
-                                </tr>
-                                <tr class="{% if register.get_difference > 0 %}table-success{% elif register.get_difference < 0 %}table-danger{% else %}table-warning{% endif %}">
-                                    <td>
-                                        <strong>Diferencia:</strong>
-                                    </td>
-                                    <td class="text-end">
-                                        {% if register.get_difference > 0 %}
-                                            +C$ {{ register.get_difference|floatformat:2|intcomma }}
-                                        {% elif register.get_difference < 0 %}
-                                            C$ {{ register.get_difference|floatformat:2|intcomma }}
-                                        {% else %}
-                                            C$ 0.00
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endif %}
                         </table>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Desglose de Ventas por Tipo de Pago</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tipo de Pago</th>
+                                <th class="text-end">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-success me-2">payments</i> Efectivo
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ register.total_contado|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-info me-2">credit_card</i> Tarjeta Credito
+                                </td>
+                                <td class="text-end">C$ {{ register.total_tarjeta_credito|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-primary me-2">credit_card</i> Tarjeta Debito
+                                </td>
+                                <td class="text-end">C$ {{ register.total_tarjeta_debito|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-secondary me-2">account_balance</i> Transferencia
+                                </td>
+                                <td class="text-end">C$ {{ register.total_transferencia|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="material-icons text-secondary me-2">more_horiz</i> Otros
+                                </td>
+                                <td class="text-end">C$ {{ register.total_otros|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td>
+                                    <i class="material-icons text-warning me-2">schedule</i> Pendiente (Credito)
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ register.total_pendiente|floatformat:2|intcomma }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <td>
+                                    <strong>TOTAL</strong>
+                                </td>
+                                <td class="text-end fw-bold">C$ {{ register.total_sales|floatformat:2|intcomma }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% if register.closing_time %}
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Cierre del Turno</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded bg-light">
+                                <small class="text-muted">Monto de Cierre</small>
+                                <h3 class="mb-0">C$ {{ register.closing_amount|floatformat:2|intcomma }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded bg-light">
+                                <small class="text-muted">Efectivo Esperado</small>
+                                <h3 class="mb-0 text-success">C$ {{ expected|floatformat:2|intcomma }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded {% if register.get_difference > 0 %}bg-success-subtle border-success {% elif register.get_difference < 0 %}bg-danger-subtle border-danger {% else %}bg-warning-subtle border-warning{% endif %}">
+                                <small class="text-muted">Diferencia</small>
+                                <h3 class="mb-0 {% if register.get_difference > 0 %}text-success {% elif register.get_difference < 0 %}text-danger {% else %}text-warning{% endif %}">
+                                    {% if register.get_difference > 0 %}+{% endif %}
+                                    C$ {{ register.get_difference|floatformat:2|intcomma }}
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% if invoices %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Facturas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Factura</th>
+                                    <th>Mesa</th>
+                                    <th>Cajero</th>
+                                    <th>Tipo Pago</th>
+                                    <th class="text-end">Total</th>
+                                    <th>Hora</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                    <tr class="{% if invoice.payment_type == 'PENDIENTE' %}table-warning{% endif %}">
+                                        <td>#{{ invoice.invoice_number }}</td>
+                                        <td>{{ invoice.table.name|default:"-" }}</td>
+                                        <td>{{ invoice.cashier.username }}</td>
+                                        <td>{{ invoice.get_payment_type_display }}</td>
+                                        <td class="text-end">C$ {{ invoice.total|floatformat:2|intcomma }}</td>
+                                        <td>{{ invoice.created_at|time:"H:i" }}</td>
+                                        <td class="text-center">
+                                            {% if invoice.payment_type == 'PENDIENTE' %}
+                                                <a href="{% url 'update_invoice_payment' invoice.id %}"
+                                                   class="btn btn-success btn-sm">
+                                                    <i class="material-icons">payments</i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'print_invoice' invoice.id %}"
+                                               class="btn btn-secondary btn-sm">
+                                                <i class="material-icons">print</i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
         {% if register.notes %}
             <div class="card mb-4">
                 <div class="card-header">
@@ -123,6 +225,10 @@
             </div>
         {% endif %}
         <div class="d-flex gap-2">
+            <a href="{% url 'print_cash_register' register.id %}"
+               class="btn btn-primary">
+                <i class="material-icons">print</i> Imprimir Arqueo
+            </a>
             {% if not register.closing_time %}
                 <a href="{% url 'cash_register_close' register.id %}"
                    class="btn btn-danger">

@@ -96,15 +96,8 @@
             </tr>
         </table>
         <div class="mb-2">
-            <div>
-                Metodo de Pago:
-                {% if invoice.payment_method == 'CONTADO' %}
-                    CONTADO
-                {% else %}
-                    CREDITO
-                {% endif %}
-            </div>
-            {% if invoice.payment_method == 'CONTADO' and invoice.amount_received %}
+            <div>Tipo de Pago: {{ invoice.get_payment_type_display }}</div>
+            {% if invoice.payment_type == 'EFECTIVO' and invoice.amount_received %}
                 <div>Recibido: C$ {{ invoice.amount_received|floatformat:2 }}</div>
                 <div class="fw-bold">Cambio: C$ {{ invoice.change_amount|floatformat:2 }}</div>
             {% endif %}
@@ -121,7 +114,12 @@
         </div>
         <div class="no-print text-center">
             <button onclick="window.print()" class="btn btn-primary mt-2">Imprimir</button>
-            <a href="{% url 'invoice_list' %}" class="btn btn-secondary mt-2">Volver</a>
+            <a href="{% url 'cash_register_list' %}" class="btn btn-secondary mt-2">Volver</a>
         </div>
+        <script>
+            window.onload = function() {
+                window.print();
+            };
+        </script>
     </body>
 </html>

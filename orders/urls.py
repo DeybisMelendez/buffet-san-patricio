@@ -20,11 +20,6 @@ urlpatterns = [
         "pos/table/<int:table_id>/pay/", views.mark_table_paid, name="mark_table_paid"
     ),
     path("pos/table/<int:table_id>/new/", views.create_order, name="create_order"),
-    path(
-        "pos/table/<int:table_id>/send-to-billing/",
-        views.table_send_to_billing,
-        name="table_send_to_billing",
-    ),
     path("pos/order/<int:order_id>/", views.order_detail, name="order_detail"),
     path("pos/order/<int:order_id>/edit/", views.edit_order, name="edit_order"),
     path("pos/order/<int:order_id>/print/", views.print_order, name="print_order"),
@@ -389,6 +384,11 @@ urlpatterns = [
     ),
     path("invoices/", views.invoice_list, name="invoice_list"),
     path("invoices/<int:invoice_id>/print/", views.print_invoice, name="print_invoice"),
+    path(
+        "invoices/<int:invoice_id>/update-payment/",
+        views.update_invoice_payment,
+        name="update_invoice_payment",
+    ),
     path("api/invoices/", views.api_invoices, name="api_invoices"),
     # ==========================
     # 💰 ARQUEO DE CAJA
@@ -401,9 +401,19 @@ urlpatterns = [
         name="cash_register_detail",
     ),
     path(
+        "cash/pending/",
+        views.cash_pending_invoices,
+        name="cash_pending_invoices",
+    ),
+    path(
         "cash/<int:register_id>/close/",
         views.cash_register_close,
         name="cash_register_close",
+    ),
+    path(
+        "cash/<int:register_id>/print/",
+        views.print_cash_register,
+        name="print_cash_register",
     ),
     path(
         "cash/status/", views.api_cash_register_status, name="api_cash_register_status"
