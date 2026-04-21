@@ -2,8 +2,6 @@
 {% load static %}
 {% block title %}Ingredientes{% endblock %}
 {% block extra_css %}
-    <link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css"
-          rel="stylesheet">
     <style>
     .gridjs-wrapper { box-shadow: none; }
     .gridjs-table { width: 100%; }
@@ -69,167 +67,116 @@
         </div>
         <div class="card">
             <div class="card-body">
+                <div id="grid-toolbar"></div>
                 <div id="grid-container"></div>
             </div>
         </div>
     </div>
 {% endblock %}
 {% block extra_js %}
-    <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
 (function() {
     'use strict';
 
-    function getFilterParams() {
-        const params = new URLSearchParams(window.location.search);
-        const search = document.getElementById('search');
-        const warehouse = document.getElementById('warehouse');
-        if (search && search.value) params.set('search', search.value);
-        if (warehouse && warehouse.value) params.set('warehouse', warehouse.value);
-        return params.toString();
+    if (typeof gridjs === 'undefined') {
+        console.error('GridJS no está disponible');
+        GridUtils.showError('grid-container', 'GridJS no está disponible. Recargue la página.');
+        return;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('grid-container');
-        if (!container) return;
+    var container = document.getElementById('grid-container');
+    if (!container) return;
 
-        function buildApiUrl(baseUrl, params) {
-            const url = new URL(baseUrl, window.location.origin);
-            const searchParams = new URLSearchParams(params);
-            url.search = searchParams.toString();
-            return url.toString();
-        }
+    GridUtils.showLoading('grid-container');
 
-        const apiBase = '/api/inventory/';
+    var apiBase = '/api/inventory/';
 
-        const grid = new gridjs.Grid({
-            columns: [
-                { name: 'Nombre', id: 'name', sort: { enabled: true } },
-                { name: 'Unidad', id: 'unit', sort: { enabled: true } },
-                { name: 'Almacén', id: 'warehouse', sort: { enabled: true } },
-                {
-                    name: 'Stock',
-                    id: 'stock',
-                    sort: { enabled: true },
-                    formatter: function(cell) {
-                        return cell.toFixed(2);
-                    }
-                },
-                {
-                    name: 'Acciones',
-                    id: 'acciones',
-                    sort: { enabled: false },
-                    formatter: function(cell, row) {
-                        const id = row.cells[0].data;
-                        return gridjs.html(
-                            '<div class="btn-group" role="group">' +
-                            '<a href="/inventory/ingredients/' + id + '/edit/" class="btn btn-secondary btn-sm" title="Editar">' +
-                            '<i class="material-icons" style="font-size:1rem;">edit</i></a>' +
-                            '<a href="/inventory/ingredients/' + id + '/delete/" class="btn btn-danger btn-sm" title="Eliminar">' +
-                            '<i class="material-icons" style="font-size:1rem;">delete</i></a>' +
-                            '</div>'
-                        );
-                    }
-                }
-            ],
-            server: {
-                url: function(params) {
-                    const searchVal = document.getElementById('search') ? document.getElementById('search').value : '';
-                    const warehouseVal = document.getElementById('warehouse') ? document.getElementById('warehouse').value : '';
-                    const url = new URL(apiBase, window.location.origin);
-                    if (searchVal) url.searchParams.set('search', searchVal);
-                    if (warehouseVal) url.searchParams.set('warehouse', warehouseVal);
-                    return url.toString();
-                },
-                then: function(data) {
-                    return data.results.map(function(i) {
-                        return [
-                            i.name,
-                            i.unit,
-                            i.warehouse,
-                            i.stock,
-                            null
-                        ];
-                    });
-                },
-                total: function(data) {
-                    return data.count;
+    var grid = new gridjs.Grid({
+        columns: [
+            { name: 'ID', id: 'id', hidden: true },
+            { name: 'Nombre', id: 'name', sort: { enabled: true } },
+            { name: 'Unidad', id: 'unit', sort: { enabled: true } },
+            { name: 'Almacén', id: 'warehouse', sort: { enabled: true } },
+            {
+                name: 'Stock',
+                id: 'stock',
+                sort: { enabled: true },
+                formatter: function(cell) {
+                    return cell != null ? parseFloat(cell).toFixed(2) : '0.00';
                 }
             },
-            search: {
-                enabled: true,
-                placeholder: 'Buscar ingrediente...'
-            },
-            sort: {
-                enabled: true
-            },
-            pagination: {
-                enabled: true,
-                limit: 25,
-                limits: [10, 25, 50, 100],
-                summary: true,
-                labels: {
-                    first: '«',
-                    last: '»',
-                    prev: '‹',
-                    next: '›'
-                }
-            },
-            language: 'es-ES'
-        });
-
-        grid.render(container);
-
-        grid.on('ready', function() {
-            const toolbar = document.createElement('div');
-            toolbar.className = 'd-flex gap-2 mb-3';
-            toolbar.innerHTML = `
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.copyGridData()">
-                    <span class="material-icons" style="font-size: 1rem;">content_copy</span> Copiar
-                </button>
-                <button type="button" class="btn btn-outline-success btn-sm" onclick="window.exportGridData()">
-                    <span class="material-icons" style="font-size: 1rem;">download</span> Excel
-                </button>
-            `;
-            container.parentNode.insertBefore(toolbar, container);
-
-            window.copyGridData = function() {
-                const table = document.querySelector('.gridjs-table');
-                if (!table) return;
-                let text = '';
-                table.querySelectorAll('tr').forEach(function(tr) {
-                    const row = Array.from(tr.querySelectorAll('th, td'))
-                        .map(function(td) { return td.textContent.trim(); })
-                        .join('\t');
-                    text += row + '\n';
-                });
-                navigator.clipboard.writeText(text).then(function() {
-                    alert('Datos copiados al portapapeles');
-                }).catch(function(err) {
-                    console.error('Error al copiar:', err);
-                });
-            };
-
-            window.exportGridData = function() {
-                const table = document.querySelector('.gridjs-table');
-                if (!table) return;
-                const wb = XLSX.utils.table_to_book(table, { sheet: 'Ingredientes' });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const colWidths = [];
-                const headers = table.querySelectorAll('thead th');
-                headers.forEach(function(th, i) {
-                    const maxWidth = Math.max(
-                        th.textContent.trim().length,
-                        ...Array.from(table.querySelectorAll(`tbody td:nth-child(${i + 1})`))
-                            .map(function(td) { return td.textContent.trim().length; })
+            {
+                name: 'Acciones',
+                id: 'acciones',
+                sort: { enabled: false },
+                formatter: function(cell, row) {
+                    var id = row.cells[0].data;
+                    return gridjs.html(
+                        '<div class="btn-group" role="group">' +
+                        '<a href="/inventory/ingredients/' + id + '/edit/" class="btn btn-secondary btn-sm" title="Editar">' +
+                        '<i class="material-icons" style="font-size:1rem;">edit</i></a>' +
+                        '<a href="/inventory/ingredients/' + id + '/delete/" class="btn btn-danger btn-sm" title="Eliminar">' +
+                        '<i class="material-icons" style="font-size:1rem;">delete</i></a>' +
+                        '</div>'
                     );
-                    colWidths.push({ wch: maxWidth + 2 });
+                }
+            }
+        ],
+        server: {
+            url: function(params) {
+                var url = new URL(apiBase, window.location.origin);
+                if (params.limit) url.searchParams.set('limit', params.limit);
+                if (params.offset != null) url.searchParams.set('offset', params.offset);
+                if (params.search) url.searchParams.set('search', params.search);
+                if (params.sort) url.searchParams.set('sort', params.sort.field + ',' + params.sort.direction);
+                var searchVal = document.getElementById('search');
+                var warehouseVal = document.getElementById('warehouse');
+                if (searchVal && searchVal.value) url.searchParams.set('search', searchVal.value);
+                if (warehouseVal && warehouseVal.value) url.searchParams.set('warehouse', warehouseVal.value);
+                return url.toString();
+            },
+            then: function(data) {
+                return data.results.map(function(i) {
+                    return [i.id, i.name, i.unit, i.warehouse, i.stock, null];
                 });
-                ws['!cols'] = colWidths;
-                XLSX.writeFile(wb, 'ingredientes.xlsx');
-            };
-        });
+            },
+            total: function(data) { return data.count; },
+            handle: function(res) {
+                if (res.ok) return res.json();
+                throw new Error('Error al cargar datos: ' + res.status);
+            }
+        },
+        search: { enabled: true, placeholder: 'Buscar ingrediente...' },
+        sort: { enabled: true },
+        pagination: {
+            enabled: true,
+            limit: 25,
+            limits: [10, 25, 50, 100],
+            server: {
+                url: function(prev, page, limit) {
+                    var url = new URL(prev || apiBase, window.location.origin);
+                    url.searchParams.set('limit', limit);
+                    url.searchParams.set('offset', page * limit);
+                    var searchVal = document.getElementById('search');
+                    var warehouseVal = document.getElementById('warehouse');
+                    if (searchVal && searchVal.value) url.searchParams.set('search', searchVal.value);
+                    if (warehouseVal && warehouseVal.value) url.searchParams.set('warehouse', warehouseVal.value);
+                    return url.toString();
+                }
+            },
+            summary: true,
+            labels: { first: '«', last: '»', prev: '‹', next: '›' }
+        },
+        language: 'es-ES'
+    }).render(container);
+
+    grid.on('ready', function() {
+        GridUtils.addToolbar('grid-toolbar', 'grid-container', 'ingredientes');
+    });
+
+    grid.on('error', function(err) {
+        console.error('GridJS error:', err);
+        GridUtils.showError('grid-container', 'Error al cargar los datos. Por favor recargue la página.');
     });
 })();
     </script>

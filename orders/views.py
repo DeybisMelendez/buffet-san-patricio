@@ -62,6 +62,24 @@ def parse_date_range(request):
     return start, end
 
 
+def parse_pagination(request):
+    """Obtiene page y limit desde GET, convirtiendo offset de GridJS a page."""
+    limit = int(request.GET.get("limit", 25) or 25)
+    offset = request.GET.get("offset")
+    if offset is not None:
+        try:
+            offset_val = int(offset)
+            page = (offset_val // limit) + 1 if limit > 0 else 1
+        except (ValueError, ZeroDivisionError):
+            page = 1
+    else:
+        try:
+            page = int(request.GET.get("page", 1) or 1)
+        except ValueError:
+            page = 1
+    return page, limit
+
+
 # ==========================
 # 🪑 MESAS Y COMANDAS
 # ==========================
@@ -802,18 +820,20 @@ def api_inventory(request):
     if sort:
         try:
             field, direction = sort.split(",")
+            sort_field_map = {
+                "name": "name",
+                "stock": "stock_quantity",
+                "unit": "unit",
+                "warehouse": "warehouse__name",
+            }
+            field = sort_field_map.get(field, field)
             if direction == "desc":
                 field = f"-{field}"
             queryset = queryset.order_by(field)
         except ValueError:
             pass
 
-    try:
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 25))
-    except ValueError:
-        page = 1
-        limit = 25
+    page, limit = parse_pagination(request)
 
     if limit == 0:
         items = list(
@@ -874,6 +894,14 @@ def api_movements(request):
     if sort:
         try:
             field, direction = sort.split(",")
+            sort_field_map = {
+                "date": "created_at",
+                "ingredient": "ingredient__name",
+                "quantity": "quantity",
+                "reason": "reason",
+                "user": "user__username",
+            }
+            field = sort_field_map.get(field, field)
             if direction == "desc":
                 field = f"-{field}"
             queryset = queryset.order_by(field)
@@ -882,12 +910,7 @@ def api_movements(request):
     else:
         queryset = queryset.order_by("-created_at")
 
-    try:
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 25))
-    except ValueError:
-        page = 1
-        limit = 25
+    page, limit = parse_pagination(request)
 
     if limit == 0:
         items = list(
@@ -990,12 +1013,7 @@ def api_sales_by_product(request):
     else:
         queryset = queryset.order_by("product__dispatch_area__name", "product__name")
 
-    try:
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 25))
-    except ValueError:
-        page = 1
-        limit = 25
+    page, limit = parse_pagination(request)
 
     if limit == 0:
         items = list(queryset)
@@ -1074,19 +1092,19 @@ def api_orders_report(request):
             elif field == "price":
                 sort_field = "product__price"
             elif field == "total":
-                sort_field = "order__id"
+                sort_field = "computed_total"
             if direction == "desc":
                 sort_field = f"-{sort_field}"
-            queryset = queryset.order_by(sort_field)
+            if sort_field == "computed_total":
+                queryset = queryset.annotate(
+                    computed_total=F("quantity") * F("product__price")
+                ).order_by(sort_field)
+            else:
+                queryset = queryset.order_by(sort_field)
         except ValueError:
             pass
 
-    try:
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 25))
-    except ValueError:
-        page = 1
-        limit = 25
+    page, limit = parse_pagination(request)
 
     if limit == 0:
         items = list(queryset)
@@ -2173,16 +2191,35 @@ def api_tables(request):
 
 @login_required
 def api_warehouses(request):
-    """API endpoint que retorna lista de bodegas en formato JSON para Grid.js."""
-    warehouses = Warehouse.objects.all().order_by("name")
-    data = [
-        {
-            "id": w.id,
-            "name": w.name,
-        }
-        for w in warehouses
-    ]
-    return JsonResponse(data, safe=False)
+    """API JSON: Lista de bodegas con paginación para Grid.js."""
+    queryset = Warehouse.objects.all().order_by("name")
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(name__icontains=search)
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        try:
+            field, direction = sort.split(",")
+            if direction == "desc":
+                field = f"-{field}"
+            queryset = queryset.order_by(field)
+        except ValueError:
+            pass
+
+    page, limit = parse_pagination(request)
+
+    if limit == 0:
+        data = list(queryset.values("id", "name"))
+        return JsonResponse({"count": len(data), "results": data}, safe=False)
+
+    total = queryset.count()
+    start = (page - 1) * limit
+    end = start + limit
+    data = list(queryset.values("id", "name")[start:end])
+
+    return JsonResponse({"count": total, "results": data}, safe=False)
 
 
 # ==========================
@@ -2501,18 +2538,23 @@ def api_invoices(request):
     sort = request.GET.get("sort", "")
     if sort:
         field, direction = sort.split(",")
+        sort_field_map = {
+            "invoice_number": "invoice_number",
+            "created_at": "created_at",
+            "table": "table__name",
+            "user": "user__username",
+            "cashier": "cashier__username",
+            "total": "total",
+            "payment_type": "payment_type",
+        }
+        field = sort_field_map.get(field, field)
         if direction == "desc":
             field = f"-{field}"
         invoices = invoices.order_by(field)
     else:
         invoices = invoices.order_by("-created_at")
 
-    try:
-        page = int(request.GET.get("page", 1))
-        limit = int(request.GET.get("limit", 25))
-    except ValueError:
-        page = 1
-        limit = 25
+    page, limit = parse_pagination(request)
 
     if limit == 0:
         items = list(
@@ -2527,6 +2569,15 @@ def api_invoices(request):
                 "created_at",
             )
         )
+        for item in items:
+            item["table"] = item.pop("table__name") or "Sin mesa"
+            item["user"] = item.pop("user__username") or "—"
+            item["cashier"] = item.pop("cashier__username") or "—"
+            item["created_at"] = (
+                item["created_at"].strftime("%d/%m/%Y %H:%M")
+                if item["created_at"]
+                else ""
+            )
         return JsonResponse({"count": len(items), "results": items})
 
     start_idx = (page - 1) * limit

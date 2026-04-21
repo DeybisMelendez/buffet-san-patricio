@@ -1,19 +1,17 @@
 {% extends "layout.html" %}
 {% load static %}
-
 {% block title %}Reporte de Inventario{% endblock %}
-
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet">
-<style>
+    <style>
     .gridjs-wrapper { box-shadow: none; }
     .gridjs-table { width: 100%; }
-</style>
+    </style>
 {% endblock %}
-
 {% block body %}
     <div class="container">
-        <h1 class="mb-4"><i class="material-icons">inventory</i> Reporte de Inventario</h1>
+        <h1 class="mb-4">
+            <i class="material-icons">inventory</i> Reporte de Inventario
+        </h1>
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Inventario</h5>
@@ -25,6 +23,7 @@
                 </div>
             </div>
             <div class="card-body">
+                <div id="grid-toolbar"></div>
                 <div id="inventory"></div>
             </div>
         </div>
@@ -38,71 +37,86 @@
         </p>
     </div>
 {% endblock %}
-
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
-<script>
+    <script>
 (function() {
     'use strict';
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const tableElement = document.getElementById('inventory');
-        if (!tableElement) return;
-        
-        const grid = new gridjs.Grid({
-            columns: [
-                { name: 'Nombre', id: 'name', sort: { enabled: true } },
-                { 
-                    name: 'Stock', 
-                    id: 'stock', 
-                    sort: { enabled: true },
-                    formatter: function(cell) {
-                        return cell.toFixed(2);
-                    }
-                },
-                { name: 'Unidad', id: 'unit', sort: { enabled: true } },
-                { name: 'Almacén', id: 'warehouse', sort: { enabled: true } }
-            ],
+
+    if (typeof gridjs === 'undefined') {
+        console.error('GridJS no está disponible');
+        GridUtils.showError('inventory', 'GridJS no está disponible. Recargue la página.');
+        return;
+    }
+
+    var container = document.getElementById('inventory');
+    if (!container) return;
+
+    GridUtils.showLoading('inventory');
+
+    var apiBase = '/api/inventory/';
+
+    var grid = new gridjs.Grid({
+        columns: [
+            { name: 'Nombre', id: 'name', sort: { enabled: true } },
+            {
+                name: 'Stock',
+                id: 'stock',
+                sort: { enabled: true },
+                formatter: function(cell) {
+                    return cell != null ? parseFloat(cell).toFixed(2) : '0.00';
+                }
+            },
+            { name: 'Unidad', id: 'unit', sort: { enabled: true } },
+            { name: 'Almacén', id: 'warehouse', sort: { enabled: true } }
+        ],
+        server: {
+            url: function(params) {
+                var url = new URL(apiBase, window.location.origin);
+                if (params.limit) url.searchParams.set('limit', params.limit);
+                if (params.offset != null) url.searchParams.set('offset', params.offset);
+                if (params.search) url.searchParams.set('search', params.search);
+                if (params.sort) url.searchParams.set('sort', params.sort.field + ',' + params.sort.direction);
+                return url.toString();
+            },
+            then: function(data) {
+                return data.results.map(function(i) {
+                    return [i.name, i.stock, i.unit, i.warehouse];
+                });
+            },
+            total: function(data) { return data.count; },
+            handle: function(res) {
+                if (res.ok) return res.json();
+                throw new Error('Error al cargar datos: ' + res.status);
+            }
+        },
+        search: { enabled: true, placeholder: 'Buscar...' },
+        sort: { enabled: true },
+        pagination: {
+            enabled: true,
+            limit: 25,
+            limits: [10, 25, 50, 100],
             server: {
-                url: '/api/inventory/',
-                then: function(data) {
-                    return data.results.map(function(i) {
-                        return [
-                            i.name,
-                            i.stock.toFixed(2),
-                            i.unit,
-                            i.warehouse
-                        ];
-                    });
-                },
-                total: function(data) {
-                    return data.count;
+                url: function(prev, page, limit) {
+                    var url = new URL(prev || apiBase, window.location.origin);
+                    url.searchParams.set('limit', limit);
+                    url.searchParams.set('offset', page * limit);
+                    return url.toString();
                 }
             },
-            search: {
-                enabled: true,
-                placeholder: 'Buscar...'
-            },
-            sort: {
-                enabled: true
-            },
-            pagination: {
-                enabled: true,
-                limit: 25,
-                limits: [10, 25, 50, 100],
-                summary: true,
-                labels: {
-                    first: '«',
-                    last: '»',
-                    prev: '‹',
-                    next: '›'
-                }
-            },
-            language: 'es-ES'
-        });
-        
-        grid.render(tableElement);
+            summary: true,
+            labels: { first: '«', last: '»', prev: '‹', next: '›' }
+        },
+        language: 'es-ES'
+    }).render(container);
+
+    grid.on('ready', function() {
+        GridUtils.addToolbar('grid-toolbar', 'inventory', 'inventario');
+    });
+
+    grid.on('error', function(err) {
+        console.error('GridJS error:', err);
+        GridUtils.showError('inventory', 'Error al cargar los datos. Por favor recargue la página.');
     });
 })();
-</script>
+    </script>
 {% endblock %}
