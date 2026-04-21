@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Eliminar Bodega{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="material-icons">delete</i> Eliminar Bodega
+        </h1>
+        <div class="card">
+            <div class="card-body">
+                <p>
+                    ¿Está seguro que desea eliminar la bodega <strong>"{{ warehouse.name }}"</strong>?
+                </p>
+                <p>Esta acción no se puede deshacer.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="material-icons">delete</i> Sí, eliminar bodega
+                        </button>
+                        <a href="{% url 'warehouse_list' %}" class="btn btn-secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

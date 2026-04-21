@@ -283,6 +283,48 @@ urlpatterns = [
         name="purchase_ingredients_alt",
     ),
     # ==========================
+    # Inventory - Bodegas
+    # ==========================
+    path("inventory/warehouses/", views.warehouse_list, name="warehouse_list"),
+    path(
+        "inventory/warehouses/new/",
+        views.warehouse_create,
+        name="warehouse_create",
+    ),
+    path(
+        "inventory/warehouses/<int:warehouse_id>/edit/",
+        views.warehouse_edit,
+        name="warehouse_edit",
+    ),
+    path(
+        "inventory/warehouses/<int:warehouse_id>/delete/",
+        views.warehouse_delete,
+        name="warehouse_delete",
+    ),
+    path(
+        "inventory/warehouses/<int:warehouse_id>/restore/",
+        views.warehouse_restore,
+        name="warehouse_restore",
+    ),
+    # Alias español
+    path("bodegas/", views.warehouse_list, name="warehouse_list_alt"),
+    path("bodegas/nuevo/", views.warehouse_create, name="warehouse_create_alt"),
+    path(
+        "bodegas/<int:warehouse_id>/editar/",
+        views.warehouse_edit,
+        name="warehouse_edit_alt",
+    ),
+    path(
+        "bodegas/<int:warehouse_id>/eliminar/",
+        views.warehouse_delete,
+        name="warehouse_delete_alt",
+    ),
+    path(
+        "bodegas/<int:warehouse_id>/restaurar/",
+        views.warehouse_restore,
+        name="warehouse_restore_alt",
+    ),
+    # ==========================
     # Reports - Reportes
     # ==========================
     path("reports/", views.reports_index, name="reports_index"),
@@ -368,6 +410,7 @@ urlpatterns = [
     path("api/categories/", views.api_categories, name="api_categories"),
     path("api/dispatch-areas/", views.api_dispatch_areas, name="api_dispatch_areas"),
     path("api/tables/", views.api_tables, name="api_tables"),
+    path("api/warehouses/", views.api_warehouses, name="api_warehouses"),
     path("api/orders/", views.api_orders, name="api_orders"),
     path("api/movements/", views.api_movements, name="api_movements"),
     path("api/inventory/", views.api_inventory, name="api_inventory"),

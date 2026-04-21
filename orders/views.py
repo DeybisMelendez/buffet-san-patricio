@@ -794,6 +794,10 @@ def api_inventory(request):
     if search:
         queryset = queryset.filter(name__icontains=search)
 
+    warehouse_id = request.GET.get("warehouse", "").strip()
+    if warehouse_id:
+        queryset = queryset.filter(warehouse_id=warehouse_id)
+
     sort = request.GET.get("sort", "")
     if sort:
         try:
@@ -1671,10 +1675,24 @@ def product_recipes(request, product_id):
 @login_required
 @user_passes_test(user_can_manage_inventory_full)
 def ingredient_list(request):
-    """Lista todos los ingredientes."""
-    ingredients = Ingredient.objects.all().select_related("warehouse").order_by("name")
+    """Lista todos los ingredientes con búsqueda por nombre y almacén."""
+    ingredients = Ingredient.objects.all().select_related("warehouse")
+
+    search = request.GET.get("search", "").strip()
+    warehouse_id = request.GET.get("warehouse", "").strip()
+
+    if search:
+        ingredients = ingredients.filter(name__icontains=search)
+
+    if warehouse_id:
+        ingredients = ingredients.filter(warehouse_id=warehouse_id)
+
+    ingredients = ingredients.order_by("name")
+    warehouses = Warehouse.objects.all().order_by("name")
     return render(
-        request, "inventory/ingredient_list.html", {"ingredients": ingredients}
+        request,
+        "inventory/ingredient_list.html",
+        {"ingredients": ingredients, "warehouses": warehouses},
     )
 
 
@@ -1802,6 +1820,104 @@ def ingredient_restore(request, ingredient_id):
         request, f" Ingrediente '{ingredient.name}' restaurado exitosamente."
     )
     return redirect("ingredient_list")
+
+
+# ==========================
+# 🏢 GESTIÓN DE BODEGAS
+# ==========================
+
+
+@login_required
+@user_passes_test(user_can_manage_inventory_full)
+def warehouse_list(request):
+    """Lista todas las bodegas."""
+    warehouses = Warehouse.objects.all().order_by("name")
+    return render(request, "inventory/warehouse_list.html", {"warehouses": warehouses})
+
+
+@login_required
+@user_passes_test(user_can_manage_inventory_full)
+def warehouse_create(request):
+    """Crea una nueva bodega."""
+    if request.method == "POST":
+        name = request.POST.get("name")
+        if not name:
+            messages.error(request, " El nombre es obligatorio.")
+        else:
+            try:
+                warehouse = Warehouse.objects.create(name=name)
+                messages.success(
+                    request, f" Bodega '{warehouse.name}' creada exitosamente."
+                )
+                return redirect("warehouse_list")
+            except Exception as e:
+                messages.error(request, f" Error al crear bodega: {e}")
+    return render(request, "inventory/warehouse_form.html", {"title": "Crear Bodega"})
+
+
+@login_required
+@user_passes_test(user_can_manage_inventory_full)
+def warehouse_edit(request, warehouse_id):
+    """Edita una bodega existente."""
+    warehouse = get_object_or_404(Warehouse, id=warehouse_id)
+    if request.method == "POST":
+        name = request.POST.get("name")
+        if not name:
+            messages.error(request, " El nombre es obligatorio.")
+        else:
+            try:
+                warehouse.name = name
+                warehouse.save()
+                messages.success(
+                    request,
+                    f" Bodega '{warehouse.name}' actualizada exitosamente.",
+                )
+                return redirect("warehouse_list")
+            except Exception as e:
+                messages.error(request, f" Error al actualizar bodega: {e}")
+    return render(
+        request,
+        "inventory/warehouse_form.html",
+        {"warehouse": warehouse, "title": "Editar Bodega"},
+    )
+
+
+@login_required
+@user_passes_test(user_can_manage_inventory_full)
+def warehouse_delete(request, warehouse_id):
+    """Elimina una bodega (soft delete)."""
+    warehouse = get_object_or_404(Warehouse, id=warehouse_id)
+
+    if request.method == "POST":
+        try:
+            warehouse_name = warehouse.name
+            warehouse.soft_delete()
+            messages.success(
+                request, f" Bodega '{warehouse_name}' eliminada exitosamente."
+            )
+            return redirect("warehouse_list")
+        except Exception as e:
+            messages.error(request, f" Error al eliminar bodega: {e}")
+            return redirect("warehouse_list")
+
+    return render(
+        request,
+        "inventory/warehouse_confirm_delete.html",
+        {"warehouse": warehouse},
+    )
+
+
+@login_required
+@user_passes_test(user_can_manage_inventory_full)
+def warehouse_restore(request, warehouse_id):
+    """Restaura una bodega eliminada."""
+    warehouse = get_object_or_404(Warehouse.all_objects, id=warehouse_id)
+    if not warehouse.is_deleted:
+        messages.warning(request, " La bodega no está eliminada.")
+        return redirect("warehouse_list")
+    warehouse.restore()
+    messages.success(request, f" Bodega '{warehouse.name}' restaurada exitosamente.")
+    return redirect("warehouse_list")
 
 
 # ==========================
@@ -2051,6 +2167,20 @@ def api_tables(request):
             "name": t.name,
         }
         for t in tables
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def api_warehouses(request):
+    """API endpoint que retorna lista de bodegas en formato JSON para Grid.js."""
+    warehouses = Warehouse.objects.all().order_by("name")
+    data = [
+        {
+            "id": w.id,
+            "name": w.name,
+        }
+        for w in warehouses
     ]
     return JsonResponse(data, safe=False)
 

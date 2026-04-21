@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Bodegas{% endblock %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css"
+          rel="stylesheet">
+    <style>
+    .gridjs-wrapper { box-shadow: none; }
+    .gridjs-table { width: 100%; }
+    </style>
+{% endblock %}
+{% block body %}
+    <div class="container">
+        <div class="row mb-3">
+            <div class="col">
+                <h1 class="mb-0">
+                    <i class="material-icons">warehouse</i> Bodegas
+                </h1>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'warehouse_create' %}" class="btn btn-primary">
+                    <i class="material-icons">add</i> Nueva Bodega
+                </a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="grid-container"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+(function() {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const grid = new gridjs.Grid({
+            columns: [
+                { name: 'Nombre', id: 'name', sort: { enabled: true } },
+                {
+                    name: 'Acciones',
+                    id: 'acciones',
+                    sort: { enabled: false },
+                    formatter: function(cell, row) {
+                        const id = row.cells[0].data;
+                        return gridjs.html(
+                            '<div class="btn-group" role="group">' +
+                            '<a href="/inventory/warehouses/' + id + '/edit/" class="btn btn-secondary btn-sm" title="Editar">' +
+                            '<i class="material-icons" style="font-size:1rem;">edit</i></a>' +
+                            '<a href="/inventory/warehouses/' + id + '/delete/" class="btn btn-danger btn-sm" title="Eliminar">' +
+                            '<i class="material-icons" style="font-size:1rem;">delete</i></a>' +
+                            '</div>'
+                        );
+                    }
+                }
+            ],
+            server: {
+                url: '/api/warehouses/',
+                then: function(data) {
+                    return data.map(function(w) {
+                        return [w.name, null];
+                    });
+                }
+            },
+            search: {
+                enabled: true,
+                placeholder: 'Buscar bodega...'
+            },
+            sort: {
+                enabled: true
+            },
+            pagination: {
+                enabled: true,
+                limit: 25,
+                limits: [10, 25, 50, 100],
+                summary: true,
+                labels: {
+                    first: '«',
+                    last: '»',
+                    prev: '‹',
+                    next: '›'
+                }
+            },
+            language: 'es-ES'
+        });
+
+        grid.render(document.getElementById('grid-container'));
+    });
+})();
+    </script>
+{% endblock %}

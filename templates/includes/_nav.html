@@ -14,8 +14,7 @@
         </div>
     </div>
 </div>
-<nav class="navbar navbar-expand-lg bg-body sticky-top border-bottom"
-     x-data="mobileMenu">
+<nav class="navbar navbar-expand-lg bg-body sticky-top border-bottom">
     <div class="container">
         <a href="{% url 'dashboard' %}"
            class="navbar-brand fw-bold text-primary"
@@ -109,6 +108,13 @@
                                 <li>
                                     <a href="{% url 'ingredient_list' %}" class="dropdown-item">Ingredientes</a>
                                 </li>
+                                {% if user|can_manage_inventory_full %}
+                                <li>
+                                    <a href="{% url 'warehouse_list' %}" class="dropdown-item">
+                                        <i class="material-icons">warehouse</i> Bodegas
+                                    </a>
+                                </li>
+                                {% endif %}
                             {% endif %}
                         </ul>
                     </li>
