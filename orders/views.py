@@ -1342,7 +1342,7 @@ def category_edit(request, category_id):
 
     return render(
         request,
-        "category_form.html",
+        "menu/category_form.html",
         {"category": category, "title": "Editar Categoría"},
     )
 
