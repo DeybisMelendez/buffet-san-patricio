@@ -15,9 +15,11 @@ from django.utils import timezone
 from users.utils import (
     has_valid_role,
     user_can_add_inventory_movement,
+    user_can_manage_food_recipes,
     user_can_manage_inventory_full,
     user_can_manage_menu,
     user_can_mark_paid,
+    user_can_use_food_converter,
     user_can_view_inventory,
     user_can_view_reports,
     user_can_view_sales_report,
@@ -28,6 +30,8 @@ from .models import (
     CashRegister,
     Company,
     DispatchArea,
+    FoodRecipe,
+    FoodRecipeItem,
     Ingredient,
     IngredientMovement,
     Invoice,
@@ -444,6 +448,294 @@ def purchase_ingredients(request):
     return render(
         request, "inventory/purchase_ingredients.html", {"ingredients": ingredients}
     )
+
+
+@login_required
+@user_passes_test(user_can_use_food_converter)
+def food_converter(request):
+    """Conversor de alimentos: transforma ingredientes crudos en productos procesados."""
+    ingredients = Ingredient.objects.all().order_by("name")
+    recipes = FoodRecipe.objects.filter(is_active=True)
+
+    if request.method == "POST":
+        mode = request.POST.get("mode", "manual")
+
+        if mode == "recipe":
+            recipe_id = request.POST.get("recipe")
+            factor = Decimal(request.POST.get("factor", "1"))
+
+            try:
+                recipe = FoodRecipe.objects.get(id=recipe_id, is_active=True)
+            except FoodRecipe.DoesNotExist:
+                messages.error(request, " Receta no encontrada.")
+                return redirect("food_converter")
+
+            with transaction.atomic():
+                for item in recipe.items.all():
+                    qty = item.quantity * factor
+
+                    if item.is_input:
+                        if item.ingredient.stock_quantity < qty:
+                            messages.error(
+                                request,
+                                f" Stock insuficiente para {item.ingredient.name}. "
+                                f"Tienes {item.ingredient.stock_quantity} {item.ingredient.unit}.",
+                            )
+                            return redirect("food_converter")
+
+                        IngredientMovement.objects.create(
+                            ingredient=item.ingredient,
+                            quantity=-qty,
+                            user=request.user,
+                            reason=f"Conversión: {recipe.name} (entrada)",
+                        )
+                    else:
+                        IngredientMovement.objects.create(
+                            ingredient=item.ingredient,
+                            quantity=qty,
+                            user=request.user,
+                            reason=f"Conversión: {recipe.name} (salida)",
+                        )
+
+            messages.success(
+                request, f" Conversión '{recipe.name}' aplicada exitosamente."
+            )
+            return redirect("food_converter")
+
+        else:
+            inputs = []
+            outputs = []
+            for key, value in request.POST.items():
+                if key.startswith("input_"):
+                    ing_id = int(key.replace("input_", ""))
+                    try:
+                        qty = Decimal(value)
+                        if qty > 0:
+                            inputs.append((ing_id, qty))
+                    except Exception:
+                        pass
+                elif key.startswith("output_"):
+                    ing_id = int(key.replace("output_", ""))
+                    try:
+                        qty = Decimal(value)
+                        if qty > 0:
+                            outputs.append((ing_id, qty))
+                    except Exception:
+                        pass
+
+            if not inputs:
+                messages.error(
+                    request, " Debes agregar al menos un ingrediente de entrada."
+                )
+                return redirect("food_converter")
+
+            if not outputs:
+                messages.error(
+                    request, " Debes agregar al menos un ingrediente de salida."
+                )
+                return redirect("food_converter")
+
+            with transaction.atomic():
+                for ing_id, qty in inputs:
+                    try:
+                        ing = Ingredient.objects.get(id=ing_id)
+                    except Ingredient.DoesNotExist:
+                        continue
+
+                    if ing.stock_quantity < qty:
+                        messages.error(
+                            request,
+                            f" Stock insuficiente para {ing.name}. "
+                            f"Tienes {ing.stock_quantity} {ing.unit}.",
+                        )
+                        return redirect("food_converter")
+
+                    IngredientMovement.objects.create(
+                        ingredient=ing,
+                        quantity=-qty,
+                        user=request.user,
+                        reason="Conversión manual de alimentos (entrada)",
+                    )
+
+                for ing_id, qty in outputs:
+                    try:
+                        ing = Ingredient.objects.get(id=ing_id)
+                    except Ingredient.DoesNotExist:
+                        continue
+
+                    IngredientMovement.objects.create(
+                        ingredient=ing,
+                        quantity=qty,
+                        user=request.user,
+                        reason="Conversión manual de alimentos (salida)",
+                    )
+
+            messages.success(request, " Conversiónmanual aplicada exitosamente.")
+            return redirect("food_converter")
+
+    return render(
+        request,
+        "inventory/food_converter.html",
+        {"ingredients": ingredients, "recipes": recipes},
+    )
+
+
+@login_required
+@user_passes_test(user_can_manage_food_recipes)
+def food_recipe_list(request):
+    """Lista de recetas de conversión."""
+    recipes = FoodRecipe.objects.all().order_by("-created_at")
+    return render(request, "inventory/food_recipe_list.html", {"recipes": recipes})
+
+
+@login_required
+@user_passes_test(user_can_manage_food_recipes)
+def food_recipe_create(request):
+    """Crea una nueva receta de conversión."""
+    ingredients = Ingredient.objects.all().order_by("name")
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get("description", "").strip()
+
+        if not name:
+            messages.error(request, " El nombre es requerido.")
+            return redirect("food_recipe_create")
+
+        if FoodRecipe.objects.filter(name__iexact=name).exists():
+            messages.error(request, " Ya existe una receta con ese nombre.")
+            return redirect("food_recipe_create")
+
+        recipe = FoodRecipe.objects.create(name=name, description=description)
+
+        with transaction.atomic():
+            for key, value in request.POST.items():
+                if key.startswith("ing_"):
+                    parts = key[4:].split("_")
+                    try:
+                        row_id = int(parts[0])
+                        ing_id = int(value)
+                        qty_key = f"qty_{row_id}"
+                        qty = Decimal(request.POST.get(qty_key, "0"))
+                        if qty <= 0 or not ing_id:
+                            continue
+                    except (ValueError, IndexError):
+                        continue
+
+                    is_input_key = f"type_{row_id}"
+                    is_input = request.POST.get(is_input_key) == "input"
+
+                    try:
+                        ing = Ingredient.objects.get(id=ing_id)
+                    except Ingredient.DoesNotExist:
+                        continue
+
+                    FoodRecipeItem.objects.create(
+                        recipe=recipe,
+                        ingredient=ing,
+                        quantity=qty,
+                        is_input=is_input,
+                    )
+
+        messages.success(request, f" Receta '{recipe.name}' creada exitosamente.")
+        return redirect("food_recipe_list")
+
+    return render(
+        request, "inventory/food_recipe_form.html", {"ingredients": ingredients}
+    )
+
+
+@login_required
+@user_passes_test(user_can_manage_food_recipes)
+def food_recipe_edit(request, recipe_id):
+    """Edita una receta de conversión."""
+    try:
+        recipe = FoodRecipe.objects.get(id=recipe_id)
+    except FoodRecipe.DoesNotExist:
+        messages.error(request, " Receta no encontrada.")
+        return redirect("food_recipe_list")
+
+    ingredients = Ingredient.objects.all().order_by("name")
+
+    if request.POST.get("delete"):
+        recipe_name = recipe.name
+        recipe.soft_delete()
+        messages.success(request, f" Receta '{recipe_name}' eliminada.")
+        return redirect("food_recipe_list")
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get("description", "").strip()
+        is_active = request.POST.get("is_active") == "on"
+
+        if not name:
+            messages.error(request, " El nombre es requerido.")
+            return redirect("food_recipe_edit", recipe_id)
+
+        if FoodRecipe.objects.filter(name__iexact=name).exclude(id=recipe_id).exists():
+            messages.error(request, " Ya existe otra receta con ese nombre.")
+            return redirect("food_recipe_edit", recipe_id)
+
+        recipe.name = name
+        recipe.description = description
+        recipe.is_active = is_active
+        recipe.save()
+
+        recipe.items.all().delete()
+
+        with transaction.atomic():
+            for key, value in request.POST.items():
+                if key.startswith("ing_"):
+                    parts = key[4:].split("_")
+                    try:
+                        row_id = int(parts[0])
+                        ing_id = int(value)
+                        qty_key = f"qty_{row_id}"
+                        qty = Decimal(request.POST.get(qty_key, "0"))
+                        if qty <= 0 or not ing_id:
+                            continue
+                    except (ValueError, IndexError):
+                        continue
+
+                    is_input_key = f"type_{row_id}"
+                    is_input = request.POST.get(is_input_key) == "input"
+
+                    try:
+                        ing = Ingredient.objects.get(id=ing_id)
+                    except Ingredient.DoesNotExist:
+                        continue
+
+                    FoodRecipeItem.objects.create(
+                        recipe=recipe,
+                        ingredient=ing,
+                        quantity=qty,
+                        is_input=is_input,
+                    )
+
+        messages.success(request, f" Receta '{recipe.name}' actualizada.")
+        return redirect("food_recipe_list")
+
+    return render(
+        request,
+        "inventory/food_recipe_form.html",
+        {"ingredients": ingredients, "recipe": recipe},
+    )
+
+
+@login_required
+@user_passes_test(user_can_manage_food_recipes)
+def food_recipe_delete(request, recipe_id):
+    """Elimina una receta de conversión."""
+    try:
+        recipe = FoodRecipe.objects.get(id=recipe_id)
+    except FoodRecipe.DoesNotExist:
+        messages.error(request, " Receta no encontrada.")
+        return redirect("food_recipe_list")
+
+    recipe_name = recipe.name
+    recipe.soft_delete()
+    messages.success(request, f" Receta '{recipe_name}' eliminada.")
+    return redirect("food_recipe_list")
 
 
 @login_required

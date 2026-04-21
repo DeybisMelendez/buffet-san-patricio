@@ -201,6 +201,14 @@ def filter_can_view_ingredients(user):
     return user.has_perm("orders.view_ingredient")
 
 
+@register.filter(name="can_use_food_converter")
+def filter_can_use_food_converter(user):
+    """Verifica si el usuario puede usar el conversor de alimentos."""
+    from users.utils import user_can_use_food_converter
+
+    return user_can_use_food_converter(user)
+
+
 # ==========================
 # 📋 FILTROS DE GRUPOS (compatibilidad)
 # ==========================

@@ -98,23 +98,31 @@
                                     <a href="{% url 'purchase_ingredients' %}" class="dropdown-item">Ingresos</a>
                                 </li>
                             {% endif %}
-                            {% if user|can_view_inventory %}
+                            {% if user|can_use_food_converter %}
                                 <li>
-                                    <hr class="dropdown-divider">
+                                    <a href="{% url 'food_converter' %}" class="dropdown-item">
+                                        <i class="material-icons">swap_horiz</i> Conversor
+                                    </a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'report_inventory' %}" class="dropdown-item">Saldo</a>
+                                    <a href="{% url 'food_recipe_list' %}" class="dropdown-item">Recetas de Conversión</a>
                                 </li>
-                                <li>
-                                    <a href="{% url 'ingredient_list' %}" class="dropdown-item">Ingredientes</a>
-                                </li>
-                                {% if user|can_manage_inventory_full %}
+                            {% endif %}
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a href="{% url 'report_inventory' %}" class="dropdown-item">Saldo</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ingredient_list' %}" class="dropdown-item">Ingredientes</a>
+                            </li>
+                            {% if user|can_manage_inventory_full %}
                                 <li>
                                     <a href="{% url 'warehouse_list' %}" class="dropdown-item">
                                         <i class="material-icons">warehouse</i> Bodegas
                                     </a>
                                 </li>
-                                {% endif %}
                             {% endif %}
                         </ul>
                     </li>

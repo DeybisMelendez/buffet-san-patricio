@@ -149,6 +149,19 @@ def user_can_view_reports(user):
     return user.has_perm("orders.view_order") or user.has_perm("orders.view_product")
 
 
+def user_can_use_food_converter(user):
+    """Verifica si el usuario puede usar el conversor de alimentos."""
+    if user.is_superuser:
+        return True
+    allowed_groups = [GROUP_COCINERO, GROUP_SUPERVISOR, GROUP_ADMINISTRADOR]
+    return user.groups.filter(name__in=allowed_groups).exists()
+
+
+def user_can_manage_food_recipes(user):
+    """Verifica si el usuario puede gestionar recetas de conversión."""
+    return user.has_perm("orders.change_foodrecipe")
+
+
 def user_can_view_sales_report(user):
     """Verifica si el usuario puede ver reporte de ventas por producto."""
     if user.is_superuser:

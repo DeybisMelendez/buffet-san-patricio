@@ -283,6 +283,36 @@ urlpatterns = [
         name="purchase_ingredients_alt",
     ),
     # ==========================
+    # Inventory - Conversor de Alimentos
+    # ==========================
+    path("inventory/convert/", views.food_converter, name="food_converter"),
+    path("inventory/recipes/", views.food_recipe_list, name="food_recipe_list"),
+    path("inventory/recipes/new/", views.food_recipe_create, name="food_recipe_create"),
+    path(
+        "inventory/recipes/<int:recipe_id>/edit/",
+        views.food_recipe_edit,
+        name="food_recipe_edit",
+    ),
+    path(
+        "inventory/recipes/<int:recipe_id>/delete/",
+        views.food_recipe_delete,
+        name="food_recipe_delete",
+    ),
+    # Alias español
+    path("conversor/", views.food_converter, name="food_converter_alt"),
+    path("recetas/", views.food_recipe_list, name="food_recipe_list_alt"),
+    path("recetas/nueva/", views.food_recipe_create, name="food_recipe_create_alt"),
+    path(
+        "recetas/<int:recipe_id>/editar/",
+        views.food_recipe_edit,
+        name="food_recipe_edit_alt",
+    ),
+    path(
+        "recetas/<int:recipe_id>/eliminar/",
+        views.food_recipe_delete,
+        name="food_recipe_delete_alt",
+    ),
+    # ==========================
     # Inventory - Bodegas
     # ==========================
     path("inventory/warehouses/", views.warehouse_list, name="warehouse_list"),

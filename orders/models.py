@@ -129,6 +129,41 @@ class ProductIngredient(models.Model):
         )
 
 
+class FoodRecipe(SoftDeleteModel):
+    name = models.CharField(max_length=255, unique=True, verbose_name="Nombre")
+    description = models.TextField(blank=True, default="", verbose_name="Descripción")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Receta de Conversión"
+        verbose_name_plural = "Recetas de Conversión"
+
+    def __str__(self):
+        return self.name
+
+
+class FoodRecipeItem(models.Model):
+    recipe = models.ForeignKey(
+        FoodRecipe, on_delete=models.CASCADE, related_name="items"
+    )
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    is_input = models.BooleanField(
+        default=True,
+        verbose_name="Es entrada",
+        help_text="Si marcada = consumo (salida de inventario). Si desmarcada = producto procesado (entrada a inventario).",
+    )
+
+    class Meta:
+        verbose_name = "Ingrediente de Receta"
+        verbose_name_plural = "Ingredientes de Receta"
+
+    def __str__(self):
+        tipo = "Entrada" if self.is_input else "Salida"
+        return f"{self.quantity} {self.ingredient.unit} {self.ingredient.name} ({tipo})"
+
+
 class IngredientMovement(models.Model):
     ingredient = models.ForeignKey("Ingredient", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)

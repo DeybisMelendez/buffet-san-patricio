@@ -98,6 +98,11 @@ FULL_MANAGEMENT_PERMS = [
     "change_cashregister",
     "delete_cashregister",
     "view_cashregister",
+    # Recetas de conversión
+    "add_foodrecipe",
+    "change_foodrecipe",
+    "delete_foodrecipe",
+    "view_foodrecipe",
 ]
 
 # Permisos de usuario y grupo (solo administrador)
@@ -161,6 +166,10 @@ GROUP_PERMISSIONS = {
         "add_cashregister",
         "view_cashregister",
         "change_cashregister",
+        # Recetas de conversión
+        "add_foodrecipe",
+        "change_foodrecipe",
+        "view_foodrecipe",
         # Reportes
         # Nota: Los reportes no tienen permisos específicos, se controlan por vistas
     ],
@@ -178,6 +187,10 @@ GROUP_PERMISSIONS = {
         "view_ingredient",
         "view_productingredient",
         "view_ingredientmovement",
+        # Recetas de conversión
+        "add_foodrecipe",
+        "change_foodrecipe",
+        "view_foodrecipe",
     ],
     GROUP_CAJERO: [
         # Mesas y órdenes
