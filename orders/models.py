@@ -377,30 +377,3 @@ class CashRegister(models.Model):
 
     def __str__(self):
         return f"Arqueo #{self.id} - {self.date} ({self.get_status_display()})"
-
-
-class Company(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Nombre de la empresa")
-    ruc = models.CharField(max_length=20, verbose_name="RUC", blank=True, null=True)
-    address = models.TextField(verbose_name="Dirección", blank=True, null=True)
-    phone = models.CharField(
-        max_length=50, verbose_name="Teléfono", blank=True, null=True
-    )
-    email = models.EmailField(verbose_name="Correo electrónico", blank=True, null=True)
-    logo = models.FileField(
-        upload_to="company_logos/",
-        verbose_name="Logo",
-        blank=True,
-        null=True,
-        help_text="Logo de la empresa para mostrar en comandas (imagen preferiblemente)",
-    )
-    slogan = models.CharField(
-        max_length=255, verbose_name="Eslogan", blank=True, null=True
-    )
-
-    class Meta:
-        verbose_name = "Empresa"
-        verbose_name_plural = "Empresa"
-
-    def __str__(self):
-        return self.name

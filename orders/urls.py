@@ -422,11 +422,7 @@ urlpatterns = [
         name="export_sales_by_product_csv_alt",
     ),
     # ==========================
-    # Settings - Configuración
-    # ==========================
-    path("settings/company/", views.company_settings, name="company_settings"),
-    # Alias español
-    path("empresa/configuracion/", views.company_settings, name="company_settings_alt"),
+    # Settings
     # ==========================
     # Dashboard (raíz)
     # ==========================

@@ -1,8 +1,17 @@
 from django.contrib import admin
 
-from .models import (Company, DispatchArea, Ingredient, IngredientMovement,
-                     Order, OrderItem, Product, ProductCategory,
-                     ProductIngredient, Table, Warehouse)
+from .models import (
+    DispatchArea,
+    Ingredient,
+    IngredientMovement,
+    Order,
+    OrderItem,
+    Product,
+    ProductCategory,
+    ProductIngredient,
+    Table,
+    Warehouse,
+)
 
 
 @admin.register(Table)
@@ -100,20 +109,3 @@ class OrderItemAdmin(admin.ModelAdmin):
         return f"C${obj.get_total():,.2f}"
 
     get_total_display.short_description = "Subtotal"
-
-
-@admin.register(Company)
-class CompanyAdmin(admin.ModelAdmin):
-    list_display = ("name", "ruc", "phone", "email")
-    search_fields = ("name", "ruc", "email")
-    fieldsets = (
-        ("Información Básica", {"fields": ("name", "ruc", "slogan")}),
-        ("Contacto", {"fields": ("address", "phone", "email")}),
-        (
-            "Logo",
-            {
-                "fields": ("logo",),
-                "description": "Suba una imagen para mostrar en comandas y reportes.",
-            },
-        ),
-    )

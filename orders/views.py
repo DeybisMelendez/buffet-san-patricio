@@ -27,23 +27,11 @@ from users.utils import (
 
 from .forms import ProductIngredientForm, TableForm
 from .models import (
-    CashRegister,
-    Company,
-    DispatchArea,
-    FoodRecipe,
-    FoodRecipeItem,
-    Ingredient,
-    IngredientMovement,
-    Invoice,
-    InvoiceItem,
-    Order,
-    OrderItem,
-    Product,
-    ProductCategory,
-    ProductIngredient,
-    Table,
-    Warehouse,
+    CashRegister, DispatchArea, FoodRecipe, FoodRecipeItem, Ingredient,
+    IngredientMovement, Invoice, InvoiceItem, Order, OrderItem, Product,
+    ProductCategory, ProductIngredient, Table, Warehouse,
 )
+from core.config import BUSINESS_INFO
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -2231,55 +2219,6 @@ def warehouse_restore(request, warehouse_id):
 
 
 # ==========================
-# 🏢 CONFIGURACIÓN DE EMPRESA
-# ==========================
-
-
-@login_required
-@user_passes_test(user_can_manage_menu)
-def company_settings(request):
-    """Vista para configurar los datos de la empresa (solo una instancia)."""
-    # Obtener la única instancia de Company, si existe
-    company = Company.objects.first()
-
-    if request.method == "POST":
-        # Si ya existe, actualizar; si no, crear nueva
-        if company:
-            company.name = request.POST.get("name", "").strip()
-            company.ruc = request.POST.get("ruc", "").strip()
-            company.address = request.POST.get("address", "").strip()
-            company.phone = request.POST.get("phone", "").strip()
-            company.email = request.POST.get("email", "").strip()
-            company.slogan = request.POST.get("slogan", "").strip()
-
-            # Manejar archivo de logo
-            if "logo" in request.FILES:
-                company.logo = request.FILES["logo"]
-        else:
-            company = Company(
-                name=request.POST.get("name", "").strip(),
-                ruc=request.POST.get("ruc", "").strip(),
-                address=request.POST.get("address", "").strip(),
-                phone=request.POST.get("phone", "").strip(),
-                email=request.POST.get("email", "").strip(),
-                slogan=request.POST.get("slogan", "").strip(),
-            )
-            if "logo" in request.FILES:
-                company.logo = request.FILES["logo"]
-
-        try:
-            company.save()
-            messages.success(
-                request, " Configuración de empresa guardada exitosamente."
-            )
-            return redirect("company_settings")
-        except Exception as e:
-            messages.error(request, f" Error al guardar configuración: {e}")
-
-    return render(request, "settings/company_settings.html", {"company": company})
-
-
-# ==========================
 #  DASHBOARD
 # ==========================
 
@@ -2904,7 +2843,7 @@ def print_invoice(request, invoice_id):
     """Imprime una factura en formato térmico."""
     invoice = get_object_or_404(Invoice, id=invoice_id)
     items = invoice.get_items()
-    company = Company.objects.first()
+    company = BUSINESS_INFO
 
     return render(
         request,
@@ -2918,7 +2857,7 @@ def print_invoice(request, invoice_id):
 def print_cash_register(request, register_id):
     """Imprime el arqueo de caja en formato térmico."""
     cash_register = get_object_or_404(CashRegister, id=register_id)
-    company = Company.objects.first()
+    company = BUSINESS_INFO
 
     expected = cash_register.opening_amount + cash_register.total_contado
     total_cobrado = (
