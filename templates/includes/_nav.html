@@ -17,9 +17,13 @@
 <nav class="navbar navbar-expand-lg bg-body sticky-top border-bottom">
     <div class="container">
         <a href="{% url 'dashboard' %}"
-           class="navbar-brand fw-bold text-primary"
+           class="navbar-brand fw-bold text-primary d-flex align-items-center"
            title="Buffet San Patricio">
-            <i class="material-icons">dinner_dining</i>
+            <img src="{% static 'favicon.png' %}"
+                 alt="Logo"
+                 width="32"
+                 height="32"
+                 class="me-2">
         </a>
         <button class="navbar-toggler"
                 type="button"
@@ -62,13 +66,13 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="{% url 'product_list' %}" class="dropdown-item">Productos</a>
+                                <a href="{% url 'product_list' %}" class="dropdown-item"><i class="material-icons">fastfood</i> Productos</a>
                             </li>
                             <li>
-                                <a href="{% url 'category_list' %}" class="dropdown-item">Categorías</a>
+                                <a href="{% url 'category_list' %}" class="dropdown-item"><i class="material-icons">local_offer</i> Categorías</a>
                             </li>
                             <li>
-                                <a href="{% url 'dispatch_area_list' %}" class="dropdown-item">Áreas</a>
+                                <a href="{% url 'dispatch_area_list' %}" class="dropdown-item"><i class="material-icons">location_city</i> Áreas</a>
                             </li>
                             <li>
                                 <a href="{% url 'table_management_list' %}" class="dropdown-item"><i class="material-icons">table_restaurant</i> Mesas</a>
@@ -89,10 +93,10 @@
                         <ul class="dropdown-menu">
                             {% if user|can_add_inventory_movement %}
                                 <li>
-                                    <a href="{% url 'inventory_movement' %}" class="dropdown-item">Movimientos</a>
+                                    <a href="{% url 'inventory_movement' %}" class="dropdown-item"><i class="material-icons">sync</i> Movimientos</a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'purchase_ingredients' %}" class="dropdown-item">Ingresos</a>
+                                    <a href="{% url 'purchase_ingredients' %}" class="dropdown-item"><i class="material-icons">input</i> Ingresos</a>
                                 </li>
                             {% endif %}
                             {% if user|can_use_food_converter %}
@@ -102,17 +106,17 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'food_recipe_list' %}" class="dropdown-item">Recetas de Conversión</a>
+                                    <a href="{% url 'food_recipe_list' %}" class="dropdown-item"><i class="material-icons">auto_fix_high</i> Recetas de Conversión</a>
                                 </li>
                             {% endif %}
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
                             <li>
-                                <a href="{% url 'report_inventory' %}" class="dropdown-item">Saldo</a>
+                                <a href="{% url 'report_inventory' %}" class="dropdown-item"><i class="material-icons">inventory_2</i> Saldo</a>
                             </li>
                             <li>
-                                <a href="{% url 'ingredient_list' %}" class="dropdown-item">Ingredientes</a>
+                                <a href="{% url 'ingredient_list' %}" class="dropdown-item"><i class="material-icons">egg_alt</i> Ingredientes</a>
                             </li>
                             {% if user|can_manage_inventory_full %}
                                 <li>
@@ -163,25 +167,25 @@
                             </li>
                             {% if user|can_view_sales_report %}
                                 <li>
-                                    <a href="{% url 'sales_report_by_product' %}" class="dropdown-item">Reporte de Ventas por Producto</a>
+                                    <a href="{% url 'sales_report_by_product' %}" class="dropdown-item"><i class="material-icons">trending_up</i> Reporte de Ventas por Producto</a>
                                 </li>
                             {% endif %}
                             {% if user|can_mark_paid %}
                                 <li>
-                                    <a href="{% url 'invoice_list' %}" class="dropdown-item">Reporte de Facturas</a>
+                                    <a href="{% url 'invoice_list' %}" class="dropdown-item"><i class="material-icons">receipt_long</i> Reporte de Facturas</a>
                                 </li>
                             {% endif %}
                             {% if user|can_view_order_history %}
                                 <li>
-                                    <a href="{% url 'report_orders' %}" class="dropdown-item">Comandas</a>
+                                    <a href="{% url 'report_orders' %}" class="dropdown-item"><i class="material-icons">list_alt</i> Comandas</a>
                                 </li>
                             {% endif %}
                             {% if user|can_view_inventory %}
                                 <li>
-                                    <a href="{% url 'report_inventory' %}" class="dropdown-item">Inventario</a>
+                                    <a href="{% url 'report_inventory' %}" class="dropdown-item"><i class="material-icons">inventory</i> Inventario</a>
                                 </li>
                                 <li>
-                                    <a href="{% url 'report_movements' %}" class="dropdown-item">Movimientos</a>
+                                    <a href="{% url 'report_movements' %}" class="dropdown-item"><i class="material-icons">timeline</i> Movimientos</a>
                                 </li>
                             {% endif %}
                         </ul>
@@ -198,7 +202,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="{% url 'user_list' %}" class="dropdown-item">Usuarios</a>
+                                <a href="{% url 'user_list' %}" class="dropdown-item"><i class="material-icons">people</i> Usuarios</a>
                             </li>
                             {% if user.is_superuser %}
                                 <li>
