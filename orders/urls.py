@@ -357,7 +357,6 @@ urlpatterns = [
     # ==========================
     # Reports - Reportes
     # ==========================
-    path("reports/", views.reports_index, name="reports_index"),
     path("reports/inventory/", views.report_inventory, name="report_inventory"),
     path(
         "reports/inventory/print/",

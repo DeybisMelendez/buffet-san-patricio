@@ -130,7 +130,6 @@
                 var found = parseFloat(foundInput.value) || 0;
                 var diff = found - actual;
                 diffEl.textContent = diff.toFixed(2);
-                diffEl.className = 'text-end';
                 if (diff > 0) diffEl.classList.add('text-success');
                 else if (diff < 0) diffEl.classList.add('text-danger');
             });

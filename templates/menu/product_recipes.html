@@ -20,10 +20,10 @@
                                 {{ formset.empty_form.ingredient }}
                                 <small class="form-text text-body-secondary"></small>
                             </td>
-                            <td class="text-end">{{ formset.empty_form.quantity }}</td>
-                            <td class="text-center">
+                            <td>{{ formset.empty_form.quantity }}</td>
+                            <td>
                                 <button type="button" class="btn btn-danger btn-sm delete-row"><i class="material-icons">delete</i> Eliminar</button>
-                                {{ formset.empty_form.DELETE }}
+                                {% if formset.empty_form.instance.pk %}{{ formset.empty_form.DELETE }}{% endif %}
                             </td>
                         </tr>
                     </template>
@@ -32,7 +32,7 @@
                             <thead>
                                 <tr>
                                     <th>Ingrediente</th>
-                                    <th class="text-end">Cantidad por Producto</th>
+                                    <th>Cantidad por Producto</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -45,11 +45,11 @@
                                             {{ form.ingredient }}
                                             {% if form.instance.pk %}<small class="form-text text-body-secondary">{{ form.instance.ingredient.unit }}</small>{% endif %}
                                         </td>
-                                        <td class="text-end">
+                                        <td>
                                             {% if form.quantity.errors %}<div class="text-danger small">{{ form.quantity.errors }}</div>{% endif %}
                                             {{ form.quantity }}
                                         </td>
-                                        <td class="text-center">
+                                        <td>
                                             <button type="button" class="btn btn-danger btn-sm" onclick="removeForm({{ forloop.counter0 }}, {{ form.instance.pk|yesno:'true,false' }})">
                                                 <i class="material-icons">delete</i> Eliminar
                                             </button>

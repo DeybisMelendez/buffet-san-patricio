@@ -2,46 +2,54 @@
 {% load humanize %}
 {% block title %}Registrar Ingreso de Ingredientes{% endblock %}
 {% block body %}
-    <div class="container">
-        <h1 class="mb-4"><i class="material-icons">shopping_cart</i> Registrar Ingreso de Ingredientes</h1>
-        <p>Indica la cantidad de cada ingrediente que deseas agregar al inventario.</p>
-        <form method="post">
-            {% csrf_token %}
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Bodega</th>
-                            <th>Ingrediente</th>
-                            <th>Unidad</th>
-                            <th class="text-end">Stock Actual</th>
-                            <th class="text-end">Cantidad a Comprar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ing in ingredients %}
-                            <tr>
-                                <td>{{ ing.warehouse }}</td>
-                                <td>{{ ing.name }}</td>
-                                <td>{{ ing.unit }}</td>
-                                <td class="text-end">{{ ing.stock_quantity|floatformat:2|intcomma }}</td>
-                                <td class="text-end">
-                                    <input type="number"
-                                           name="purchase_{{ ing.id }}"
-                                           step="0.01"
-                                           min="0"
-                                           placeholder="0.00"
-                                           class="form-control text-center"
-                                           style="width: 120px;">
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="mb-3">
-                <button type="submit" class="btn btn-primary"><i class="material-icons">save</i> Registrar Compras</button>
-            </div>
-        </form>
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0"><span class="material-icons">shopping_cart</span> Registrar Ingreso de Ingredientes</h4>
+        </div>
     </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Bodega</th>
+                                <th>Ingrediente</th>
+                                <th>Unidad</th>
+                                <th >Stock Actual</th>
+                                <th >Cantidad a Comprar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ing in ingredients %}
+                                <tr>
+                                    <td>{{ ing.warehouse }}</td>
+                                    <td>{{ ing.name }}</td>
+                                    <td>{{ ing.unit }}</td>
+                                    <td>{{ ing.stock_quantity|floatformat:2|intcomma }}</td>
+                                    <td style="width: 140px;">
+                                        <input type="number"
+                                               name="purchase_{{ ing.id }}"
+                                               step="0.01"
+                                               min="0"
+                                               placeholder="0"
+                                               class="form-control form-control-sm text-center">
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <span class="material-icons">save</span> Registrar Compras
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
 {% endblock %}

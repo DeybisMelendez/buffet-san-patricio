@@ -1,165 +1,167 @@
 {% extends 'layout.html' %}
 {% load humanize %}
-{% block title %}Conversor de Alimentos{% endblock %}
+{% block title %}Conversor de Ingredientes{% endblock %}
 {% block body %}
-    <div class="container">
-        <h1 class="mb-4">
-            <i class="material-icons">swap_horiz</i> Conversor de Alimentos
-        </h1>
-        <p class="mb-4">
-            Transforma ingredientes crudos en productos procesados. Selecciona el modo de conversión o usa una receta guardada.
-        </p>
-        <ul class="nav nav-tabs mb-4" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-mode-btn="recipe" type="button">
-                    <span class="material-icons" style="font-size: 1rem; vertical-align: middle">menu_book</span>
-                    Usar Receta
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-mode-btn="manual" type="button">
-                    <span class="material-icons" style="font-size: 1rem; vertical-align: middle">edit</span>
-                    Conversión Manual
-                </button>
-            </li>
-        </ul>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="mode" id="selected-mode" value="recipe">
-            {% if recipes %}
-                <div class="card mb-4" data-mode-recipe>
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <span class="material-icons">menu_book</span> Seleccionar Receta
-                        </h5>
+<div class="container">
+    <h1 class="mb-4">
+        <span class="material-icons">swap_horiz</span> Conversor de Ingredientes
+    </h1>
+    <p class="mb-4">
+        Transforma ingredientes crudos en productos procesados. Selecciona el modo de conversión o usa una receta guardada.
+    </p>
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-mode-btn="recipe" type="button">
+                <span class="material-icons" style="font-size: 1rem; vertical-align: middle">menu_book</span>
+                Usar Receta
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-mode-btn="manual" type="button">
+                <span class="material-icons" style="font-size: 1rem; vertical-align: middle">edit</span>
+                Conversión Manual
+            </button>
+        </li>
+    </ul>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="mode" id="selected-mode" value="recipe">
+        {% if recipes %}
+        <div class="card mb-4" data-mode-recipe>
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <span class="material-icons">menu_book</span> Seleccionar Receta
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="recipe" class="form-label">Receta</label>
+                        <select id="recipe" name="recipe" class="form-select">
+                            <option value="">Selecciona una receta...</option>
+                            {% for recipe in recipes %}<option value="{{ recipe.id }}">{{ recipe.name }}</option>{% endfor %}
+                        </select>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="recipe" class="form-label">Receta</label>
-                                <select id="recipe" name="recipe" class="form-select">
-                                    <option value="">Selecciona una receta...</option>
-                                    {% for recipe in recipes %}<option value="{{ recipe.id }}">{{ recipe.name }}</option>{% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="factor" class="form-label">Factor de Multiplicación</label>
-                                <input type="number" id="factor" name="factor" value="1" step="0.1" min="0.1" class="form-control">
-                                <small class="text-muted">Multiplica las cantidades de la receta por este factor.</small>
-                            </div>
-                        </div>
-                        <div id="recipe-preview" class="mt-4" style="display: none;">
-                            <h6>Vista Previa</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6 class="text-danger">
-                                        <span class="material-icons">arrow_downward</span> Entradas (Consumo)
-                                    </h6>
-                                    <table class="table table-sm table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <th>Ingrediente</th>
-                                                <th class="text-end">Cantidad</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="preview-inputs"></tbody>
-                                    </table>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="text-success">
-                                        <span class="material-icons">arrow_upward</span> Salidas (Procesado)
-                                    </h6>
-                                    <table class="table table-sm table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <th>Ingrediente</th>
-                                                <th class="text-end">Cantidad</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="preview-outputs"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button type="submit" class="btn btn-success" id="btn-apply-recipe">
-                            <span class="material-icons">check</span> Aplicar Conversión
-                        </button>
-                        <a href="{% url 'food_recipe_create' %}" class="btn btn-outline-primary ms-2">
-                            <span class="material-icons">add</span> Nueva Receta
-                        </a>
+                    <div class="col-md-6 mb-3">
+                        <label for="factor" class="form-label">Factor de Multiplicación</label>
+                        <input type="number" id="factor" name="factor" value="1" step="0.1" min="0.1" class="form-control">
+                        <small class="text-muted">Multiplica las cantidades de la receta por este factor.</small>
                     </div>
                 </div>
-            {% endif %}
-            <div class="card mb-4" data-mode-manual style="display: none;">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <span class="material-icons">edit</span> Conversión Manual
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        Ingresa manualmente los ingredientes que se consumen (entradas) y los que se producen (salidas).
-                    </p>
-                    <div class="row mb-4">
+                <div id="recipe-preview" class="mt-4" style="display: none;">
+                    <h6>Vista Previa</h6>
+                    <div class="row">
                         <div class="col-md-6">
                             <h6 class="text-danger">
-                                <span class="material-icons">arrow_downward</span> Ingredientes de Entrada (Consumo)
+                                <span class="material-icons">arrow_downward</span> Entradas (Consumo)
                             </h6>
-                            <div id="manual-inputs">
-                                <div class="input-group mb-2">
-                                    <select name="input_ingredient[]" class="form-select">
-                                        <option value="">Selecciona...</option>
-                                        {% for ing in ingredients %}
-                                            <option value="{{ ing.id }}" data-stock="{{ ing.stock_quantity }}" data-unit="{{ ing.unit }}">
-                                                {{ ing.name }} ({{ ing.stock_quantity }} {{ ing.unit }})
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <input type="number" name="input_quantity[]" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">
-                                    <button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, 'input')">
-                                        <span class="material-icons">close</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addManualRow('input')">
-                                <span class="material-icons">add</span> Agregar
-                            </button>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Ingrediente</th>
+                                        <th class="text-end">Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-inputs"></tbody>
+                            </table>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-success">
-                                <span class="material-icons">arrow_upward</span> Ingredientes de Salida (Procesado)
+                                <span class="material-icons">arrow_upward</span> Salidas (Procesado)
                             </h6>
-                            <div id="manual-outputs">
-                                <div class="input-group mb-2">
-                                    <select name="output_ingredient[]" class="form-select">
-                                        <option value="">Selecciona...</option>
-                                        {% for ing in ingredients %}
-                                            <option value="{{ ing.id }}" data-unit="{{ ing.unit }}">{{ ing.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <input type="number" name="output_quantity[]" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">
-                                    <button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, 'output')">
-                                        <span class="material-icons">close</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addManualRow('output')">
-                                <span class="material-icons">add</span> Agregar
-                            </button>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Ingrediente</th>
+                                        <th class="text-end">Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-outputs"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <button type="submit" class="btn btn-success">
-                        <span class="material-icons">check</span> Aplicar Conversión Manual
-                    </button>
+            </div>
+            <div class="card-footer">
+                <button type="submit" class="btn btn-success" id="btn-apply-recipe">
+                    <span class="material-icons">check</span> Aplicar Conversión
+                </button>
+                <a href="{% url 'food_recipe_create' %}" class="btn btn-outline-primary ms-2">
+                    <span class="material-icons">add</span> Nueva Receta
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card mb-4" data-mode-manual style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <span class="material-icons">edit</span> Conversión Manual
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Ingresa manualmente los ingredientes que se consumen (entradas) y los que se producen (salidas).
+                </p>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-danger">
+                            <span class="material-icons">arrow_downward</span> Ingredientes de Entrada (Consumo)
+                        </h6>
+                        <div id="manual-inputs">
+                            <div class="input-group mb-2">
+                                <select name="input_ingredient_0" class="form-select">
+                                    <option value="">Selecciona...</option>
+                                    {% for ing in ingredients %}
+                                        <option value="{{ ing.id }}" data-stock="{{ ing.stock_quantity }}" data-unit="{{ ing.unit }}">
+                                            {{ ing.name }} ({{ ing.stock_quantity }} {{ ing.unit }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" name="input_quantity_0" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">
+                                <button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, 'input')">
+                                    <span class="material-icons">close</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addManualRow('input')">
+                            <span class="material-icons">add</span> Agregar
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">
+                            <span class="material-icons">arrow_upward</span> Ingredientes de Salida (Procesado)
+                        </h6>
+                        <div id="manual-outputs">
+                            <div class="input-group mb-2">
+                                <select name="output_ingredient_0" class="form-select">
+                                    <option value="">Selecciona...</option>
+                                    {% for ing in ingredients %}
+                                        <option value="{{ ing.id }}" data-unit="{{ ing.unit }}">{{ ing.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" name="output_quantity_0" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">
+                                <button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, 'output')">
+                                    <span class="material-icons">close</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addManualRow('output')">
+                            <span class="material-icons">add</span> Agregar
+                        </button>
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
-    <script>
+            <div class="card-footer">
+                <button type="submit" class="btn btn-success">
+                    <span class="material-icons">check</span> Aplicar Conversión Manual
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
     var recipeData = {
         {% for recipe in recipes %}
         "{{ recipe.id }}": {
@@ -175,8 +177,11 @@
 
     function showMode(mode) {
         document.getElementById('selected-mode').value = mode;
-        document.querySelector('[data-mode-recipe]').style.display = mode === 'recipe' ? '' : 'none';
-        document.querySelector('[data-mode-manual]').style.display = mode === 'manual' ? '' : 'none';
+        var recipeCard = document.querySelector('[data-mode-recipe]');
+        var manualCard = document.querySelector('[data-mode-manual]');
+
+        if (recipeCard) recipeCard.style.display = mode === 'recipe' ? '' : 'none';
+        if (manualCard) manualCard.style.display = mode === 'manual' ? '' : 'none';
 
         document.querySelectorAll('[data-mode-btn]').forEach(function(btn) {
             btn.classList.toggle('active', btn.dataset.modeBtn === mode);
@@ -215,14 +220,18 @@
         });
     }
 
+    var inputCounter = 1;
+    var outputCounter = 1;
+
     function addManualRow(type) {
         var container = document.getElementById('manual-' + type + 's');
         var ingredientOptions = container.querySelector('select').innerHTML;
+        var counter = type === 'input' ? inputCounter++ : outputCounter++;
         var div = document.createElement('div');
         div.className = 'input-group mb-2';
         div.innerHTML =
-            '<select name="' + type + '_ingredient[]" class="form-select">' + ingredientOptions + '</select>' +
-            '<input type="number" name="' + type + '_quantity[]" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">' +
+            '<select name="' + type + '_ingredient_' + counter + '" class="form-select">' + ingredientOptions + '</select>' +
+            '<input type="number" name="' + type + '_quantity_' + counter + '" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">' +
             '<button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, \'' + type + '\')">' +
                 '<span class="material-icons">close</span>' +
             '</button>';
@@ -237,22 +246,19 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Mode buttons
         document.querySelectorAll('[data-mode-btn]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 showMode(btn.dataset.modeBtn);
             });
         });
 
-        // Recipe preview
         var recipeSelect = document.getElementById('recipe');
         var factorInput = document.getElementById('factor');
         if (recipeSelect) recipeSelect.addEventListener('change', updateRecipePreview);
         if (factorInput) factorInput.addEventListener('input', updateRecipePreview);
 
-        // Set initial mode
         showMode('recipe');
         updateRecipePreview();
     });
-    </script>
+</script>
 {% endblock %}

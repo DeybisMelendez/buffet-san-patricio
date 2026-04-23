@@ -494,18 +494,18 @@ def food_converter(request):
             inputs = []
             outputs = []
             for key, value in request.POST.items():
-                if key.startswith("input_"):
-                    ing_id = int(key.replace("input_", ""))
+                if key.startswith("input_ingredient_"):
+                    ing_id = int(key.replace("input_ingredient_", ""))
                     try:
-                        qty = Decimal(value)
+                        qty = Decimal(request.POST.get(f"input_quantity_{ing_id}", "0"))
                         if qty > 0:
                             inputs.append((ing_id, qty))
                     except Exception:
                         pass
-                elif key.startswith("output_"):
-                    ing_id = int(key.replace("output_", ""))
+                elif key.startswith("output_ingredient_"):
+                    ing_id = int(key.replace("output_ingredient_", ""))
                     try:
-                        qty = Decimal(value)
+                        qty = Decimal(request.POST.get(f"output_quantity_{ing_id}", "0"))
                         if qty > 0:
                             outputs.append((ing_id, qty))
                     except Exception:
@@ -724,13 +724,6 @@ def food_recipe_delete(request, recipe_id):
     recipe.soft_delete()
     messages.success(request, f" Receta '{recipe_name}' eliminada.")
     return redirect("food_recipe_list")
-
-
-@login_required
-@user_passes_test(user_can_view_reports)
-def reports_index(request):
-    """Página principal de reportes."""
-    return render(request, "reports/index.html")
 
 
 @login_required
