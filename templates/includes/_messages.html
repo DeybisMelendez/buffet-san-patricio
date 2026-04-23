@@ -1,7 +1,5 @@
-<section class="py-3"
-         x-data="{ showAlerts: true }"
-         x-show="showAlerts"
-         x-transition>
+{% if messages %}
+<section class="py-3" id="alerts-section">
     <div class="container">
         {% for message in messages %}
             <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show d-flex align-items-center" role="alert">
@@ -17,11 +15,9 @@
                     <i class="material-icons me-2">campaign</i>
                 {% endif %}
                 {{ message }}
-                <button type="button"
-                        class="btn-close"
-                        @click="showAlerts = false"
-                        aria-label="Cerrar"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
             </div>
         {% endfor %}
     </div>
 </section>
+{% endif %}

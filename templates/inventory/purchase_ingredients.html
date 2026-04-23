@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block title %}Registrar Ingreso de Ingredientes{% endblock %}
 {% block body %}
-    <div class="container" x-data>
+    <div class="container">
         <h1 class="mb-4"><i class="material-icons">shopping_cart</i> Registrar Ingreso de Ingredientes</h1>
         <p>Indica la cantidad de cada ingrediente que deseas agregar al inventario.</p>
         <form method="post">
@@ -31,9 +31,8 @@
                                            step="0.01"
                                            min="0"
                                            placeholder="0.00"
-                                           x-on:focus="$el.select()"
                                            class="form-control text-center"
-                                           style="width: 120px;" />
+                                           style="width: 120px;">
                                 </td>
                             </tr>
                         {% endfor %}

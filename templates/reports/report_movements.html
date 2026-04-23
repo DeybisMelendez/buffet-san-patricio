@@ -23,25 +23,16 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Desde:</label>
-                            <input type="datetime-local"
-                                   name="start"
-                                   value="{{ start|date:'Y-m-d\\TH:i' }}"
-                                   class="form-control">
+                            <input type="datetime-local" name="start" value="{{ start|date:'Y-m-d\\TH:i' }}" class="form-control">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Hasta:</label>
-                            <input type="datetime-local"
-                                   name="end"
-                                   value="{{ end|date:'Y-m-d\\TH:i' }}"
-                                   class="form-control">
+                            <input type="datetime-local" name="end" value="{{ end|date:'Y-m-d\\TH:i' }}" class="form-control">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Buscar:</label>
-                            <input type="text"
-                                   name="search"
-                                   placeholder="Ej: compra, ajuste, arroz…"
-                                   {% if search %}value="{{ search }}"{% endif %}
-                                   class="form-control">
+                            <input type="text" name="search" placeholder="Ej: compra, ajuste, arroz…"
+                                   {% if search %}value="{{ search }}"{% endif %} class="form-control">
                         </div>
                     </div>
                     <div class="mt-3">
@@ -64,7 +55,7 @@
     </div>
 {% endblock %}
 {% block extra_js %}
-    <script>
+<script>
 (function() {
     'use strict';
 
@@ -78,6 +69,8 @@
     if (!container) return;
 
     GridUtils.showLoading('movements');
+
+    container.innerHTML = '';
 
     var apiBase = '/api/movements/?start={{ start|date:"Y-m-d\\TH:i" }}&end={{ end|date:"Y-m-d\\TH:i" }}{% if search %}&search={{ search }}{% endif %}';
 
@@ -97,26 +90,14 @@
             { name: 'Usuario', id: 'user', sort: { enabled: true } }
         ],
         server: {
-            url: function(params) {
-                var url = new URL(apiBase, window.location.origin);
-                if (params.limit) url.searchParams.set('limit', params.limit);
-                if (params.offset != null) url.searchParams.set('offset', params.offset);
-                if (params.search) url.searchParams.set('search', params.search);
-                if (params.sort) url.searchParams.set('sort', params.sort.field + ',' + params.sort.direction);
-                return url.toString();
-            },
+            url: apiBase,
             then: function(data) {
                 return data.results.map(function(m) {
                     return [m.date, m.ingredient, m.quantity, m.reason, m.user];
                 });
             },
-            total: function(data) { return data.count; },
-            handle: function(res) {
-                if (res.ok) return res.json();
-                throw new Error('Error al cargar datos: ' + res.status);
-            }
+            total: function(data) { return data.count; }
         },
-        search: { enabled: true, placeholder: 'Buscar...' },
         sort: { enabled: true },
         pagination: {
             enabled: true,
@@ -124,7 +105,7 @@
             limits: [10, 25, 50, 100],
             server: {
                 url: function(prev, page, limit) {
-                    var url = new URL(prev || apiBase, window.location.origin);
+                    var url = new URL(apiBase, window.location.origin);
                     url.searchParams.set('limit', limit);
                     url.searchParams.set('offset', page * limit);
                     return url.toString();
@@ -145,5 +126,5 @@
         GridUtils.showError('movements', 'Error al cargar los datos. Por favor recargue la página.');
     });
 })();
-    </script>
+</script>
 {% endblock %}

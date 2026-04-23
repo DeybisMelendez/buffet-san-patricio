@@ -1,64 +1,6 @@
 {% extends "layout.html" %}
 {% load humanize %}
 {% block title %}Receta de {{ product.name }}{% endblock %}
-{% block extra_js %}
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('recipeForm', (initialCount) => ({
-                formCount: initialCount,
-                nextIndex: initialCount,
-                
-                init() {
-                    this.updateTotalForms();
-                },
-                
-                updateTotalForms() {
-                    document.getElementById('id_form-TOTAL_FORMS').value = this.formCount;
-                },
-                
-                addForm() {
-                    const template = document.getElementById('empty-form-template');
-                    const container = document.getElementById('formset-container');
-                    
-                    const newRow = template.content.cloneNode(true);
-                    const newIndex = this.nextIndex;
-                    
-                    newRow.querySelectorAll('input, select, label').forEach(el => {
-                        if (el.name) el.name = el.name.replace(/__prefix__/g, newIndex);
-                        if (el.id) el.id = el.id.replace(/__prefix__/g, newIndex);
-                        if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/__prefix__/g, newIndex);
-                    });
-                    
-                    const tr = newRow.querySelector('tr');
-                    tr.setAttribute('data-form-index', newIndex);
-                    
-                    const deleteBtn = tr.querySelector('.delete-row');
-                    if (deleteBtn) {
-                        deleteBtn.addEventListener('click', () => {
-                            this.removeForm(newIndex, false);
-                        });
-                    }
-                    
-                    container.appendChild(newRow);
-                    this.nextIndex++;
-                    this.formCount++;
-                    this.updateTotalForms();
-                },
-                
-                removeForm(index, hasPk) {
-                    const row = document.querySelector(`[data-form-index='${index}']`);
-                    if (!row) return;
-                    
-                    const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
-                    if (deleteCheckbox) {
-                        deleteCheckbox.checked = true;
-                    }
-                    row.style.display = 'none';
-                }
-            }));
-        });
-    </script>
-{% endblock %}
 {% block body %}
     <div class="container">
         <h1 class="mb-4"><i class="material-icons">description</i> Receta de {{ product.name }}</h1>
@@ -68,11 +10,9 @@
                 <small class="text-body-secondary">Agrega, edita o elimina ingredientes de la receta.</small>
             </div>
             <div class="card-body">
-                <form method="post"
-                      x-data="recipeForm({{ formset.total_form_count }})">
+                <form method="post" data-product-recipes-form data-form-count="{{ formset.total_form_count }}">
                     {% csrf_token %}
                     {{ formset.management_form }}
-                    <!-- Template para fila vacía (oculto) -->
                     <template id="empty-form-template">
                         <tr class="formset-row" data-form-index="__prefix__">
                             <td>
@@ -110,9 +50,7 @@
                                             {{ form.quantity }}
                                         </td>
                                         <td class="text-center">
-                                            <button type="button"
-                                                    class="btn btn-danger btn-sm"
-                                                    @click="removeForm({{ forloop.counter0 }}, {{ form.instance.pk|yesno:'true,false' }})">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeForm({{ forloop.counter0 }}, {{ form.instance.pk|yesno:'true,false' }})">
                                                 <i class="material-icons">delete</i> Eliminar
                                             </button>
                                             {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
@@ -123,14 +61,12 @@
                         </table>
                     </div>
                     <div class="mb-3">
-                        <button type="button" class="btn btn-success" @click="addForm()"><i class="material-icons">add</i> Agregar Ingrediente</button>
+                        <button type="button" class="btn btn-success" id="addFormBtn"><i class="material-icons">add</i> Agregar Ingrediente</button>
                         <button type="submit" class="btn btn-primary"><i class="material-icons">save</i> Guardar Receta</button>
                         <a href="{% url 'product_list' %}" class="btn btn-secondary"><i class="material-icons">arrow_back</i> Volver a Productos</a>
                     </div>
                     <div class="alert alert-info">
-                        <p class="mb-1">
-                            <strong><i class="material-icons">lightbulb</i> Instrucciones:</strong>
-                        </p>
+                        <p class="mb-1"><strong><i class="material-icons">lightbulb</i> Instrucciones:</strong></p>
                         <ul class="mb-0">
                             <li>Para <strong>agregar</strong> nuevos ingredientes, haz clic en "Agregar Ingrediente".</li>
                             <li>Para <strong>editar</strong>, cambia el ingrediente o la cantidad.</li>
@@ -142,4 +78,77 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var container = document.getElementById('formset-container');
+var template = document.getElementById('empty-form-template');
+var addBtn = document.getElementById('addFormBtn');
+
+function addForm() {
+    var newRow = template.content.cloneNode(true);
+    var newIndex = Date.now();
+
+    newRow.querySelectorAll('input, select, label').forEach(function(el) {
+        if (el.name) el.name = el.name.replace(/__prefix__/g, newIndex);
+        if (el.id) el.id = el.id.replace(/__prefix__/g, newIndex);
+        if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/__prefix__/g, newIndex);
+    });
+
+    var tr = newRow.querySelector('tr');
+    tr.setAttribute('data-form-index', newIndex);
+
+    var deleteBtn = tr.querySelector('.delete-row');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            var row = container.querySelector('[data-form-index="' + newIndex + '"]');
+            if (row) {
+                var del = row.querySelector('input[name$="-DELETE"]');
+                if (del) del.checked = true;
+                row.style.display = 'none';
+                updateFormCount();
+            }
+        });
+    }
+
+    container.appendChild(newRow);
+    updateFormCount();
+}
+
+function removeForm(index, hasPk) {
+    var row = container.querySelector('[data-form-index="' + index + '"]');
+    if (row) {
+        var del = row.querySelector('input[name$="-DELETE"]');
+        if (del) del.checked = true;
+        row.style.display = 'none';
+        updateFormCount();
+    }
+}
+
+function updateFormCount() {
+    var totalForms = document.getElementById('id_form-TOTAL_FORMS');
+    if (totalForms) {
+        var rows = container.querySelectorAll('.formset-row:not([style*="display: none"])');
+        totalForms.value = rows.length;
+    }
+}
+
+if (addBtn) addBtn.addEventListener('click', addForm);
+
+// Add handlers to existing delete buttons
+container.querySelectorAll('.delete-row').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var row = btn.closest('tr');
+        if (row) {
+            var del = row.querySelector('input[name$="-DELETE"]');
+            if (del) del.checked = true;
+            row.style.display = 'none';
+            updateFormCount();
+        }
+    });
+});
+
+updateFormCount();
+</script>
 {% endblock %}

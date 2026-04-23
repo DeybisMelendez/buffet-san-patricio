@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block title %}Conversor de Alimentos{% endblock %}
 {% block body %}
-    <div class="container" x-data="converterApp()">
+    <div class="container">
         <h1 class="mb-4">
             <i class="material-icons">swap_horiz</i> Conversor de Alimentos
         </h1>
@@ -11,33 +11,23 @@
         </p>
         <ul class="nav nav-tabs mb-4" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link"
-                        :class="{ 'active': mode === 'recipe' }"
-                        @click="mode = 'recipe'"
-                        type="button">
-                    <span class="material-icons"
-                          style="font-size: 1rem;
-                                 vertical-align: middle">menu_book</span>
+                <button class="nav-link active" data-mode-btn="recipe" type="button">
+                    <span class="material-icons" style="font-size: 1rem; vertical-align: middle">menu_book</span>
                     Usar Receta
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link"
-                        :class="{ 'active': mode === 'manual' }"
-                        @click="mode = 'manual'"
-                        type="button">
-                    <span class="material-icons"
-                          style="font-size: 1rem;
-                                 vertical-align: middle">edit</span>
+                <button class="nav-link" data-mode-btn="manual" type="button">
+                    <span class="material-icons" style="font-size: 1rem; vertical-align: middle">edit</span>
                     Conversión Manual
                 </button>
             </li>
         </ul>
         <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="mode" :value="mode">
+            <input type="hidden" name="mode" id="selected-mode" value="recipe">
             {% if recipes %}
-                <div x-show="mode === 'recipe'" x-cloak class="card mb-4">
+                <div class="card mb-4" data-mode-recipe>
                     <div class="card-header">
                         <h5 class="mb-0">
                             <span class="material-icons">menu_book</span> Seleccionar Receta
@@ -47,30 +37,18 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="recipe" class="form-label">Receta</label>
-                                <select id="recipe"
-                                        name="recipe"
-                                        class="form-select"
-                                        x-model="selectedRecipe"
-                                        @change="updateRecipePreview()">
+                                <select id="recipe" name="recipe" class="form-select">
                                     <option value="">Selecciona una receta...</option>
                                     {% for recipe in recipes %}<option value="{{ recipe.id }}">{{ recipe.name }}</option>{% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="factor" class="form-label">Factor de Multiplicación</label>
-                                <input type="number"
-                                       id="factor"
-                                       name="factor"
-                                       x-model.number="factor"
-                                       @input="updateRecipePreview()"
-                                       step="0.1"
-                                       min="0.1"
-                                       class="form-control"
-                                       value="1">
+                                <input type="number" id="factor" name="factor" value="1" step="0.1" min="0.1" class="form-control">
                                 <small class="text-muted">Multiplica las cantidades de la receta por este factor.</small>
                             </div>
                         </div>
-                        <div x-show="recipePreview.length > 0" class="mt-4">
+                        <div id="recipe-preview" class="mt-4" style="display: none;">
                             <h6>Vista Previa</h6>
                             <div class="row">
                                 <div class="col-md-6">
@@ -84,14 +62,7 @@
                                                 <th class="text-end">Cantidad</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <template x-for="item in recipePreview.filter(i => i.is_input)" :key="item.id">
-                                                <tr>
-                                                    <td x-text="item.name"></td>
-                                                    <td class="text-end" x-text="item.display_qty"></td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
+                                        <tbody id="preview-inputs"></tbody>
                                     </table>
                                 </div>
                                 <div class="col-md-6">
@@ -105,31 +76,23 @@
                                                 <th class="text-end">Cantidad</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <template x-for="item in recipePreview.filter(i => !i.is_input)" :key="item.id">
-                                                <tr>
-                                                    <td x-text="item.name"></td>
-                                                    <td class="text-end" x-text="item.display_qty"></td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
+                                        <tbody id="preview-outputs"></tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer">
-                        <button type="submit" class="btn btn-success" :disabled="!selectedRecipe">
+                        <button type="submit" class="btn btn-success" id="btn-apply-recipe">
                             <span class="material-icons">check</span> Aplicar Conversión
                         </button>
-                        <a href="{% url 'food_recipe_create' %}"
-                           class="btn btn-outline-primary ms-2">
+                        <a href="{% url 'food_recipe_create' %}" class="btn btn-outline-primary ms-2">
                             <span class="material-icons">add</span> Nueva Receta
                         </a>
                     </div>
                 </div>
             {% endif %}
-            <div x-show="mode === 'manual'" x-cloak class="card mb-4">
+            <div class="card mb-4" data-mode-manual style="display: none;">
                 <div class="card-header">
                     <h5 class="mb-0">
                         <span class="material-icons">edit</span> Conversión Manual
@@ -144,83 +107,47 @@
                             <h6 class="text-danger">
                                 <span class="material-icons">arrow_downward</span> Ingredientes de Entrada (Consumo)
                             </h6>
-                            <div class="input-group mb-2" x-data="{ rows: manualInputs }">
-                                <template x-for="(row, index) in rows" :key="index">
-                                    <div class="d-flex gap-2 mb-2 w-100">
-                                        <select :name="`input_${row.ingredient}`"
-                                                class="form-select"
-                                                x-model="row.ingredient"
-                                                @change="updateIngredientData(index, 'input')">
-                                            <option value="">Selecciona...</option>
-                                            {% for ing in ingredients %}
-                                                <option value="{{ ing.id }}"
-                                                        data-stock="{{ ing.stock_quantity }}"
-                                                        data-unit="{{ ing.unit }}">
-                                                    {{ ing.name }} ({{ ing.stock_quantity }} {{ ing.unit }})
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                        <input type="number"
-                                               :name="`input_${row.ingredient}`"
-                                               x-model.number="row.quantity"
-                                               step="0.01"
-                                               min="0"
-                                               placeholder="Cantidad"
-                                               class="form-control"
-                                               style="width: 100px">
-                                        <button type="button"
-                                                class="btn btn-outline-danger"
-                                                @click="removeRow(index, 'input')"
-                                                :disabled="rows.length <= 1">
-                                            <span class="material-icons">close</span>
-                                        </button>
-                                    </div>
-                                </template>
-                                <button type="button"
-                                        class="btn btn-outline-secondary btn-sm"
-                                        @click="addRow('input')">
-                                    <span class="material-icons">add</span> Agregar
-                                </button>
+                            <div id="manual-inputs">
+                                <div class="input-group mb-2">
+                                    <select name="input_ingredient[]" class="form-select">
+                                        <option value="">Selecciona...</option>
+                                        {% for ing in ingredients %}
+                                            <option value="{{ ing.id }}" data-stock="{{ ing.stock_quantity }}" data-unit="{{ ing.unit }}">
+                                                {{ ing.name }} ({{ ing.stock_quantity }} {{ ing.unit }})
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" name="input_quantity[]" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, 'input')">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
                             </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addManualRow('input')">
+                                <span class="material-icons">add</span> Agregar
+                            </button>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-success">
                                 <span class="material-icons">arrow_upward</span> Ingredientes de Salida (Procesado)
                             </h6>
-                            <div class="input-group mb-2" x-data="{ rows: manualOutputs }">
-                                <template x-for="(row, index) in rows" :key="index">
-                                    <div class="d-flex gap-2 mb-2 w-100">
-                                        <select :name="`output_${row.ingredient}`"
-                                                class="form-select"
-                                                x-model="row.ingredient"
-                                                @change="updateIngredientData(index, 'output')">
-                                            <option value="">Selecciona...</option>
-                                            {% for ing in ingredients %}
-                                                <option value="{{ ing.id }}" data-unit="{{ ing.unit }}">{{ ing.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                        <input type="number"
-                                               :name="`output_${row.ingredient}`"
-                                               x-model.number="row.quantity"
-                                               step="0.01"
-                                               min="0"
-                                               placeholder="Cantidad"
-                                               class="form-control"
-                                               style="width: 100px">
-                                        <button type="button"
-                                                class="btn btn-outline-danger"
-                                                @click="removeRow(index, 'output')"
-                                                :disabled="rows.length <= 1">
-                                            <span class="material-icons">close</span>
-                                        </button>
-                                    </div>
-                                </template>
-                                <button type="button"
-                                        class="btn btn-outline-secondary btn-sm"
-                                        @click="addRow('output')">
-                                    <span class="material-icons">add</span> Agregar
-                                </button>
+                            <div id="manual-outputs">
+                                <div class="input-group mb-2">
+                                    <select name="output_ingredient[]" class="form-select">
+                                        <option value="">Selecciona...</option>
+                                        {% for ing in ingredients %}
+                                            <option value="{{ ing.id }}" data-unit="{{ ing.unit }}">{{ ing.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" name="output_quantity[]" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, 'output')">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
                             </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addManualRow('output')">
+                                <span class="material-icons">add</span> Agregar
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -233,75 +160,99 @@
         </form>
     </div>
     <script>
-    const recipeData = {
+    var recipeData = {
         {% for recipe in recipes %}
-        {{ recipe.id }}: {
+        "{{ recipe.id }}": {
             name: "{{ recipe.name }}",
             items: [
                 {% for item in recipe.items.all %}
-                {
-                    id: {{ item.ingredient.id }},
-                    name: "{{ item.ingredient.name }}",
-                    quantity: {{ item.quantity }},
-                    is_input: {{ item.is_input|yesno:"true,false" }},
-                    unit: "{{ item.ingredient.unit }}"
-                },
+                { id: {{ item.ingredient.id }}, name: "{{ item.ingredient.name }}", quantity: {{ item.quantity }}, is_input: {{ item.is_input|yesno:"true,false" }}, unit: "{{ item.ingredient.unit }}" },
                 {% endfor %}
             ]
         },
         {% endfor %}
     };
 
-    function converterApp() {
-        return {
-            mode: 'recipe',
-            selectedRecipe: '',
-            factor: 1,
-            recipePreview: [],
-            manualInputs: [{ ingredient: '', quantity: 0 }],
-            manualOutputs: [{ ingredient: '', quantity: 0 }],
-            recipeData: recipeData,
+    function showMode(mode) {
+        document.getElementById('selected-mode').value = mode;
+        document.querySelector('[data-mode-recipe]').style.display = mode === 'recipe' ? '' : 'none';
+        document.querySelector('[data-mode-manual]').style.display = mode === 'manual' ? '' : 'none';
 
-            init() {
-                {% if recipes %}
-                this.mode = 'recipe';
-                {% else %}
-                this.mode = 'manual';
-                {% endif %}
-            },
-
-            updateRecipePreview() {
-                if (!this.selectedRecipe || !this.recipeData[this.selectedRecipe]) {
-                    this.recipePreview = [];
-                    return;
-                }
-
-                const recipe = this.recipeData[this.selectedRecipe];
-                this.recipePreview = recipe.items.map(item => ({
-                    ...item,
-                    display_qty: (item.quantity * this.factor).toFixed(2) + ' ' + item.unit
-                }));
-            },
-
-            addRow(type) {
-                if (type === 'input') {
-                    this.manualInputs.push({ ingredient: '', quantity: 0 });
-                } else {
-                    this.manualOutputs.push({ ingredient: '', quantity: 0 });
-                }
-            },
-
-            removeRow(index, type) {
-                if (type === 'input') {
-                    this.manualInputs.splice(index, 1);
-                } else {
-                    this.manualOutputs.splice(index, 1);
-                }
-            },
-
-            updateIngredientData(index, type) {
-            }
-        };
+        document.querySelectorAll('[data-mode-btn]').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.modeBtn === mode);
+        });
     }
+
+    function updateRecipePreview() {
+        var recipeId = document.getElementById('recipe') ? document.getElementById('recipe').value : '';
+        var factor = parseFloat(document.getElementById('factor') ? document.getElementById('factor').value : 1) || 1;
+        var previewEl = document.getElementById('recipe-preview');
+        var inputsBody = document.getElementById('preview-inputs');
+        var outputsBody = document.getElementById('preview-outputs');
+        var btnApply = document.getElementById('btn-apply-recipe');
+
+        if (!recipeId || !recipeData[recipeId]) {
+            previewEl.style.display = 'none';
+            btnApply.disabled = true;
+            return;
+        }
+
+        btnApply.disabled = false;
+        previewEl.style.display = '';
+
+        var recipe = recipeData[recipeId];
+        inputsBody.innerHTML = '';
+        outputsBody.innerHTML = '';
+
+        recipe.items.forEach(function(item) {
+            var qty = (item.quantity * factor).toFixed(2) + ' ' + item.unit;
+            var tr = '<tr><td>' + item.name + '</td><td class="text-end">' + qty + '</td></tr>';
+            if (item.is_input) {
+                inputsBody.innerHTML += tr;
+            } else {
+                outputsBody.innerHTML += tr;
+            }
+        });
+    }
+
+    function addManualRow(type) {
+        var container = document.getElementById('manual-' + type + 's');
+        var ingredientOptions = container.querySelector('select').innerHTML;
+        var div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML =
+            '<select name="' + type + '_ingredient[]" class="form-select">' + ingredientOptions + '</select>' +
+            '<input type="number" name="' + type + '_quantity[]" step="0.01" min="0" placeholder="Cantidad" class="form-control" style="width: 100px">' +
+            '<button type="button" class="btn btn-outline-danger" onclick="removeManualRow(this, \'' + type + '\')">' +
+                '<span class="material-icons">close</span>' +
+            '</button>';
+        container.appendChild(div);
+    }
+
+    function removeManualRow(btn, type) {
+        var container = document.getElementById('manual-' + type + 's');
+        if (container.querySelectorAll('.input-group').length > 1) {
+            btn.closest('.input-group').remove();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mode buttons
+        document.querySelectorAll('[data-mode-btn]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                showMode(btn.dataset.modeBtn);
+            });
+        });
+
+        // Recipe preview
+        var recipeSelect = document.getElementById('recipe');
+        var factorInput = document.getElementById('factor');
+        if (recipeSelect) recipeSelect.addEventListener('change', updateRecipePreview);
+        if (factorInput) factorInput.addEventListener('input', updateRecipePreview);
+
+        // Set initial mode
+        showMode('recipe');
+        updateRecipePreview();
+    });
     </script>
 {% endblock %}

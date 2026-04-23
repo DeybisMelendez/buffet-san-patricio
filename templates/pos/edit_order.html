@@ -2,20 +2,19 @@
 {% block title %}Editar Comanda #{{ order.id }}{% endblock %}
 {% block body %}
     <div class="container">
-        <div class="card" x-data="{ modal: false }">
+        <div class="card">
             <div class="card-header">
                 <h1 class="h4 mb-0">Editar Comanda #{{ order.id }}</h1>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="editOrderForm" data-edit-order-form>
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="table" class="form-label">Mesa</label>
                         <select name="table" id="table" class="form-select" required>
                             <option value="">-- Seleccionar Mesa --</option>
                             {% for table in tables %}
-                                <option value="{{ table.id }}"
-                                        {% if order.table and order.table.id == table.id %}selected{% endif %}>
+                                <option value="{{ table.id }}" {% if order.table and order.table.id == table.id %}selected{% endif %}>
                                     Mesa {{ table.name }}
                                 </option>
                             {% endfor %}
@@ -26,56 +25,72 @@
                         <select name="user" id="user" class="form-select" required>
                             <option value="">-- Seleccionar Mesero --</option>
                             {% for u in users %}
-                                <option value="{{ u.id }}"
-                                        {% if order.user and order.user.id == u.id %}selected{% endif %}>
+                                <option value="{{ u.id }}" {% if order.user and order.user.id == u.id %}selected{% endif %}>
                                     {{ u.username }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox"
-                               name="is_paid"
-                               class="form-check-input"
-                               id="is_paid"
-                               {% if order.is_paid %}checked{% endif %}>
+                        <input type="checkbox" name="is_paid" class="form-check-input" id="is_paid" {% if order.is_paid %}checked{% endif %}>
                         <label class="form-check-label" for="is_paid">Marcar como pagado</label>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{% url 'order_detail' order.id %}"
-                           class="btn btn-secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
-                        <button type="button"
-                                class="btn btn-primary"
-                                @click.prevent="modal=true"><i class="material-icons">save</i> Guardar Cambios</button>
-                    </div>
-                    <!-- Modal de confirmación -->
-                    <div class="modal fade"
-                         id="confirmModal"
-                         tabindex="-1"
-                         aria-labelledby="confirmModalLabel"
-                         aria-hidden="true"
-                         x-show="modal"
-                         x-cloak>
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="confirmModalLabel">Confirmar cambios</h5>
-                                    <button type="button" class="btn-close" @click="modal = false" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p>¿Deseas guardar los cambios realizados en esta comanda?</p>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" @click="modal = false" class="btn btn-secondary">Cancelar</button>
-                                    <button type="button"
-                                            @click="$el.closest('form').submit()"
-                                            class="btn btn-primary">Confirmar</button>
-                                </div>
-                            </div>
-                        </div>
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
+                        <button type="button" class="btn btn-primary" id="saveBtn"><i class="material-icons">save</i> Guardar Cambios</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Modal de confirmación -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmar cambios</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Deseas guardar los cambios realizados en esta comanda?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirmSaveBtn">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('editOrderForm');
+    var saveBtn = document.getElementById('saveBtn');
+    var confirmBtn = document.getElementById('confirmSaveBtn');
+    var modal = null;
+
+    // Init Bootstrap modal if available
+    if (typeof bootstrap !== 'undefined') {
+        modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    }
+
+    saveBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (modal) {
+            modal.show();
+        } else {
+            form.submit();
+        }
+    });
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            form.submit();
+        });
+    }
+});
+</script>
 {% endblock %}

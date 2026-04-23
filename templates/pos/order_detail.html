@@ -60,12 +60,32 @@
             </div>
             <div class="card-footer">
                 <div class="d-flex justify-content-end">
-                    <div x-data="{ comandaHtml: '', async printOrder() { const response = await fetch('{% url "print_order" order.id %}'); this.comandaHtml = await response.text(); } }">
-                        <iframe :srcdoc="comandaHtml" frameborder="0" style="display: none"></iframe>
-                        <button type="button" class="btn btn-secondary" @click="printOrder()"><i class="material-icons">print</i> Imprimir Comanda</button>
-                    </div>
+                    <iframe id="order-print-frame" frameborder="0" style="display: none"></iframe>
+                    <button type="button" class="btn btn-secondary" id="printOrderBtn">
+                        <i class="material-icons">print</i> Imprimir Comanda
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var printBtn = document.getElementById('printOrderBtn');
+    var iframe = document.getElementById('order-print-frame');
+
+    printBtn.addEventListener('click', function() {
+        fetch('{% url "print_order" order.id %}')
+            .then(function(response) { return response.text(); })
+            .then(function(html) {
+                iframe.srcdoc = html;
+            })
+            .catch(function(err) {
+                console.error('Error loading comanda:', err);
+            });
+    });
+});
+</script>
 {% endblock %}

@@ -22,7 +22,6 @@
               integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
               crossorigin="anonymous">
         <!--link rel="stylesheet" href="{% static 'css/base.css' %}"-->
-        <link rel="stylesheet" href="{% static 'css/icons.css' %}">
         <!-- Google Icons -->
         <link rel="stylesheet"
               href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -46,17 +45,16 @@
                 {% block body %}{% endblock %}
             </div>
         </main>
-        <!-- AlpineJS -->
-        <script src="//unpkg.com/alpinejs" defer></script>
+        <!-- JavaScript común -->
+        <script src="{% static 'js/global.js' %}"></script>
+        <script src="{% static 'js/common.js' %}"></script>
+        <script src="{% static 'js/grid-utils.js' %}"></script>
         <!-- Bootstrap 5 JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
                 integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
                 crossorigin="anonymous"></script>
-        <!-- JavaScript común -->
-        <script src="{% static 'js/common.js' %}"></script>
-        <script src="{% static 'js/grid-utils.js' %}"></script>
-        <!-- Grid.js -->
-        <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.production.min.js"></script>
+        <!-- Grid.js (UMD build from unpkg) -->
+        <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
         <!-- SheetJS for Excel export -->
         <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
         <!-- JavaScript adicional por template -->

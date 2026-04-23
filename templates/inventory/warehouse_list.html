@@ -30,7 +30,7 @@
     </div>
 {% endblock %}
 {% block extra_js %}
-    <script>
+<script>
 (function() {
     'use strict';
 
@@ -45,16 +45,16 @@
 
     GridUtils.showLoading('grid-container');
 
-    var apiBase = '/api/warehouses/';
+    container.innerHTML = '';
 
     var grid = new gridjs.Grid({
         columns: [
-            { name: 'ID', id: 'id', hidden: true },
+            { id: 'id', hidden: true },
             { name: 'Nombre', id: 'name', sort: { enabled: true } },
             {
                 name: 'Acciones',
                 id: 'acciones',
-                sort: { enabled: false },
+                sort: false,
                 formatter: function(cell, row) {
                     var id = row.cells[0].data;
                     return gridjs.html(
@@ -69,26 +69,14 @@
             }
         ],
         server: {
-            url: function(params) {
-                var url = new URL(apiBase, window.location.origin);
-                if (params.limit) url.searchParams.set('limit', params.limit);
-                if (params.offset != null) url.searchParams.set('offset', params.offset);
-                if (params.search) url.searchParams.set('search', params.search);
-                if (params.sort) url.searchParams.set('sort', params.sort.field + ',' + params.sort.direction);
-                return url.toString();
-            },
+            url: '/api/warehouses/',
             then: function(data) {
                 return data.results.map(function(w) {
                     return [w.id, w.name, null];
                 });
             },
-            total: function(data) { return data.count; },
-            handle: function(res) {
-                if (res.ok) return res.json();
-                throw new Error('Error al cargar datos: ' + res.status);
-            }
+            total: function(data) { return data.count; }
         },
-        search: { enabled: true, placeholder: 'Buscar bodega...' },
         sort: { enabled: true },
         pagination: {
             enabled: true,
@@ -96,7 +84,7 @@
             limits: [10, 25, 50, 100],
             server: {
                 url: function(prev, page, limit) {
-                    var url = new URL(prev || apiBase, window.location.origin);
+                    var url = new URL('/api/warehouses/', window.location.origin);
                     url.searchParams.set('limit', limit);
                     url.searchParams.set('offset', page * limit);
                     return url.toString();
@@ -117,5 +105,5 @@
         GridUtils.showError('grid-container', 'Error al cargar los datos. Por favor recargue la página.');
     });
 })();
-    </script>
+</script>
 {% endblock %}

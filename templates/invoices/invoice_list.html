@@ -21,17 +21,11 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Desde:</label>
-                            <input type="datetime-local"
-                                   name="start"
-                                   value="{{ start|date:'Y-m-d\\TH:i' }}"
-                                   class="form-control">
+                            <input type="datetime-local" name="start" value="{{ start|date:'Y-m-d\\TH:i' }}" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Hasta:</label>
-                            <input type="datetime-local"
-                                   name="end"
-                                   value="{{ end|date:'Y-m-d\\TH:i' }}"
-                                   class="form-control">
+                            <input type="datetime-local" name="end" value="{{ end|date:'Y-m-d\\TH:i' }}" class="form-control">
                         </div>
                     </div>
                     <div class="mt-3">
@@ -54,7 +48,7 @@
     </div>
 {% endblock %}
 {% block extra_js %}
-    <script>
+<script>
 (function() {
     'use strict';
 
@@ -68,6 +62,8 @@
     if (!container) return;
 
     GridUtils.showLoading('invoices_grid');
+
+    container.innerHTML = '';
 
     var apiBase = '/api/invoices/?start={{ start|date:"Y-m-d\\TH:i" }}&end={{ end|date:"Y-m-d\\TH:i" }}';
 
@@ -89,7 +85,9 @@
             { name: 'Mesa', id: 'table', sort: { enabled: true } },
             { name: 'Atendio', id: 'user', sort: { enabled: true } },
             { name: 'Cajero', id: 'cashier', sort: { enabled: true } },
-            { name: 'Total', id: 'total', sort: { enabled: true }, formatter: function(cell) { return cell != null ? 'C$ ' + parseFloat(cell).toFixed(2) : 'C$ 0.00'; } },
+            { name: 'Total', id: 'total', sort: { enabled: true }, formatter: function(cell) {
+                return cell != null ? 'C$ ' + parseFloat(cell).toFixed(2) : 'C$ 0.00';
+            }},
             { name: 'Tipo Pago', id: 'payment_type', sort: { enabled: true } },
             {
                 name: 'Acciones',
@@ -104,14 +102,7 @@
             }
         ],
         server: {
-            url: function(params) {
-                var url = new URL(apiBase, window.location.origin);
-                if (params.limit) url.searchParams.set('limit', params.limit);
-                if (params.offset != null) url.searchParams.set('offset', params.offset);
-                if (params.search) url.searchParams.set('search', params.search);
-                if (params.sort) url.searchParams.set('sort', params.sort.field + ',' + params.sort.direction);
-                return url.toString();
-            },
+            url: apiBase,
             then: function(data) {
                 return data.results.map(function(inv) {
                     return [
@@ -126,13 +117,8 @@
                     ];
                 });
             },
-            total: function(data) { return data.count; },
-            handle: function(res) {
-                if (res.ok) return res.json();
-                throw new Error('Error al cargar datos: ' + res.status);
-            }
+            total: function(data) { return data.count; }
         },
-        search: { enabled: true, placeholder: 'Buscar...' },
         sort: { enabled: true },
         pagination: {
             enabled: true,
@@ -140,7 +126,7 @@
             limits: [10, 25, 50, 100],
             server: {
                 url: function(prev, page, limit) {
-                    var url = new URL(prev || apiBase, window.location.origin);
+                    var url = new URL(apiBase, window.location.origin);
                     url.searchParams.set('limit', limit);
                     url.searchParams.set('offset', page * limit);
                     return url.toString();
@@ -161,5 +147,5 @@
         GridUtils.showError('invoices_grid', 'Error al cargar los datos. Por favor recargue la página.');
     });
 })();
-    </script>
+</script>
 {% endblock %}

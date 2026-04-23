@@ -40,25 +40,17 @@
             </div>
         </div>
         {% if is_cashier %}
-            <form method="post" class="card" x-data="invoiceForm({{ total }})">
+            <form method="post" class="card" data-invoice-form data-total="{{ total }}">
                 {% csrf_token %}
                 <div class="card-body">
                     <h5 class="card-title">Confirmar Factura</h5>
                     <div class="mb-3">
                         <label class="form-label" for="notes">Notas (opcional)</label>
-                        <textarea class="form-control"
-                                  id="notes"
-                                  name="notes"
-                                  rows="2"
-                                  placeholder="Agregar nota sobre la factura..."></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Agregar nota sobre la factura..."></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="payment_type">Tipo de Pago</label>
-                        <select class="form-select"
-                                id="payment_type"
-                                name="payment_type"
-                                x-model="paymentType"
-                                required>
+                        <select class="form-select" id="payment_type" name="payment_type" required>
                             <option value="PENDIENTE">Pendiente (Credito)</option>
                             <option value="EFECTIVO">Efectivo</option>
                             <option value="TARJETA_CREDITO">Tarjeta Credito</option>
@@ -68,34 +60,20 @@
                         </select>
                         <div class="form-text">Selecciona "Pendiente" para guardar como credito (se imprimira voucher).</div>
                     </div>
-                    <div class="mb-3" x-show="paymentType === 'EFECTIVO'" x-transition>
+                    <div class="mb-3" data-show-if-efectivo style="display: none;">
                         <label class="form-label" for="amount_received">Monto Recibido (C$)</label>
-                        <input type="number"
-                               class="form-control"
-                               id="amount_received"
-                               name="amount_received"
-                               step="0.01"
-                               min="0"
-                               x-model.number="amountReceived"
-                               placeholder="0.00">
+                        <input type="number" class="form-control" id="amount_received" name="amount_received" step="0.01" min="0" placeholder="0.00">
                         <div class="form-text">Ingrese el monto recibido del cliente</div>
                     </div>
-                    <div class="alert alert-secondary"
-                         x-show="paymentType === 'EFECTIVO' && amountReceived > 0"
-                         x-transition>
-                        <strong>Cambio:</strong> C$ <span x-text="change.toFixed(2)"></span>
+                    <div class="alert alert-secondary" id="change-container" style="display: none;">
+                        <strong>Cambio:</strong> C$ <span id="change-amount">0.00</span>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="submit"
-                                class="btn btn-success"
-                                x-show="paymentType === 'PENDIENTE'">
+                        <button type="submit" class="btn btn-success" data-submit-credit>
                             <i class="material-icons">save</i>
                             <span>Guardar como Credito</span>
                         </button>
-                        <button type="submit"
-                                class="btn btn-success"
-                                x-show="paymentType !== 'PENDIENTE'"
-                                :disabled="paymentType === 'EFECTIVO' && (!amountReceived || amountReceived < total)">
+                        <button type="submit" class="btn btn-success" data-submit-cash style="display: none;">
                             <i class="material-icons">payments</i>
                             <span>Cobrar y Generar Factura</span>
                         </button>
@@ -104,7 +82,7 @@
                 </div>
             </form>
         {% else %}
-            <form method="post" class="card" x-data="invoiceForm({{ total }})">
+            <form method="post" class="card" data-invoice-form data-total="{{ total }}">
                 {% csrf_token %}
                 <input type="hidden" name="payment_type" value="PENDIENTE">
                 <div class="card-body">
@@ -114,11 +92,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="notes">Notas (opcional)</label>
-                        <textarea class="form-control"
-                                  id="notes"
-                                  name="notes"
-                                  rows="2"
-                                  placeholder="Agregar nota sobre la factura..."></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Agregar nota sobre la factura..."></textarea>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
@@ -130,19 +104,56 @@
             </form>
         {% endif %}
     </div>
-    <script>
-        window.invoiceForm = function(total) {
-            return {
-                total: total,
-                paymentType: 'PENDIENTE',
-                amountReceived: null,
-                get change() {
-                    if (this.amountReceived && this.amountReceived >= this.total) {
-                        return this.amountReceived - this.total;
-                    }
-                    return 0;
-                }
-            };
-        };
-    </script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.querySelector('[data-invoice-form]');
+    if (!form) return;
+
+    var total = parseFloat(form.dataset.total) || 0;
+    var paymentType = document.getElementById('payment_type');
+    var amountReceived = document.getElementById('amount_received');
+    var changeContainer = document.getElementById('change-container');
+    var changeAmount = document.getElementById('change-amount');
+    var submitCredit = form.querySelector('[data-submit-credit]');
+    var submitCash = form.querySelector('[data-submit-cash]');
+
+    function updateVisibility() {
+        var type = paymentType ? paymentType.value : 'PENDIENTE';
+        var received = parseFloat(amountReceived ? amountReceived.value : 0) || 0;
+
+        // Toggle efectivo fields
+        var efectivoFields = form.querySelectorAll('[data-show-if-efectivo]');
+        efectivoFields.forEach(function(el) {
+            el.style.display = type === 'EFECTIVO' ? '' : 'none';
+        });
+
+        // Toggle buttons
+        if (submitCredit) submitCredit.style.display = type === 'PENDIENTE' ? '' : 'none';
+        if (submitCash) {
+            submitCash.style.display = type !== 'PENDIENTE' ? '' : 'none';
+            if (type === 'EFECTIVO' && received < total) {
+                submitCash.disabled = true;
+            } else {
+                submitCash.disabled = false;
+            }
+        }
+
+        // Update change
+        if (type === 'EFECTIVO' && received > 0) {
+            changeContainer.style.display = '';
+            changeAmount.textContent = (received - total).toFixed(2);
+        } else {
+            changeContainer.style.display = 'none';
+        }
+    }
+
+    if (paymentType) paymentType.addEventListener('change', updateVisibility);
+    if (amountReceived) amountReceived.addEventListener('input', updateVisibility);
+
+    updateVisibility();
+});
+</script>
 {% endblock %}

@@ -8,7 +8,7 @@
     Receta de Conversión
 {% endblock %}
 {% block body %}
-    <div class="container" x-data="recipeForm()">
+    <div class="container">
         <h1 class="mb-4">
             <i class="material-icons">menu_book</i>
             {% if recipe %}
@@ -29,29 +29,17 @@
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="name" class="form-label">Nombre *</label>
-                                <input type="text"
-                                       id="name"
-                                       name="name"
-                                       class="form-control"
-                                       value="{{ recipe.name|default:'' }}"
-                                       required
-                                       placeholder="Ej: Hamburguesa casera">
+                                <input type="text" id="name" name="name" class="form-control"
+                                       value="{{ recipe.name|default:'' }}" required placeholder="Ej: Hamburguesa casera">
                             </div>
                             <div class="mb-3">
                                 <label for="description" class="form-label">Descripción</label>
-                                <textarea id="description"
-                                          name="description"
-                                          class="form-control"
-                                          rows="2"
-                                          placeholder="Descripción opcional...">{{ recipe.description|default:'' }}</textarea>
+                                <textarea id="description" name="description" class="form-control" rows="2" placeholder="Descripción opcional...">{{ recipe.description|default:'' }}</textarea>
                             </div>
                             {% if recipe %}
                                 <div class="mb-3">
                                     <div class="form-check">
-                                        <input type="checkbox"
-                                               id="is_active"
-                                               name="is_active"
-                                               class="form-check-input"
+                                        <input type="checkbox" id="is_active" name="is_active" class="form-check-input"
                                                {% if recipe.is_active %}checked{% endif %}>
                                         <label for="is_active" class="form-check-label">Receta activa (visible en el conversor)</label>
                                     </div>
@@ -66,20 +54,10 @@
                             <h5 class="mb-0">Ayuda</h5>
                         </div>
                         <div class="card-body">
-                            <p>
-                                <strong>Ingredientes de Entrada:</strong>
-                            </p>
-                            <p class="text-muted small">
-                                Ingredientes que se consumen (salen del inventario). Ej: 1lb de carne,
-                                2 huevos.
-                            </p>
-                            <p>
-                                <strong>Ingredientes de Salida:</strong>
-                            </p>
-                            <p class="text-muted small">
-                                Productos que se generan (entran al inventario). Ej: 5 hamburguesas,
-                                1L de salsa.
-                            </p>
+                            <p><strong>Ingredientes de Entrada:</strong></p>
+                            <p class="text-muted small">Ingredientes que se consumen (salen del inventario). Ej: 1lb de carne, 2 huevos.</p>
+                            <p><strong>Ingredientes de Salida:</strong></p>
+                            <p class="text-muted small">Productos que se generan (entran al inventario). Ej: 5 hamburguesas, 1L de salsa.</p>
                         </div>
                     </div>
                 </div>
@@ -93,41 +71,57 @@
                                 Ingredientes de Entrada (Consumo)
                             </h5>
                         </div>
-                        <div class="card-body">
-                            <template x-for="(row, index) in inputRows" :key="row.uid">
-                                <div class="row g-2 mb-2 align-items-end">
+                        <div class="card-body" id="input-rows">
+                            {% if recipe %}
+                                {% for item in recipe.items.all %}
+                                    {% if item.is_input %}
+                                        <div class="row g-2 mb-2 align-items-end" data-row-uid="{{ forloop.counter }}">
+                                            <div class="col-7">
+                                                <label class="form-label small">Ingrediente</label>
+                                                <select name="ing_{{ forloop.counter }}" class="form-select form-select-sm">
+                                                    <option value="">Selecciona...</option>
+                                                    {% for ing in ingredients %}
+                                                        <option value="{{ ing.id }}" {% if item.ingredient.id == ing.id %}selected{% endif %}>{{ ing.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-3">
+                                                <label class="form-label small">Cantidad</label>
+                                                <input type="number" name="qty_{{ forloop.counter }}" value="{{ item.quantity }}" step="0.01" min="0" class="form-control form-control-sm">
+                                            </div>
+                                            <div class="col-2">
+                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRecipeRow({{ forloop.counter }}, 'input')">
+                                                    <span class="material-icons">close</span>
+                                                </button>
+                                            </div>
+                                            <input type="hidden" name="type_{{ forloop.counter }}" value="input">
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <div class="row g-2 mb-2 align-items-end" data-row-uid="1">
                                     <div class="col-7">
                                         <label class="form-label small">Ingrediente</label>
-                                        <select :name="'ing_' + row.uid"
-                                                class="form-select form-select-sm"
-                                                x-model="row.ingredient">
+                                        <select name="ing_1" class="form-select form-select-sm">
                                             <option value="">Selecciona...</option>
                                             {% for ing in ingredients %}<option value="{{ ing.id }}">{{ ing.name }}</option>{% endfor %}
                                         </select>
                                     </div>
                                     <div class="col-3">
                                         <label class="form-label small">Cantidad</label>
-                                        <input type="number"
-                                               :name="'qty_' + row.uid"
-                                               x-model.number="row.quantity"
-                                               step="0.01"
-                                               min="0"
-                                               class="form-control form-control-sm">
+                                        <input type="number" name="qty_1" value="0" step="0.01" min="0" class="form-control form-control-sm">
                                     </div>
                                     <div class="col-2">
-                                        <button type="button"
-                                                class="btn btn-outline-danger btn-sm"
-                                                @click="removeInput(index)"
-                                                :disabled="inputRows.length <= 1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRecipeRow(1, 'input')">
                                             <span class="material-icons">close</span>
                                         </button>
                                     </div>
-                                    <input type="hidden" :name="'type_' + row.uid" value="input">
+                                    <input type="hidden" name="type_1" value="input">
                                 </div>
-                            </template>
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-sm"
-                                    @click="addInput()">
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRecipeRow('input')">
                                 <span class="material-icons">add</span> Agregar
                             </button>
                         </div>
@@ -139,41 +133,57 @@
                                 Ingredientes de Salida (Procesado)
                             </h5>
                         </div>
-                        <div class="card-body">
-                            <template x-for="(row, index) in outputRows" :key="row.uid">
-                                <div class="row g-2 mb-2 align-items-end">
+                        <div class="card-body" id="output-rows">
+                            {% if recipe %}
+                                {% for item in recipe.items.all %}
+                                    {% if not item.is_input %}
+                                        <div class="row g-2 mb-2 align-items-end" data-row-uid="{{ forloop.counter|add:1000 }}">
+                                            <div class="col-7">
+                                                <label class="form-label small">Ingrediente</label>
+                                                <select name="ing_{{ forloop.counter|add:1000 }}" class="form-select form-select-sm">
+                                                    <option value="">Selecciona...</option>
+                                                    {% for ing in ingredients %}
+                                                        <option value="{{ ing.id }}" {% if item.ingredient.id == ing.id %}selected{% endif %}>{{ ing.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-3">
+                                                <label class="form-label small">Cantidad</label>
+                                                <input type="number" name="qty_{{ forloop.counter|add:1000 }}" value="{{ item.quantity }}" step="0.01" min="0" class="form-control form-control-sm">
+                                            </div>
+                                            <div class="col-2">
+                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRecipeRow({{ forloop.counter|add:1000 }}, 'output')">
+                                                    <span class="material-icons">close</span>
+                                                </button>
+                                            </div>
+                                            <input type="hidden" name="type_{{ forloop.counter|add:1000 }}" value="output">
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <div class="row g-2 mb-2 align-items-end" data-row-uid="1001">
                                     <div class="col-7">
                                         <label class="form-label small">Ingrediente</label>
-                                        <select :name="'ing_' + row.uid"
-                                                class="form-select form-select-sm"
-                                                x-model="row.ingredient">
+                                        <select name="ing_1001" class="form-select form-select-sm">
                                             <option value="">Selecciona...</option>
                                             {% for ing in ingredients %}<option value="{{ ing.id }}">{{ ing.name }}</option>{% endfor %}
                                         </select>
                                     </div>
                                     <div class="col-3">
                                         <label class="form-label small">Cantidad</label>
-                                        <input type="number"
-                                               :name="'qty_' + row.uid"
-                                               x-model.number="row.quantity"
-                                               step="0.01"
-                                               min="0"
-                                               class="form-control form-control-sm">
+                                        <input type="number" name="qty_1001" value="0" step="0.01" min="0" class="form-control form-control-sm">
                                     </div>
                                     <div class="col-2">
-                                        <button type="button"
-                                                class="btn btn-outline-danger btn-sm"
-                                                @click="removeOutput(index)"
-                                                :disabled="outputRows.length <= 1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRecipeRow(1001, 'output')">
                                             <span class="material-icons">close</span>
                                         </button>
                                     </div>
-                                    <input type="hidden" :name="'type_' + row.uid" value="output">
+                                    <input type="hidden" name="type_1001" value="output">
                                 </div>
-                            </template>
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-sm"
-                                    @click="addOutput()">
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRecipeRow('output')">
                                 <span class="material-icons">add</span> Agregar
                             </button>
                         </div>
@@ -184,39 +194,45 @@
                 <button type="submit" class="btn btn-primary btn-lg">
                     <span class="material-icons">save</span> Guardar Receta
                 </button>
-                <a href="{% url 'food_recipe_list' %}"
-                   class="btn btn-outline-secondary btn-lg ms-2">Cancelar</a>
+                <a href="{% url 'food_recipe_list' %}" class="btn btn-outline-secondary btn-lg ms-2">Cancelar</a>
             </div>
         </form>
     </div>
     <script>
-    const inputData = [
-        {% if recipe %}{% for item in recipe.items.all %}{% if item.is_input %}{ uid: {{ forloop.counter }}, ingredient: "{{ item.ingredient.id }}", quantity: {{ item.quantity }} },{% endif %}{% endfor %}{% endif %}
-    ];
-    const outputData = [
-        {% if recipe %}{% for item in recipe.items.all %}{% if not item.is_input %}{ uid: {{ forloop.counter }} + 1000, ingredient: "{{ item.ingredient.id }}", quantity: {{ item.quantity }} },{% endif %}{% endfor %}{% endif %}
-    ];
+    var ingredientOptionsHtml = '';
+    {% for ing in ingredients %}
+    ingredientOptionsHtml += '<option value="{{ ing.id }}">{{ ing.name }}</option>';
+    {% endfor %}
 
-    function recipeForm() {
-        return {
-            uidCounter: 2000,
-            inputRows: inputData.length > 0 ? inputData : [{ uid: 1, ingredient: '', quantity: 0 }],
-            outputRows: outputData.length > 0 ? outputData : [{ uid: 1001, ingredient: '', quantity: 0 }],
-            addInput() {
-                this.uidCounter++;
-                this.inputRows.push({ uid: this.uidCounter, ingredient: '', quantity: 0 });
-            },
-            removeInput(index) {
-                this.inputRows.splice(index, 1);
-            },
-            addOutput() {
-                this.uidCounter++;
-                this.outputRows.push({ uid: this.uidCounter, ingredient: '', quantity: 0 });
-            },
-            removeOutput(index) {
-                this.outputRows.splice(index, 1);
-            }
-        };
+    var nextUid = 2000;
+
+    function addRecipeRow(type) {
+        nextUid++;
+        var container = document.getElementById(type === 'input' ? 'input-rows' : 'output-rows');
+        var row = document.createElement('div');
+        row.className = 'row g-2 mb-2 align-items-end';
+        row.dataset.rowUid = nextUid;
+        row.innerHTML =
+            '<div class="col-7">' +
+                '<label class="form-label small">Ingrediente</label>' +
+                '<select name="ing_' + nextUid + '" class="form-select form-select-sm">' + ingredientOptionsHtml + '</select>' +
+            '</div>' +
+            '<div class="col-3">' +
+                '<label class="form-label small">Cantidad</label>' +
+                '<input type="number" name="qty_' + nextUid + '" value="0" step="0.01" min="0" class="form-control form-control-sm">' +
+            '</div>' +
+            '<div class="col-2">' +
+                '<button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRecipeRow(' + nextUid + ', \'' + type + '\')">' +
+                    '<span class="material-icons">close</span>' +
+                '</button>' +
+            '</div>' +
+            '<input type="hidden" name="type_' + nextUid + '" value="' + type + '">';
+        container.appendChild(row);
+    }
+
+    function removeRecipeRow(uid, type) {
+        var row = document.querySelector('[data-row-uid="' + uid + '"]');
+        if (row) row.remove();
     }
     </script>
 {% endblock %}
