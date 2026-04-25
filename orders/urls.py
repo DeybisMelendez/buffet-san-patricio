@@ -285,6 +285,8 @@ urlpatterns = [
     # ==========================
     # Inventory - Conversor de Alimentos
     # ==========================
+    path("inventory/convert/recipe/", views.recipe_converter, name="recipe_converter"),
+    path("inventory/convert/manual/", views.manual_converter, name="manual_converter"),
     path("inventory/convert/", views.food_converter, name="food_converter"),
     path("inventory/recipes/", views.food_recipe_list, name="food_recipe_list"),
     path("inventory/recipes/new/", views.food_recipe_create, name="food_recipe_create"),
