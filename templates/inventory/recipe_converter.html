@@ -1,12 +1,14 @@
 {% extends 'layout.html' %}
 {% load humanize %}
-{% block title %}Conversor de Ingredientes{% endblock %}
+{% block title %}Conversor por Receta{% endblock %}
 {% block body %}
     <div class="container">
         <h1 class="mb-4">
-            <span class="material-icons">swap_horiz</span> Conversor de Ingredientes
+            <span class="material-icons">menu_book</span> Conversor por Receta
         </h1>
-        <p class="mb-4">Transforma ingredientes crudos en productos procesados usando una receta guardada.</p>
+        <p class="mb-4">
+            Transforma ingredientes crudos en productos procesados usando una receta guardada.
+        </p>
         <form method="post">
             {% csrf_token %}
             <div class="card mb-4">

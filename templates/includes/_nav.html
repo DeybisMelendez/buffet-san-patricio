@@ -106,8 +106,13 @@
                             {% endif %}
                             {% if user|can_use_food_converter %}
                                 <li>
-                                    <a href="{% url 'food_converter' %}" class="dropdown-item">
-                                        <i class="material-icons">swap_horiz</i> Conversor de Ingredientes
+                                    <a href="{% url 'recipe_converter' %}" class="dropdown-item">
+                                        <i class="material-icons">menu_book</i> Conversor por Receta
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'manual_converter' %}" class="dropdown-item">
+                                        <i class="material-icons">edit</i> Conversor Manual
                                     </a>
                                 </li>
                                 <li>

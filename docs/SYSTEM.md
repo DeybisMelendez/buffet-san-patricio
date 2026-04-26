@@ -13,7 +13,7 @@ Sistema de gestión integral para el restaurante **Buffet San Patricio**, diseñ
 - **Gestión de mesas y comandas** en tiempo real
 - **Recetas por producto** con control automático de inventario
 - **Múltiples áreas de despacho** (cocina, bar, cafetería)
-- **Facturación** con métodos de pago (contado/crédito)
+- **Facturación** con múltiples métodos de pago
 - **Arqueo de caja** por turno
 - **Reportes de ventas** por producto y período
 - **Control de inventario** con movimientos de entrada/salida
@@ -29,9 +29,10 @@ Sistema de gestión integral para el restaurante **Buffet San Patricio**, diseñ
 |------------|------------|
 | Framework | Django 5.2.7 |
 | Base de datos | SQLite |
-| Frontend | AlpineJS + Bootstrap 5 (CDN) |
+| Frontend | HTML + JavaScript vanilla |
+| CSS | Bootstrap 5 (CDN, solo clases) |
 | Iconos | Google Material Icons (CDN) |
-| Tablas interactivas | GridJS |
+| Tablas | GridJS |
 | Lenguaje | Python 3.12+ |
 | Localización | Español (Nicaragua) |
 
@@ -40,34 +41,38 @@ Sistema de gestión integral para el restaurante **Buffet San Patricio**, diseñ
 ```
 buffet-san-patricio/
 ├── core/                 # Configuración de Django
-│   ├── settings.py        # Configuración principal
-│   ├── urls.py           # URLs del proyecto
-│   ├── wsgi.py           # Punto de entrada WSGI
-│   └── asgi.py           # Punto de entrada ASGI
+│   ├── settings.py       # Configuración principal
+│   ├── urls.py          # URLs del proyecto
+│   ├── wsgi.py          # Punto de entrada WSGI
+│   └── asgi.py          # Punto de entrada ASGI
 ├── orders/               # App principal de órdenes
-│   ├── models.py         # Modelos de datos
-│   ├── views.py          # Vistas y lógica de negocio
+│   ├── models.py         # ~380 líneas, 17 modelos
+│   ├── views.py          # ~3100 líneas de vistas
 │   ├── urls.py           # URLs de la app
 │   ├── forms.py          # Formularios
-│   └── admin.py          # Configuración admin
+│   └── admin.py         # Configuración admin
 ├── users/                # App de usuarios y permisos
-│   ├── models.py         # Modelos de usuario
-│   ├── views.py          # Vistas de autenticación
-│   ├── permissions.py    # Definición de roles y permisos
-│   └── utils.py          # Utilidades de verificación
+│   ├── models.py        # Modelos de usuario
+│   ├── views.py         # Vistas de autenticación
+│   ├── permissions.py   # Definición de roles y permisos
+│   └── utils.py         # Utilidades de verificación
 ├── templates/            # Templates HTML
-│   ├── layout.html       # Template base
-│   ├── dashboard.html    # Panel principal
-│   ├── pos/              # Módulo POS (mesas, comandas)
-│   ├── menu/             # Gestión de productos
-│   ├── inventory/        # Inventario
-│   ├── invoices/         # Facturación
-│   ├── cash/             # Arqueo de caja
-│   ├── reports/          # Reportes
-│   └── settings/         # Configuración
+│   ├── layout.html      # Template base
+│   ├── dashboard.html   # Panel principal
+│   ├── pos/             # Módulo POS (mesas, comandas)
+│   ├── menu/            # Gestión de productos
+│   ├── inventory/       # Inventario
+│   ├── invoices/        # Facturación
+│   ├── cash/            # Arqueo de caja
+│   ├── reports/         # Reportes
+│   └── settings/        # Configuración
 ├── static/               # Archivos estáticos
-│   ├── css/              # Estilos personalizados
-│   └── js/               # JavaScript personalizado
+│   ├── js/              # JavaScript vanilla
+│   │   ├── global.js    # Utilidades de la app
+│   │   ├── common.js    # Helpers comunes
+│   │   ├── grid-utils.js # Utilities de GridJS
+│   │   └── grid.js      # Inicialización de GridJS
+│   └── (sin css custom/) # No hay CSS personalizado
 ├── docs/                 # Documentación
 ├── db.sqlite3            # Base de datos
 ├── requirements.txt      # Dependencias
@@ -156,6 +161,9 @@ Control de stock de ingredientes con registro de movimientos.
 - `/inventory/ingredients/<id>/edit/` - Editar ingrediente
 - `/inventory/adjust/` - Ajuste de inventario físico
 - `/inventory/purchase/` - Registrar compras
+- `/inventory/warehouses/` - Lista de bodegas
+- `/inventory/recipes/` - Recetas de conversión
+- `/inventory/convert/` - Conversor de alimentos
 
 **Modelos:**
 
@@ -181,12 +189,6 @@ Registro de movimientos de inventario:
 2. **Ajuste de inventario**: Corrección física del stock
 3. **Uso en comandas**: Descontaje automático por recetas (al crear OrderItem)
 
-**Flujo de trabajo:**
-1. Se registran las compras de ingredientes
-2. Al crear una orden, se reservan los ingredientes según recetas
-3. Periódicamente se hace ajuste físico del inventario
-4. Los reportes muestran movimientos y saldos
-
 ---
 
 ### 4. Facturación
@@ -198,7 +200,7 @@ Generación de facturas para las órdenes pagadas.
 - `/pos/table/<id>/invoice/` - Generar factura para una mesa
 - `/invoices/<id>/print/` - Imprimir factura
 
-**Modelos:**
+**Modelo:**
 
 #### Invoice
 - `invoice_number`: Número secuencial único
@@ -207,23 +209,20 @@ Generación de facturas para las órdenes pagadas.
 - `cashier`: Cajero que facturó
 - `subtotal`: Subtotal antes de impuestos
 - `total`: Total a pagar
-- `payment_method`: CONTADO o CREDITO
-- `created_at`: Fecha y hora
+- `payment_type`: Método de pago
+- `amount_received`: Monto recibido (efectivo)
+- `payment_date`: Fecha de pago
 - `is_active`: Si la factura está activa
 
-#### InvoiceItem
-- `invoice`: Factura a la que pertenece
-- `product`: Producto vendido
-- `quantity`: Cantidad
-- `unit_price`: Precio unitario
-- `total`: Total de la línea
-
-**Flujo de trabajo:**
-1. El cliente solicita la cuenta
-2. El cajero genera la factura consolidando todas las órdenes
-3. Se selecciona método de pago (contado/crédito)
-4. Se actualiza el arqueo de caja según el método
-5. La factura se puede imprimir en formato térmico
+**Métodos de pago:**
+| Valor | Descripción |
+|-------|-------------|
+| `EFECTIVO` | Pago en efectivo |
+| `TARJETA_CREDITO` | Tarjeta de crédito |
+| `TARJETA_DEBITO` | Tarjeta de débito |
+| `TRANSFERENCIA` | Transferencia bancaria |
+| `OTRO` | Otro método |
+| `PENDIENTE` | Pago pendiente |
 
 ---
 
@@ -246,13 +245,17 @@ Control de turnos de caja y cuadre diario.
 - `closing_amount`: Monto de cierre (al cerrar)
 - `total_sales`: Total de ventas del turno
 - `total_contado`: Ventas al contado
-- `total_credito`: Ventas a crédito
+- `total_tarjeta_credito`: Ventas con tarjeta crédito
+- `total_tarjeta_debito`: Ventas con tarjeta débito
+- `total_transferencia`: Ventas por transferencia
+- `total_otros`: Ventas con otros métodos
+- `total_pendiente`: Ventas pendientes
 - `closing_time`: Hora de cierre
 - `notes`: Notas adicionales
 
 **Flujo de trabajo:**
 1. El cajero abre su turno indicando el monto de apertura
-2. Durante el turno, cada venta al contado suma a `total_contado`
+2. Durante el turno, cada venta acumula según su método de pago
 3. Al finalizar, el cajero cierra el turno indicando el monto en caja
 4. El sistema calcula si hay diferencia (sobra/falta)
 
@@ -278,7 +281,7 @@ Módulo de generación de reportes y exportaciones.
 5. **Comandas**: Detalle de todas las comandas en un período
 
 **Exportaciones:**
-Todos los reportes supportan exportación a CSV para análisis en Excel.
+Todos los reportes supportan exportación a CSV.
 
 ---
 
@@ -296,9 +299,48 @@ Panel principal que muestra información relevante según el rol del usuario.
 
 ---
 
+### 8. Gestión de Mesas
+
+CRUD completo de mesas del restaurante.
+
+**URLs principales:**
+- `/menu/tables/` - Lista de mesas
+- `/menu/tables/new/` - Crear mesa
+- `/menu/tables/<id>/edit/` - Editar mesa
+- `/menu/tables/<id>/delete/` - Eliminar mesa
+- `/menu/tables/<id>/restore/` - Restaurar mesa
+
+---
+
+### 9. Recetas de Conversión (FoodRecipe)
+
+Recetas para convertir ingredientes (ej: preparar masa desde harina y huevos).
+
+**URLs principales:**
+- `/inventory/recipes/` - Lista de recetas
+- `/inventory/recipes/new/` - Crear receta
+- `/inventory/recipes/<id>/edit/` - Editar receta
+- `/inventory/convert/` - Conversor de alimentos (calculadora)
+
+**Modelos:**
+
+#### FoodRecipe
+- `name`: Nombre de la receta
+- `description`: Descripción
+- `is_active`: Si está activa
+- `created_at`: Fecha de creación
+
+#### FoodRecipeItem
+- `recipe`: Receta a la que pertenece
+- `ingredient`: Ingrediente
+- `quantity`: Cantidad
+- `is_input`: Si es entrada (True) o salida (False)
+
+---
+
 ## Modelos de Datos
 
-### Diagrama de Relaciones
+### Modelo Entidad-Relación Simplificado
 
 ```
 ┌─────────────┐       ┌─────────────────┐
@@ -310,14 +352,14 @@ Panel principal que muestra información relevante según el rol del usuario.
        ▼    ▼
 ┌──────────────────────────────────┐
 │           Order                  │
-│  (table, user, is_paid, created) │
+│  (table, user, is_paid, created)│
 └──────┬───────────────────┬───────┘
        │                   │
        ▼                   ▼
 ┌─────────────┐   ┌─────────────────┐
 │  OrderItem  │   │     Invoice     │
 │ (order,     │   │(table, cashier, │
-│  product,   │   │ payment_method) │
+│  product,   │   │ payment_type)   │
 │  quantity)  │   └────────┬────────┘
 └──────┬──────┘          │
        │                 │
@@ -346,22 +388,52 @@ Panel principal que muestra información relevante según el rol del usuario.
 
 ### Resumen de Modelos
 
-| Modelo | Descripción | App |
-|--------|-------------|-----|
-| `Table` | Mesas del restaurante | orders |
-| `ProductCategory` | Categorías de productos | orders |
-| `DispatchArea` | Áreas de despacho | orders |
-| `Warehouse` | Bodegas de almacenamiento | orders |
-| `Product` | Productos del menú | orders |
-| `Ingredient` | Ingredientes del inventario | orders |
-| `ProductIngredient` | Recetas (relación producto-ingrediente) | orders |
-| `IngredientMovement` | Movimientos de inventario | orders |
-| `Order` | Órdenes/Comandas | orders |
-| `OrderItem` | Items de una orden | orders |
-| `Invoice` | Facturas | orders |
-| `InvoiceItem` | Items de una factura | orders |
-| `CashRegister` | Arqueos de caja | orders |
-| `Company` | Datos de la empresa | orders |
+| Modelo | Descripción | Soft Delete |
+|--------|-------------|------------|
+| `Table` | Mesas del restaurante | Sí |
+| `ProductCategory` | Categorías de productos | Sí |
+| `DispatchArea` | Áreas de despacho | Sí |
+| `Warehouse` | Bodegas de almacenamiento | Sí |
+| `Product` | Productos del menú | Sí |
+| `Ingredient` | Ingredientes del inventario | Sí |
+| `ProductIngredient` | Recetas (relación producto-ingrediente) | No |
+| `FoodRecipe` | Recetas de conversión | Sí |
+| `FoodRecipeItem` | Ingredientes de receta de conversión | No |
+| `IngredientMovement` | Movimientos de inventario | No |
+| `Order` | Órdenes/Comandas | No |
+| `OrderItem` | Items de una orden | No |
+| `Invoice` | Facturas | No |
+| `InvoiceItem` | Items de una factura | No |
+| `CashRegister` | Arqueos de caja | No |
+| `Company` | Datos de la empresa | No |
+
+---
+
+## Sistema de Soft Delete
+
+Los modelos principales heredan de `SoftDeleteModel` para permitir eliminación suave:
+
+### Estructura
+
+```python
+class SoftDeleteModel(models.Model):
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = SoftDeleteManager()      # Excluye eliminados
+    all_objects = AllObjectsManager() # Incluye todos
+```
+
+### Uso
+
+- **Consultas normales**: Usar `Model.objects.all()` - excluye eliminados
+- **Ver todos (incluyendo eliminados)**: Usar `Model.all_objects.all()`
+- **Eliminar**: `model.soft_delete()` - marca como eliminado
+- **Restaurar**: `model.restore()` - deshace eliminación
+
+### Modelos con Soft Delete
+
+`Table`, `ProductCategory`, `DispatchArea`, `Warehouse`, `Product`, `Ingredient`, `FoodRecipe`
 
 ---
 
@@ -374,8 +446,8 @@ El sistema define 5 grupos con permisos preestablecidos:
 | Grupo | Descripción | Permisos principales |
 |-------|-------------|----------------------|
 | **Servicio** | Meseros y personal de piso | Crear/ver órdenes, ver productos |
-| **Cocinero** | Personal de cocina | Ver órdenes, ver productos/ingredientes |
-| **Cajero** | Personal de caja | Órdenes, facturación, arqueo de caja |
+| **Cocinero** | Personal de cocina | Ver órdenes, usar conversor |
+| **Cajero** | Personal de caja | Facturación, arqueo de caja |
 | **Supervisor** | Encargados de turno | Inventario, movimientos, cierres |
 | **Administrador** | Gerencia | Acceso completo al sistema |
 
@@ -390,6 +462,8 @@ El sistema define 5 grupos con permisos preestablecidos:
 - Ver mesas y órdenes
 - Ver productos, categorías, áreas
 - Ver ingredientes y recetas
+- Usar conversor de alimentos
+- Gestionar recetas de conversión
 
 #### Cajero
 - Ver y crear órdenes
@@ -397,6 +471,7 @@ El sistema define 5 grupos con permisos preestablecidos:
 - Facturar mesas
 - Abrir/cerrar caja
 - Ver reportes de ventas
+- Registrar ingresos de ingredientes
 
 #### Supervisor
 - Todo lo de Cajero
@@ -425,6 +500,7 @@ El sistema expone endpoints JSON para consumo por GridJS y otras herramientas.
 | `/api/categories/` | Lista de categorías |
 | `/api/dispatch-areas/` | Lista de áreas de despacho |
 | `/api/tables/` | Lista de mesas |
+| `/api/warehouses/` | Lista de bodegas |
 | `/api/orders/` | Lista de órdenes |
 | `/api/invoices/` | Lista de facturas |
 | `/api/movements/` | Movimientos de inventario |
@@ -441,12 +517,10 @@ Los endpoints con paginación retornan:
 ```json
 {
   "count": 150,
+  "next": "http://localhost:8000/api/endpoint/?page=2&limit=10",
+  "previous": null,
   "results": [
-    {
-      "id": 1,
-      "campo1": "valor1",
-      "campo2": "valor2"
-    }
+    { "id": 1, "campo1": "valor1", "campo2": "valor2" }
   ]
 }
 ```
@@ -473,6 +547,7 @@ Los endpoints con paginación retornan:
 3. **Idioma de interfaz**: Español (Nicaragua)
 4. **Strings**: Usar comillas dobles (`"`)
 5. **Imports**: Agrupar (stdlib, third-party, local) con blank lines
+6. **JavaScript**: Puro vanilla JS, sin frameworks
 
 ### Patrones de Vistas
 
@@ -488,7 +563,7 @@ def mi_vista(request):
 ### Patrones de Modelos
 
 ```python
-class MiModelo(models.Model):
+class MiModelo(SoftDeleteModel):
     name = models.CharField(max_length=255, verbose_name="Nombre")
 
     class Meta:
@@ -524,7 +599,7 @@ class MiModelo(models.Model):
 
 ### Registrar Compra de Ingredientes
 
-1. Ir a Inventario > Ingresos
+1. Ir a Inventario > Compras
 2. Ingresar cantidades compradas por ingrediente
 3. Confirmar registro
 4. Los ingredientes suman al stock
@@ -544,6 +619,13 @@ class MiModelo(models.Model):
 3. Clic en "Cerrar Turno"
 4. Ingresar monto en caja al cerrar
 5. El sistema muestra diferencia (sobra/falta)
+
+### Usar el Conversor de Alimentos
+
+1. Ir a Inventario > Conversor
+2. Seleccionar una receta de conversión
+3. Ingresar factor de multiplicación
+4. Ver consumo de ingredientes y producción resultante
 
 ---
 
@@ -600,11 +682,27 @@ El archivo `db.sqlite3` contiene todos los datos. Respaldar regularmente.
 | **Mesa** | Mesa física del restaurante |
 | **Área de despacho** | Sección donde se prepara un producto (cocina, bar) |
 | **Receta** | Lista de ingredientes y cantidades para un producto |
+| **Receta de conversión** | Fórmula para convertir ingredientes (ej: masa desde harina) |
 | **Movimiento** | Entrada o salida de un ingrediente |
 | **Factura** | Documento legal de una venta |
 | **Arqueo de caja** | Control de efectivo por turno |
 | **POS** | Point of Sale - Sistema de punto de venta |
+| **Soft delete** | Eliminación lógica (marca como eliminado sin borrar) |
+| **GridJS** | Librería para tablas interactivas con búsqueda/paginación |
 
 ---
 
-_Last updated: 2026-04-17_
+## Recursos
+
+- [AGENTS.md](../AGENTS.md) - Referencia rápida para agentes
+- [GRIDJS.md](./GRIDJS.md) - Guía de GridJS para tablas
+- [BOOTSTRAP.md](./BOOTSTRAP.md) - Guía de estilos Bootstrap
+- [FRONTEND.md](./FRONTEND.md) - Directrices frontend
+- [Django Docs](https://docs.djangoproject.com/en/5.2/)
+- [Bootstrap 5](https://getbootstrap.com/docs/5.3/)
+- [GridJS](https://gridjs.io/)
+- [Material Icons](https://fonts.google.com/icons)
+
+---
+
+_Last updated: 2026-04-26_

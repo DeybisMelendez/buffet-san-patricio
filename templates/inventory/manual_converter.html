@@ -1,0 +1,214 @@
+{% extends 'layout.html' %}
+{% load humanize %}
+{% block title %}Conversor Manual{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <span class="material-icons">swap_horiz</span> Conversor Manual
+        </h1>
+        <p class="mb-4">
+            Transforma ingredientes crudos en productos procesados. Ingresa manualmente las entradas (consumo) y salidas (procesado) con sus cantidades.
+        </p>
+        <form method="post" id="converter-form">
+            {% csrf_token %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <span class="material-icons">edit</span> Conversión Manual
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="text-danger mb-3">
+                                <span class="material-icons">arrow_downward</span> Entradas (Consumo)
+                            </h6>
+                            <div id="input-rows" data-rows>
+                                <div class="row g-2 mb-2 align-items-end" data-row>
+                                    <div class="col-7">
+                                        <label class="form-label small">Ingrediente</label>
+                                        <select name="ing_0" class="form-select form-select-sm">
+                                            <option value="">Selecciona...</option>
+                                            {% for ing in ingredients %}
+                                                <option value="{{ ing.id }}"
+                                                        data-stock="{{ ing.stock_quantity }}"
+                                                        data-unit="{{ ing.unit }}">
+                                                    {{ ing.name }} ({{ ing.stock_quantity }} {{ ing.unit }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <label class="form-label small">Cantidad</label>
+                                        <input type="number"
+                                               name="qty_0"
+                                               step="0.01"
+                                               min="0"
+                                               placeholder="Cantidad"
+                                               class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-2">
+                                        <input type="hidden" name="dir_0" value="input">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" data-remove-row>
+                                            <span class="material-icons">close</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm mt-2"
+                                    data-add-input>
+                                <span class="material-icons">add</span> Agregar Entrada
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-3">
+                                <span class="material-icons">arrow_upward</span> Salidas (Procesado)
+                            </h6>
+                            <div id="output-rows" data-rows>
+                                <div class="row g-2 mb-2 align-items-end" data-row>
+                                    <div class="col-7">
+                                        <label class="form-label small">Ingrediente</label>
+                                        <select name="ing_1" class="form-select form-select-sm">
+                                            <option value="">Selecciona...</option>
+                                            {% for ing in ingredients %}
+                                                <option value="{{ ing.id }}"
+                                                        data-stock="{{ ing.stock_quantity }}"
+                                                        data-unit="{{ ing.unit }}">{{ ing.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <label class="form-label small">Cantidad</label>
+                                        <input type="number"
+                                               name="qty_1"
+                                               step="0.01"
+                                               min="0"
+                                               placeholder="Cantidad"
+                                               class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-2">
+                                        <input type="hidden" name="dir_1" value="output">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" data-remove-row>
+                                            <span class="material-icons">close</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm mt-2"
+                                    data-add-output>
+                                <span class="material-icons">add</span> Agregar Salida
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-success" id="btn-apply">
+                        <span class="material-icons">check</span> Aplicar Conversión Manual
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script>
+(function() {
+    var inputCounter = 0;
+    var outputCounter = 1;
+    var inputContainer = document.getElementById('input-rows');
+    var outputContainer = document.getElementById('output-rows');
+
+    function createRow(uid, direction) {
+        var row = document.createElement('div');
+        row.className = 'row g-2 mb-2 align-items-end';
+        row.dataset.row = '';
+        var optionsHtml = inputContainer.querySelector('select').innerHTML;
+        row.innerHTML =
+            '<div class="col-7">' +
+                '<label class="form-label small">Ingrediente</label>' +
+                '<select name="ing_' + uid + '" class="form-select form-select-sm">' + optionsHtml + '</select>' +
+            '</div>' +
+            '<div class="col-3">' +
+                '<label class="form-label small">Cantidad</label>' +
+                '<input type="number" name="qty_' + uid + '" step="0.01" min="0" placeholder="Cantidad" class="form-control form-control-sm">' +
+            '</div>' +
+            '<div class="col-2">' +
+                '<input type="hidden" name="dir_' + uid + '" value="' + direction + '">' +
+                '<button type="button" class="btn btn-outline-danger btn-sm" data-remove-row>' +
+                    '<span class="material-icons">close</span>' +
+                '</button>' +
+            '</div>';
+        return row;
+    }
+
+    function addInputRow() {
+        inputCounter++;
+        inputContainer.appendChild(createRow(inputCounter, 'input'));
+    }
+
+    function addOutputRow() {
+        outputCounter++;
+        outputContainer.appendChild(createRow(outputCounter, 'output'));
+    }
+
+    function removeRow(btn) {
+        var container = btn.closest('[data-rows]');
+        if (container.querySelectorAll('[data-row]').length > 1) {
+            btn.closest('[data-row]').remove();
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('[data-add-input]')) addInputRow();
+        if (e.target.closest('[data-add-output]')) addOutputRow();
+        if (e.target.closest('[data-remove-row]')) removeRow(e.target.closest('[data-remove-row]'));
+    });
+
+    var form = document.getElementById('converter-form');
+    form.addEventListener('submit', function(e) {
+        var inputs = [];
+        var outputs = [];
+        var hasInput = false;
+        var hasOutput = false;
+
+        var selects = form.querySelectorAll('select[name^="ing_"]');
+        selects.forEach(function(sel) {
+            var uid = sel.name.replace('ing_', '');
+            var dir = form.querySelector('[name="dir_' + uid + '"]');
+            if (!dir) return;
+            var direction = dir.value;
+            var qtyInput = form.querySelector('[name="qty_' + uid + '"]');
+            var qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
+            var option = sel.options[sel.selectedIndex];
+            var stock = option ? parseFloat(option.dataset.stock || 0) : 0;
+
+            if (sel.value && qty > 0) {
+                if (direction === 'input') {
+                    hasInput = true;
+                    if (qty > stock) {
+                        e.preventDefault();
+                        alert('Stock insuficiente para ' + option.text.split(' (')[0] +
+                              '. Tienes ' + stock + ' ' + (option.dataset.unit || '') + '.');
+                        return;
+                    }
+                } else {
+                    hasOutput = true;
+                }
+            }
+        });
+
+        if (!hasInput) {
+            e.preventDefault();
+            alert('Debes agregar al menos un ingrediente de entrada.');
+            return;
+        }
+        if (!hasOutput) {
+            e.preventDefault();
+            alert('Debes agregar al menos un ingrediente de salida.');
+        }
+    });
+})();
+    </script>
+{% endblock %}
