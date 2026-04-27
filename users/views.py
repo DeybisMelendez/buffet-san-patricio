@@ -1,14 +1,61 @@
 """
-Vistas para gestión de usuarios.
+Vistas para gestión de usuarios y roles.
 """
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.shortcuts import get_object_or_404, redirect, render
 
-from users.forms import UserCreateForm, UserEditForm
+from users.forms import RoleAssignForm, UserCreateForm, UserEditForm
+from users.permissions import ALL_GROUPS
 from users.utils import is_admin
+
+
+@login_required
+@user_passes_test(is_admin)
+def role_list(request):
+    """Lista todos los roles con sus permisos y usuarios asignados."""
+    groups_data = []
+    for group_name in ALL_GROUPS:
+        group = Group.objects.filter(name=group_name).first()
+        if group:
+            users = User.objects.filter(groups=group).order_by("username")
+            permissions = group.permissions.all().order_by("codename")
+            groups_data.append(
+                {
+                    "group": group,
+                    "users": users,
+                    "user_count": users.count(),
+                    "permissions": permissions,
+                }
+            )
+    return render(request, "users/role_list.html", {"groups_data": groups_data})
+
+
+@login_required
+@user_passes_test(is_admin)
+def role_assign(request):
+    """Asigna usuarios a roles."""
+    if request.method == "POST":
+        form = RoleAssignForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data["user"]
+            roles = form.cleaned_data["roles"]
+            user.groups.set(roles)
+            role_names = ", ".join([r.name for r in roles])
+            messages.success(
+                request, f"✅ Usuario '{user.username}' asignado a roles: {role_names}."
+            )
+            return redirect("role_list")
+    else:
+        form = RoleAssignForm()
+
+    return render(
+        request,
+        "users/role_assign.html",
+        {"form": form, "title": "Asignar Roles a Usuario"},
+    )
 
 
 @login_required

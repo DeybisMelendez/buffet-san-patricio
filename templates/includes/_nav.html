@@ -199,6 +199,9 @@
                             <li>
                                 <a href="{% url 'user_list' %}" class="dropdown-item"><i class="material-icons">people</i> Usuarios</a>
                             </li>
+                            <li>
+                                <a href="{% url 'role_list' %}" class="dropdown-item"><i class="material-icons">assignment_ind</i> Gestión de Roles</a>
+                            </li>
                             {% if user.is_superuser %}
                                 <li>
                                     <a href="/admin/" class="dropdown-item" target="_blank">Panel Admin</a>

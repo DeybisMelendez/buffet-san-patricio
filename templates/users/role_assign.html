@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block extra_css %}
+<style>
+    .form-check {
+        min-height: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    .form-check-label {
+        margin-left: 0.5rem;
+    }
+</style>
+{% endblock %}
+{% block body %}
+<div class="container py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0">{{ title }}</h4>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'role_list' %}" class="btn btn-secondary btn-sm">
+                <span class="material-icons">arrow_back</span> Volver a Roles
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if form.non_form_errors %}
+                <div class="alert alert-danger">{{ form.non_form_errors }}</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ form.user.label }}</label>
+                    {{ form.user }}
+                    {% if form.user.help_text %}
+                        <small class="form-text text-body-secondary">{{ form.user.help_text }}</small>
+                    {% endif %}
+                    {% if form.user.errors %}
+                        <div class="text-danger">{{ form.user.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ form.roles.label }}</label>
+                    <div class="ms-3">
+                        {% for checkbox in form.roles %}
+                            <div class="form-check">
+                                {{ checkbox }}
+                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                    {{ checkbox.choice_label }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.roles.help_text %}
+                        <small class="form-text text-body-secondary">{{ form.roles.help_text }}</small>
+                    {% endif %}
+                    {% if form.roles.errors %}
+                        <div class="text-danger">{{ form.roles.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <span class="material-icons">save</span> Asignar Roles
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

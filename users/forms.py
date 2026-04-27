@@ -9,6 +9,35 @@ from django.contrib.auth.models import Group, User
 from users.permissions import ALL_GROUPS
 
 
+class RoleAssignForm(forms.Form):
+    """Formulario para asignar múltiples roles a un usuario."""
+
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all().order_by("username"),
+        required=True,
+        label="Usuario",
+        help_text="Seleccione el usuario al que desea asignar roles",
+    )
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.filter(name__in=ALL_GROUPS),
+        required=True,
+        label="Roles",
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Seleccione uno o más roles para el usuario",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({"class": "form-check-input"})
+
+    def save(self):
+        user = self.cleaned_data["user"]
+        roles = self.cleaned_data["roles"]
+        user.groups.set(roles)
+        return user
+
+
 class UserCreateForm(UserCreationForm):
     """Formulario para crear un nuevo usuario."""
 
@@ -69,10 +98,11 @@ class UserEditForm(forms.ModelForm):
 
     first_name = forms.CharField(max_length=30, required=True, label="Nombre")
     last_name = forms.CharField(max_length=30, required=True, label="Apellido")
-    groups = forms.ModelChoiceField(
+    roles = forms.ModelMultipleChoiceField(
         queryset=Group.objects.filter(name__in=ALL_GROUPS),
         required=True,
-        label="Rol",
+        label="Roles",
+        widget=forms.CheckboxSelectMultiple,
     )
     password1 = forms.CharField(
         label="Nueva contraseña",
@@ -89,7 +119,7 @@ class UserEditForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "groups"]
+        fields = ["username", "first_name", "last_name", "roles"]
         labels = {
             "username": "Nombre de usuario",
         }
@@ -97,13 +127,12 @@ class UserEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            # Cargar el grupo actual del usuario (solo el primero)
-            group = self.instance.groups.filter(name__in=ALL_GROUPS).first()
-            if group:
-                self.initial["groups"] = group
+            current_roles = self.instance.groups.filter(name__in=ALL_GROUPS)
+            self.initial["roles"] = list(current_roles)
 
-        # Agregar clase form__control a todos los widgets
         for field_name, field in self.fields.items():
+            if field_name in ["roles"]:
+                continue
             field.widget.attrs.update({"class": "form__control"})
             if field_name in ["username", "first_name", "last_name"]:
                 field.widget.attrs.update({"placeholder": field.label})
@@ -123,14 +152,11 @@ class UserEditForm(forms.ModelForm):
         user.first_name = self.cleaned_data["first_name"]
         user.last_name = self.cleaned_data["last_name"]
 
-        # Actualizar contraseña si se proporcionó
         password = self.cleaned_data.get("password1")
         if password:
             user.set_password(password)
 
         if commit:
             user.save()
-            # Actualizar grupo
-            user.groups.clear()
-            user.groups.add(self.cleaned_data["groups"])
+            user.groups.set(self.cleaned_data["roles"])
         return user
