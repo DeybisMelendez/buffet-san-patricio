@@ -4,7 +4,12 @@
 {% block title %}Comandar{% endblock %}
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">Comandar</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Comandar</h1>
+            <a href="{% url 'order_history' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="material-icons">history</i> Historial de Comandas
+            </a>
+        </div>
         {% if user|has_group:"Cajero" or user|has_group:"Supervisor" or user|is_administrador or user.is_superuser %}
             <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
                 <i class="material-icons me-2">point_of_sale</i>
