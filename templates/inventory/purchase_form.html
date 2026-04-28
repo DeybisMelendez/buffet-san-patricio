@@ -103,6 +103,8 @@
                             <th>Bodega</th>
                             <th>Stock Actual</th>
                             <th>Cantidad</th>
+                            <th>Costo Unitario</th>
+                            <th>Monto</th>
                             <th style="width: 50px;"></th>
                         </tr>
                     </thead>
@@ -110,8 +112,9 @@
                     </tbody>
                     <tfoot class="table-light">
                         <tr>
-                            <td colspan="3" class="text-end fw-bold">TOTAL:</td>
+                            <td colspan="4" class="text-end fw-bold">TOTAL:</td>
                             <td class="text-end fw-bold" id="total-count">0 ingredientes</td>
+                            <td class="text-end fw-bold" id="total-amount">C$ 0.00</td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -179,14 +182,26 @@
 
         items.forEach(function(item, index) {
             var tr = document.createElement('tr');
+            var itemTotal = (parseFloat(item.qty) || 0) * (parseFloat(item.unit_cost) || 0);
             tr.innerHTML =
                 '<td>' + item.name + '<input type="hidden" name="item_id_' + index + '" value="' + item.id + '"></td>' +
                 '<td>' + (item.warehouse || '-') + '</td>' +
-                '<td class="text-end">' + item.stock.toFixed(2) + ' ' + item.unit + '</td>' +
-                '<td style="width: 140px;">' +
+                '<td>' + item.stock.toFixed(2) + ' ' + item.unit + '</td>' +
+                '<td style="width: 120px;">' +
                     '<input type="number" name="item_qty_' + index + '" step="0.01" min="0.01" ' +
                            'value="' + item.qty + '" class="form-control form-control-sm text-end item-qty" ' +
                            'placeholder="0" required>' +
+                '</td>' +
+                '<td style="width: 130px;">' +
+                    '<div class="input-group input-group-sm">' +
+                        '<span class="input-group-text">C$</span>' +
+                        '<input type="number" name="item_cost_' + index + '" step="0.01" min="0" ' +
+                               'value="' + (item.unit_cost || '') + '" class="form-control form-control-sm text-end item-cost" ' +
+                               'placeholder="0.00" required>' +
+                    '</div>' +
+                '</td>' +
+                '<td class="text-end fw-bold">' +
+                    'C$ ' + itemTotal.toFixed(2) +
                 '</td>' +
                 '<td>' +
                     '<button type="button" class="btn btn-danger btn-sm" onclick="removeItem(' + index + ')">' +
@@ -197,9 +212,28 @@
         });
 
         var totalQty = items.reduce(function(sum, item) { return sum + (parseFloat(item.qty) || 0); }, 0);
+        var totalAmount = items.reduce(function(sum, item) {
+            return sum + (parseFloat(item.qty) || 0) * (parseFloat(item.unit_cost) || 0);
+        }, 0);
         totalCount.textContent = items.length + ' ingrediente' + (items.length !== 1 ? 's' : '') + ' (total: ' + totalQty.toFixed(2) + ')';
+        document.getElementById('total-amount').textContent = 'C$ ' + totalAmount.toFixed(2);
 
         btnSubmit.disabled = items.length === 0;
+    }
+
+    function updateTotals() {
+        var totalQty = items.reduce(function(sum, item) {
+            return sum + (parseFloat(item.qty) || 0);
+        }, 0);
+        var totalAmount = items.reduce(function(sum, item) {
+            return sum + (parseFloat(item.qty) || 0) * (parseFloat(item.unit_cost) || 0);
+        }, 0);
+
+        var totalCountEl = document.getElementById('total-count');
+        var totalAmountEl = document.getElementById('total-amount');
+
+        totalCountEl.textContent = items.length + ' ingrediente' + (items.length !== 1 ? 's' : '') + ' (total: ' + totalQty.toFixed(2) + ')';
+        totalAmountEl.textContent = 'C$ ' + totalAmount.toFixed(2);
     }
 
     window.removeItem = function(index) {
@@ -265,7 +299,8 @@
             warehouse: ing.warehouse,
             warehouse_id: ing.warehouse_id,
             stock: ing.stock_quantity,
-            qty: ''
+            qty: '',
+            unit_cost: ''
         });
 
         document.getElementById('ingredient-search').value = '';
@@ -286,6 +321,16 @@
             var tr = e.target.closest('tr');
             var index = Array.from(tr.parentNode.children).indexOf(tr);
             items[index].qty = e.target.value;
+            updateTotals();
+        }
+        if (e.target.classList.contains('item-cost')) {
+            var tr = e.target.closest('tr');
+            var index = Array.from(tr.parentNode.children).indexOf(tr);
+            items[index].unit_cost = e.target.value;
+            var row = tr.closest('tr');
+            var itemTotal = (parseFloat(items[index].qty) || 0) * (parseFloat(items[index].unit_cost) || 0);
+            row.querySelector('td:nth-child(6)').textContent = 'C$ ' + itemTotal.toFixed(2);
+            updateTotals();
         }
     });
 
@@ -307,12 +352,19 @@
 
         for (var i = 0; i < items.length; i++) {
             var qty = parseFloat(document.querySelector('[name="item_qty_' + i + '"]').value);
+            var unitCost = parseFloat(document.querySelector('[name="item_cost_' + i + '"]').value);
             if (!qty || qty <= 0) {
                 e.preventDefault();
                 alert('Todos los ingredientes deben tener cantidad mayor a cero.');
                 return;
             }
+            if (!unitCost || unitCost <= 0) {
+                e.preventDefault();
+                alert('Todos los ingredientes deben tener costo unitario mayor a cero.');
+                return;
+            }
             items[i].qty = qty;
+            items[i].unit_cost = unitCost;
         }
 
         var itemsJson = document.createElement('input');

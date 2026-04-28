@@ -297,6 +297,11 @@ urlpatterns = [
         views.purchase_cancel,
         name="purchase_cancel",
     ),
+    path(
+        "inventory/purchases/<int:purchase_id>/mark-paid/",
+        views.purchase_mark_paid,
+        name="purchase_mark_paid",
+    ),
     # Alias español
     path("compras/", views.purchase_list, name="purchase_list_alt"),
     path("compras/nueva/", views.purchase_create, name="purchase_create_alt"),

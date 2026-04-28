@@ -100,29 +100,6 @@
         return '/api/purchases/' + (queryString ? '?' + queryString : '');
     }
 
-    function getFilters() {
-        var params = new URLSearchParams();
-        var supplier = document.getElementById('supplier');
-        var status = document.getElementById('status');
-        var dateFrom = document.getElementById('date_from');
-        if (supplier && supplier.value) params.set('supplier', supplier.value);
-        if (status && status.value) params.set('status', status.value);
-        if (dateFrom && dateFrom.value) params.set('date_from', dateFrom.value);
-        return params.toString();
-    }
-
-    var statusColors = {
-        'ACTIVE': 'bg-success',
-        'COMPLETED': 'bg-primary',
-        'CANCELED': 'bg-danger'
-    };
-
-    var statusLabels = {
-        'ACTIVE': 'Activa',
-        'COMPLETED': 'Completada',
-        'CANCELED': 'Cancelada'
-    };
-
     function initGrid() {
         container.innerHTML = '';
         GridUtils.showLoading('grid-container');
@@ -141,7 +118,10 @@
             { name: 'Bodega', id: 'warehouse__name', sort: { enabled: true } },
             { name: 'Tipo', id: 'purchase_type', sort: { enabled: true },
               formatter: function(cell) {
-                  return cell === 'CASH' ? 'Contado' : 'Crédito';
+                  if (cell === 'CREDIT') {
+                      return gridjs.html('<span class="badge bg-warning">Crédito</span>');
+                  }
+                  return gridjs.html('<span class="badge bg-success">Contado</span>');
               }
             },
             { name: 'Total', id: 'total_amount', sort: { enabled: true },
@@ -149,22 +129,19 @@
                   return 'C$ ' + parseFloat(cell || 0).toFixed(2);
               }
             },
-            { name: 'Estado', id: 'status', sort: { enabled: true },
-              formatter: function(cell) {
-                  var color = statusColors[cell] || 'bg-secondary';
-                  var label = statusLabels[cell] || cell;
-                  return gridjs.html('<span class="badge ' + color + '">' + label + '</span>');
-              }
-            },
-            { name: 'Acciones', id: 'acciones', sort: false, width: '120px',
+            { name: 'Acciones', id: 'acciones', sort: false, width: '150px',
               formatter: function(cell, row) {
                   var id = row.cells[0].data;
-                  return gridjs.html(
-                      '<div class="btn-group btn-group-sm" role="group">' +
+                  var purchaseType = row.cells[5].data;
+                  var html = '<div class="btn-group btn-group-sm" role="group">' +
                       '<a href="/inventory/purchases/' + id + '/" class="btn btn-secondary" title="Ver">' +
-                      '<span class="material-icons" style="font-size:1rem;">visibility</span></a>' +
-                      '</div>'
-                  );
+                      '<span class="material-icons" style="font-size:1rem;">visibility</span></a>';
+                  if (purchaseType === 'CREDIT') {
+                      html += '<a href="/inventory/purchases/' + id + '/mark-paid/" class="btn btn-success" title="Pago Realizado" onclick="return confirm(\'¿Marcar esta compra como pagada?\')">' +
+                      '<span class="material-icons" style="font-size:1rem;">check_circle</span></a>';
+                  }
+                  html += '</div>';
+                  return gridjs.html(html);
               }
             }
         ],
@@ -180,7 +157,6 @@
                         item.warehouse__name || '-',
                         item.purchase_type,
                         item.total_amount,
-                        item.status,
                         null
                     ];
                 });

@@ -3197,20 +3197,30 @@ def purchase_create(request):
             for item_data in items_data:
                 ingredient_id = item_data.get("id")
                 qty = Decimal(str(item_data.get("qty", "0")))
+                unit_cost = Decimal(str(item_data.get("unit_cost", "0")))
 
                 if not ingredient_id or qty <= 0:
                     continue
+
+                if unit_cost <= 0:
+                    messages.error(
+                        request,
+                        f" El ingrediente debe tener costo unitario mayor a cero.",
+                    )
+                    return redirect("purchase_create")
 
                 try:
                     ingredient = Ingredient.objects.get(id=ingredient_id)
                 except Ingredient.DoesNotExist:
                     continue
 
+                subtotal_item = qty * unit_cost
+
                 PurchaseItem.objects.create(
                     purchase=purchase,
                     ingredient=ingredient,
                     quantity=qty,
-                    unit_cost=Decimal("0"),
+                    unit_cost=unit_cost,
                 )
 
                 IngredientMovement.objects.create(
@@ -3220,7 +3230,7 @@ def purchase_create(request):
                     reason=f"Compra #{purchase.id} - {supplier.name}",
                 )
 
-                total += qty
+                total += subtotal_item
                 item_count += 1
 
             if item_count == 0:
@@ -3298,6 +3308,25 @@ def purchase_cancel(request, purchase_id):
     messages.success(
         request, f" Compra #{purchase.id} cancelada. Inventario revertido."
     )
+    return redirect("purchase_list")
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def purchase_mark_paid(request, purchase_id):
+    """Marca una compra a crédito como pagada (cambia a contado)."""
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+
+    if purchase.purchase_type != "CREDIT":
+        messages.warning(request, " Esta compra no es a crédito.")
+        return redirect("purchase_detail", purchase_id=purchase.id)
+
+    with transaction.atomic():
+        purchase.purchase_type = "CASH"
+        purchase.status = "COMPLETED"
+        purchase.save()
+
+    messages.success(request, f" Compra #{purchase.id} marcada como pagada.")
     return redirect("purchase_list")
 
 
