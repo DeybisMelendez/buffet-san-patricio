@@ -377,3 +377,112 @@ class CashRegister(models.Model):
 
     def __str__(self):
         return f"Arqueo #{self.id} - {self.date} ({self.get_status_display()})"
+
+
+# ==========================
+# 🛒 COMPRAS DE INGREDIENTES
+# ==========================
+
+
+class Supplier(SoftDeleteModel):
+    name = models.CharField(max_length=255, unique=True, verbose_name="Nombre")
+    contact_name = models.CharField(
+        max_length=255, blank=True, default="", verbose_name="Persona de contacto"
+    )
+    phone = models.CharField(
+        max_length=20, blank=True, default="", verbose_name="Teléfono"
+    )
+    email = models.EmailField(blank=True, default="", verbose_name="Correo electrónico")
+    address = models.TextField(blank=True, default="", verbose_name="Dirección")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Proveedor"
+        verbose_name_plural = "Proveedores"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Purchase(models.Model):
+    PURCHASE_TYPE_CHOICES = [
+        ("CREDIT", "Crédito"),
+        ("CASH", "Contado"),
+    ]
+    STATUS_CHOICES = [
+        ("ACTIVE", "Activa"),
+        ("COMPLETED", "Completada"),
+        ("CANCELED", "Cancelada"),
+    ]
+
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, verbose_name="Proveedor"
+    )
+    warehouse = models.ForeignKey(
+        Warehouse, on_delete=models.PROTECT, verbose_name="Bodega"
+    )
+    purchase_type = models.CharField(
+        max_length=10,
+        choices=PURCHASE_TYPE_CHOICES,
+        default="CASH",
+        verbose_name="Tipo de compra",
+    )
+    order_date = models.DateField(null=True, blank=True, verbose_name="Fecha de orden")
+    reference_number = models.CharField(
+        max_length=50, blank=True, default="", verbose_name="Número de referencia"
+    )
+    subtotal = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Subtotal"
+    )
+    total_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Total"
+    )
+    notes = models.TextField(blank=True, default="", verbose_name="Notas")
+    status = models.CharField(
+        max_length=15, choices=STATUS_CHOICES, default="ACTIVE", verbose_name="Estado"
+    )
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="purchases_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Compra"
+        verbose_name_plural = "Compras"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Compra #{self.id} - {self.supplier.name} ({self.order_date})"
+
+    def mark_as_completed(self):
+        self.status = "COMPLETED"
+        self.save()
+
+    def cancel(self):
+        self.status = "CANCELED"
+        self.save()
+
+
+class PurchaseItem(models.Model):
+    purchase = models.ForeignKey(
+        Purchase, on_delete=models.CASCADE, related_name="items"
+    )
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "Ítem de Compra"
+        verbose_name_plural = "Ítems de Compra"
+
+    def save(self, *args, **kwargs):
+        self.subtotal = self.quantity * self.unit_cost
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.ingredient.name} @ C${self.unit_cost}"

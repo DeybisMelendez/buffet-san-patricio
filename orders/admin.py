@@ -1,17 +1,10 @@
 from django.contrib import admin
 
-from .models import (
-    DispatchArea,
-    Ingredient,
-    IngredientMovement,
-    Order,
-    OrderItem,
-    Product,
-    ProductCategory,
-    ProductIngredient,
-    Table,
-    Warehouse,
-)
+from .models import (CashRegister, DispatchArea, FoodRecipe, FoodRecipeItem,
+                     Ingredient, IngredientMovement, Invoice, InvoiceItem,
+                     Order, OrderItem, Product, ProductCategory,
+                     ProductIngredient, Purchase, PurchaseItem, Supplier,
+                     Table, Warehouse)
 
 
 @admin.register(Table)
@@ -109,3 +102,32 @@ class OrderItemAdmin(admin.ModelAdmin):
         return f"C${obj.get_total():,.2f}"
 
     get_total_display.short_description = "Subtotal"
+
+
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ("name", "contact_name", "phone", "is_deleted")
+    search_fields = ("name", "contact_name", "phone")
+    list_filter = ("is_deleted",)
+
+
+class PurchaseItemInline(admin.TabularInline):
+    model = PurchaseItem
+    extra = 1
+
+
+@admin.register(Purchase)
+class PurchaseAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "supplier",
+        "warehouse",
+        "purchase_type",
+        "total_amount",
+        "status",
+        "created_at",
+    )
+    search_fields = ("supplier__name", "reference_number")
+    list_filter = ("status", "purchase_type", "created_at")
+    inlines = [PurchaseItemInline]
+    readonly_fields = ("created_at",)

@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
@@ -24,7 +24,8 @@ from .forms import ProductIngredientForm, TableForm
 from .models import (CashRegister, DispatchArea, FoodRecipe, FoodRecipeItem,
                      Ingredient, IngredientMovement, Invoice, InvoiceItem,
                      Order, OrderItem, Product, ProductCategory,
-                     ProductIngredient, Table, Warehouse)
+                     ProductIngredient, Purchase, PurchaseItem, Supplier,
+                     Table, Warehouse)
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -2385,12 +2386,18 @@ def dashboard(request):
 def api_ingredients(request):
     """API endpoint que retorna lista de ingredientes en formato JSON para Grid.js."""
     ingredients = Ingredient.objects.select_related("warehouse").order_by("name")
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        ingredients = ingredients.filter(name__icontains=search)
+
     data = [
         {
             "id": i.id,
             "name": i.name,
             "unit": i.get_unit_display(),
             "warehouse": i.warehouse.name if i.warehouse else None,
+            "warehouse_id": i.warehouse_id,
             "stock_quantity": float(i.stock_quantity),
         }
         for i in ingredients
@@ -3106,3 +3113,402 @@ def api_cash_register_status(request):
     else:
         data = {"active": False}
     return JsonResponse(data)
+
+
+# ==========================
+# 🛒 COMPRAS DE INGREDIENTES
+# ==========================
+
+
+@login_required
+@user_passes_test(user_can_view_inventory)
+def purchase_list(request):
+    """Lista todas las compras de ingredientes."""
+    suppliers = Supplier.objects.filter(is_deleted=False).order_by("name")
+    warehouses = Warehouse.objects.all()
+    return render(
+        request,
+        "inventory/purchase_list.html",
+        {
+            "suppliers": suppliers,
+            "warehouses": warehouses,
+        },
+    )
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def purchase_create(request):
+    """Crea una nueva compra de ingredientes."""
+    import json
+
+    suppliers = Supplier.objects.filter(is_deleted=False).order_by("name")
+    warehouses = Warehouse.objects.all()
+
+    if request.method == "POST":
+        supplier_id = request.POST.get("supplier")
+        warehouse_id = request.POST.get("warehouse")
+        purchase_type = request.POST.get("purchase_type", "CASH")
+        order_date_str = request.POST.get("order_date", "")
+        reference_number = request.POST.get("reference_number", "")
+        notes = request.POST.get("notes", "")
+        items_json = request.POST.get("items_json", "[]")
+
+        try:
+            supplier = Supplier.objects.get(id=supplier_id)
+            warehouse = Warehouse.objects.get(id=warehouse_id)
+        except (Supplier.DoesNotExist, Warehouse.DoesNotExist):
+            messages.error(request, " Proveedor o bodega inválidos.")
+            return redirect("purchase_create")
+
+        try:
+            items_data = json.loads(items_json)
+        except json.JSONDecodeError:
+            messages.error(request, " Datos de ingredientes inválidos.")
+            return redirect("purchase_create")
+
+        if not items_data:
+            messages.error(request, " Debes agregar al menos un ingrediente.")
+            return redirect("purchase_create")
+
+        order_date = None
+        if order_date_str:
+            try:
+                order_date = datetime.strptime(order_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                order_date = date.today()
+        else:
+            order_date = date.today()
+
+        with transaction.atomic():
+            purchase = Purchase.objects.create(
+                supplier=supplier,
+                warehouse=warehouse,
+                purchase_type=purchase_type,
+                order_date=order_date,
+                reference_number=reference_number,
+                notes=notes,
+                created_by=request.user,
+            )
+
+            item_count = 0
+            total = Decimal("0")
+
+            for item_data in items_data:
+                ingredient_id = item_data.get("id")
+                qty = Decimal(str(item_data.get("qty", "0")))
+
+                if not ingredient_id or qty <= 0:
+                    continue
+
+                try:
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                except Ingredient.DoesNotExist:
+                    continue
+
+                PurchaseItem.objects.create(
+                    purchase=purchase,
+                    ingredient=ingredient,
+                    quantity=qty,
+                    unit_cost=Decimal("0"),
+                )
+
+                IngredientMovement.objects.create(
+                    ingredient=ingredient,
+                    quantity=qty,
+                    user=request.user,
+                    reason=f"Compra #{purchase.id} - {supplier.name}",
+                )
+
+                total += qty
+                item_count += 1
+
+            if item_count == 0:
+                purchase.delete()
+                messages.error(
+                    request,
+                    " Debes agregar al menos un ingrediente con cantidad.",
+                )
+                return redirect("purchase_create")
+
+            purchase.subtotal = total
+            purchase.total_amount = total
+            purchase.save()
+
+        messages.success(
+            request, f" Compra #{purchase.id} registrada con {item_count} ingredientes."
+        )
+        return redirect("purchase_detail", purchase_id=purchase.id)
+
+    return render(
+        request,
+        "inventory/purchase_form.html",
+        {
+            "suppliers": suppliers,
+            "warehouses": warehouses,
+        },
+    )
+
+
+@login_required
+@user_passes_test(user_can_view_inventory)
+def purchase_detail(request, purchase_id):
+    """Muestra el detalle de una compra."""
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+    items = purchase.items.select_related("ingredient").all()
+    movements = IngredientMovement.objects.filter(
+        reason__icontains=f"Compra #{purchase.id}"
+    ).order_by("-created_at")
+    return render(
+        request,
+        "inventory/purchase_detail.html",
+        {
+            "purchase": purchase,
+            "items": items,
+            "movements": movements,
+        },
+    )
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def purchase_cancel(request, purchase_id):
+    """Cancela una compra y revierte los movimientos de inventario."""
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+
+    if purchase.status == "CANCELED":
+        messages.warning(request, " Esta compra ya está cancelada.")
+        return redirect("purchase_detail", purchase_id=purchase.id)
+
+    if purchase.status == "COMPLETED":
+        messages.warning(request, " No se puede cancelar una compra completada.")
+        return redirect("purchase_detail", purchase_id=purchase.id)
+
+    with transaction.atomic():
+        for item in purchase.items.all():
+            IngredientMovement.objects.create(
+                ingredient=item.ingredient,
+                quantity=-item.quantity,
+                user=request.user,
+                reason=f"Cancelación de Compra #{purchase.id}",
+            )
+
+        purchase.cancel()
+
+    messages.success(
+        request, f" Compra #{purchase.id} cancelada. Inventario revertido."
+    )
+    return redirect("purchase_list")
+
+
+@login_required
+@user_passes_test(user_can_view_inventory)
+def api_purchases(request):
+    """API endpoint para listar compras con GridJS."""
+    queryset = Purchase.objects.select_related("supplier", "warehouse", "created_by")
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(
+            Q(supplier__name__icontains=search) | Q(reference_number__icontains=search)
+        )
+
+    supplier_id = request.GET.get("supplier", "").strip()
+    if supplier_id:
+        queryset = queryset.filter(supplier_id=supplier_id)
+
+    status = request.GET.get("status", "").strip()
+    if status:
+        queryset = queryset.filter(status=status)
+
+    date_from = request.GET.get("date_from", "").strip()
+    if date_from:
+        try:
+            date_from_parsed = datetime.strptime(date_from, "%Y-%m-%d").date()
+            queryset = queryset.filter(order_date__gte=date_from_parsed)
+        except ValueError:
+            pass
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        field, direction = sort.split(",")
+        if direction == "desc":
+            field = f"-{field}"
+        queryset = queryset.order_by(field)
+
+    try:
+        page = int(request.GET.get("page", 1))
+        limit = int(request.GET.get("limit", 25))
+    except ValueError:
+        page = 1
+        limit = 25
+
+    if limit == 0:
+        items = list(
+            queryset.values(
+                "id",
+                "supplier__name",
+                "warehouse__name",
+                "purchase_type",
+                "total_amount",
+                "status",
+                "order_date",
+                "created_at",
+            )
+        )
+        return JsonResponse({"count": len(items), "results": items})
+
+    start = (page - 1) * limit
+    end = start + limit
+    items = list(
+        queryset.values(
+            "id",
+            "supplier__name",
+            "warehouse__name",
+            "purchase_type",
+            "total_amount",
+            "status",
+            "order_date",
+            "created_at",
+        )[start:end]
+    )
+
+    return JsonResponse({"count": queryset.count(), "results": items})
+
+
+@login_required
+@user_passes_test(user_can_view_inventory)
+def api_suppliers(request):
+    """API endpoint para listar proveedores."""
+    queryset = Supplier.objects.all()
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(name__icontains=search)
+
+    items = list(queryset.values("id", "name", "contact_name", "phone", "email"))
+    return JsonResponse({"count": queryset.count(), "results": items})
+
+
+# ==========================
+# 📦 GESTIÓN DE PROVEEDORES
+# ==========================
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def supplier_list(request):
+    """Lista todos los proveedores."""
+    suppliers = Supplier.objects.all().order_by("name")
+    return render(request, "inventory/supplier_list.html", {"suppliers": suppliers})
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def supplier_create(request):
+    """Crea un nuevo proveedor."""
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        contact_name = request.POST.get("contact_name", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        email = request.POST.get("email", "").strip()
+        address = request.POST.get("address", "").strip()
+
+        if not name:
+            messages.error(request, " El nombre del proveedor es requerido.")
+            return redirect("supplier_create")
+
+        if Supplier.objects.filter(name__iexact=name).exists():
+            messages.error(request, " Ya existe un proveedor con ese nombre.")
+            return redirect("supplier_create")
+
+        supplier = Supplier.objects.create(
+            name=name,
+            contact_name=contact_name,
+            phone=phone,
+            email=email,
+            address=address,
+        )
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse(
+                {
+                    "success": True,
+                    "supplier": {
+                        "id": supplier.id,
+                        "name": supplier.name,
+                        "contact_name": supplier.contact_name,
+                        "phone": supplier.phone,
+                        "email": supplier.email,
+                    },
+                }
+            )
+
+        messages.success(request, f" Proveedor '{supplier.name}' creado exitosamente.")
+        return redirect("supplier_list")
+
+    return render(request, "inventory/supplier_form.html", {"supplier": None})
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def supplier_edit(request, supplier_id):
+    """Edita un proveedor existente."""
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        contact_name = request.POST.get("contact_name", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        email = request.POST.get("email", "").strip()
+        address = request.POST.get("address", "").strip()
+
+        if not name:
+            messages.error(request, " El nombre del proveedor es requerido.")
+            return redirect("supplier_edit", supplier_id=supplier_id)
+
+        if Supplier.objects.filter(name__iexact=name).exclude(id=supplier_id).exists():
+            messages.error(request, " Ya existe un proveedor con ese nombre.")
+            return redirect("supplier_edit", supplier_id=supplier_id)
+
+        supplier.name = name
+        supplier.contact_name = contact_name
+        supplier.phone = phone
+        supplier.email = email
+        supplier.address = address
+        supplier.save()
+
+        messages.success(
+            request, f" Proveedor '{supplier.name}' actualizado exitosamente."
+        )
+        return redirect("supplier_list")
+
+    return render(request, "inventory/supplier_form.html", {"supplier": supplier})
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def supplier_delete(request, supplier_id):
+    """Elimina un proveedor (soft delete)."""
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+
+    if request.method == "POST":
+        supplier.soft_delete()
+        messages.success(request, f" Proveedor '{supplier.name}' eliminado.")
+        return redirect("supplier_list")
+
+    return render(
+        request,
+        "inventory/supplier_confirm_delete.html",
+        {"supplier": supplier},
+    )
+
+
+@login_required
+@user_passes_test(user_can_add_inventory_movement)
+def supplier_restore(request, supplier_id):
+    """Restaura un proveedor eliminado."""
+    supplier = get_object_or_404(Supplier.all_objects, id=supplier_id)
+    supplier.restore()
+    messages.success(request, f" Proveedor '{supplier.name}' restaurado.")
+    return redirect("supplier_list")

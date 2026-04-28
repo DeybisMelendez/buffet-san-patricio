@@ -283,6 +283,70 @@ urlpatterns = [
         name="purchase_ingredients_alt",
     ),
     # ==========================
+    # Inventory - Compras de Ingredientes
+    # ==========================
+    path("inventory/purchases/", views.purchase_list, name="purchase_list"),
+    path("inventory/purchases/create/", views.purchase_create, name="purchase_create"),
+    path(
+        "inventory/purchases/<int:purchase_id>/",
+        views.purchase_detail,
+        name="purchase_detail",
+    ),
+    path(
+        "inventory/purchases/<int:purchase_id>/cancel/",
+        views.purchase_cancel,
+        name="purchase_cancel",
+    ),
+    # Alias español
+    path("compras/", views.purchase_list, name="purchase_list_alt"),
+    path("compras/nueva/", views.purchase_create, name="purchase_create_alt"),
+    path(
+        "compras/<int:purchase_id>/", views.purchase_detail, name="purchase_detail_alt"
+    ),
+    path(
+        "compras/<int:purchase_id>/cancelar/",
+        views.purchase_cancel,
+        name="purchase_cancel_alt",
+    ),
+    # ==========================
+    # Inventory - Proveedores
+    # ==========================
+    path("inventory/suppliers/", views.supplier_list, name="supplier_list"),
+    path("inventory/suppliers/new/", views.supplier_create, name="supplier_create"),
+    path(
+        "inventory/suppliers/<int:supplier_id>/edit/",
+        views.supplier_edit,
+        name="supplier_edit",
+    ),
+    path(
+        "inventory/suppliers/<int:supplier_id>/delete/",
+        views.supplier_delete,
+        name="supplier_delete",
+    ),
+    path(
+        "inventory/suppliers/<int:supplier_id>/restore/",
+        views.supplier_restore,
+        name="supplier_restore",
+    ),
+    # Alias español
+    path("proveedores/", views.supplier_list, name="supplier_list_alt"),
+    path("proveedores/nuevo/", views.supplier_create, name="supplier_create_alt"),
+    path(
+        "proveedores/<int:supplier_id>/editar/",
+        views.supplier_edit,
+        name="supplier_edit_alt",
+    ),
+    path(
+        "proveedores/<int:supplier_id>/eliminar/",
+        views.supplier_delete,
+        name="supplier_delete_alt",
+    ),
+    path(
+        "proveedores/<int:supplier_id>/restaurar/",
+        views.supplier_restore,
+        name="supplier_restore_alt",
+    ),
+    # ==========================
     # Inventory - Conversor de Alimentos
     # ==========================
     path("inventory/convert/recipe/", views.recipe_converter, name="recipe_converter"),
@@ -446,6 +510,9 @@ urlpatterns = [
         "api/sales-by-product/", views.api_sales_by_product, name="api_sales_by_product"
     ),
     path("api/orders-report/", views.api_orders_report, name="api_orders_report"),
+    # API Compras
+    path("api/purchases/", views.api_purchases, name="api_purchases"),
+    path("api/suppliers/", views.api_suppliers, name="api_suppliers"),
     # ==========================
     # 🧾 FACTURACIÓN
     # ==========================
