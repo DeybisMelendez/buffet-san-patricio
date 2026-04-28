@@ -7,28 +7,45 @@
             <h1 class="mb-0"><span class="material-icons">admin_panel_settings</span> Gestión de Roles</h1>
         </div>
         <div class="col-auto">
-            <a href="{% url 'role_assign' %}" class="btn btn-primary btn-sm">
+            <a href="{% url 'role_create' %}" class="btn btn-primary btn-sm">
+                <span class="material-icons">add</span> Nuevo Rol
+            </a>
+            <a href="{% url 'role_assign' %}" class="btn btn-outline-primary btn-sm">
                 <span class="material-icons">assignment_ind</span> Asignar Roles
             </a>
         </div>
     </div>
 
     <div class="row g-4">
-        {% for data in groups_data %}
+        {% for data in roles_data %}
         <div class="col-12 col-lg-6">
             <div class="card h-100">
-                <div class="card-header bg-{% if data.group.name == 'Administrador' %}danger{% elif data.group.name == 'Supervisor' %}warning{% elif data.group.name == 'Cajero' %}info{% elif data.group.name == 'Cocinero' %}success{% else %}primary{% endif %} text-white">
-                    <h5 class="card-title mb-0">
-                        <span class="material-icons">group</span>
-                        {{ data.group.name }}
-                    </h5>
+                <div class="card-header bg-{% if data.role.name == 'Administrador' %}danger{% elif data.role.name == 'Supervisor' %}warning{% elif data.role.name == 'Cajero' %}info{% elif data.role.name == 'Cocinero' %}success{% else %}primary{% endif %} text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <span class="material-icons">group</span>
+                            {{ data.role.name }}
+                        </h5>
+                        <div>
+                            <a
+                                href="{% url 'role_edit' data.role.id %}"
+                                class="btn btn-sm btn-light"
+                                title="Editar rol"
+                            >
+                                <span class="material-icons">edit</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% if data.role.description %}
+                    <small>{{ data.role.description }}</small>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
                             <h6 class="text-muted mb-2">Usuarios ({{ data.user_count }})</h6>
                             {% if data.users %}
-                                <ul class="list-unstyled mb-0">
+                                <ul class="list-unstyled mb-0" style="max-height: 120px; overflow-y: auto;">
                                     {% for user in data.users %}
                                         <li class="mb-1">
                                             <span class="material-icons" style="font-size: 1rem;">person</span>
@@ -44,11 +61,11 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Permisos</h6>
-                            <div class="permissions-list" style="max-height: 150px; overflow-y: auto;">
+                            <h6 class="text-muted mb-2">Permisos ({{ data.permissions|length }})</h6>
+                            <div class="permissions-list" style="max-height: 120px; overflow-y: auto;">
                                 {% if data.permissions %}
                                     {% for perm in data.permissions %}
-                                        <small class="badge bg-light text-dark me-1 mb-1">{{ perm.codename }}</small>
+                                        <span class="badge bg-light text-dark me-1 mb-1">{{ perm.codename }}</span>
                                     {% endfor %}
                                 {% else %}
                                     <p class="text-body-secondary mb-0">Sin permisos específicos</p>
@@ -57,11 +74,22 @@
                         </div>
                     </div>
                 </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        Creado: {{ data.role.created_at|date:"d/m/Y H:i" }}
+                        {% if data.role.updated_at != data.role.created_at %}
+                        | Actualizado: {{ data.role.updated_at|date:"d/m/Y H:i" }}
+                        {% endif %}
+                    </small>
+                </div>
             </div>
         </div>
         {% empty %}
         <div class="col-12">
-            <div class="alert alert-info">No hay roles configurados en el sistema.</div>
+            <div class="alert alert-info">
+                No hay roles configurados en el sistema.
+                <a href="{% url 'role_create' %}" class="alert-link">Crear el primer rol</a>
+            </div>
         </div>
         {% endfor %}
     </div>

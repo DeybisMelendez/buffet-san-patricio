@@ -6,9 +6,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import Group, User
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods
 
-from users.forms import RoleAssignForm, UserCreateForm, UserEditForm
-from users.permissions import ALL_GROUPS
+from users.forms import RoleAssignForm, RoleForm, UserCreateForm, UserEditForm
+from users.models import Role
 from users.utils import is_admin
 
 
@@ -16,21 +17,90 @@ from users.utils import is_admin
 @user_passes_test(is_admin)
 def role_list(request):
     """Lista todos los roles con sus permisos y usuarios asignados."""
-    groups_data = []
-    for group_name in ALL_GROUPS:
-        group = Group.objects.filter(name=group_name).first()
-        if group:
+    roles = Role.objects.filter(is_active=True).order_by("name")
+    roles_data = []
+    for role in roles:
+        try:
+            group = Group.objects.get(name=role.name)
             users = User.objects.filter(groups=group).order_by("username")
-            permissions = group.permissions.all().order_by("codename")
-            groups_data.append(
-                {
-                    "group": group,
-                    "users": users,
-                    "user_count": users.count(),
-                    "permissions": permissions,
-                }
-            )
-    return render(request, "users/role_list.html", {"groups_data": groups_data})
+            permissions = role.permissions.all().order_by("codename")
+        except Group.DoesNotExist:
+            users = []
+            permissions = []
+
+        roles_data.append(
+            {
+                "role": role,
+                "users": users,
+                "user_count": users.count(),
+                "permissions": permissions,
+            }
+        )
+    return render(request, "users/role_list.html", {"roles_data": roles_data})
+
+
+@login_required
+@user_passes_test(is_admin)
+def role_create(request):
+    """Crea un nuevo rol."""
+    if request.method == "POST":
+        form = RoleForm(request.POST)
+        if form.is_valid():
+            role = form.save()
+            messages.success(request, f"✅ Rol '{role.name}' creado exitosamente.")
+            return redirect("role_list")
+    else:
+        form = RoleForm()
+
+    return render(
+        request,
+        "users/role_form.html",
+        {"form": form, "title": "Crear Rol", "submit_label": "Crear Rol"},
+    )
+
+
+@login_required
+@user_passes_test(is_admin)
+def role_edit(request, role_id):
+    """Edita un rol existente."""
+    role = get_object_or_404(Role, id=role_id, is_active=True)
+
+    if request.method == "POST":
+        form = RoleForm(request.POST, instance=role)
+        if form.is_valid():
+            role = form.save()
+            messages.success(request, f"✅ Rol '{role.name}' actualizado exitosamente.")
+            return redirect("role_list")
+    else:
+        form = RoleForm(instance=role)
+
+    return render(
+        request,
+        "users/role_form.html",
+        {"form": form, "title": "Editar Rol", "submit_label": "Guardar Cambios", "role": role},
+    )
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def role_delete(request, role_id):
+    """Elimina (soft delete) un rol."""
+    role = get_object_or_404(Role, id=role_id, is_active=True)
+    role_name = role.name
+
+    user_count = User.objects.filter(groups__name=role.name).count()
+    if user_count > 0:
+        messages.error(
+            request,
+            f"⚠️ No se puede eliminar el rol '{role_name}' porque tiene {user_count} usuario(s) asignado(s). "
+            f"Primero reasigne los usuarios a otro rol.",
+        )
+        return redirect("role_list")
+
+    role.delete()
+    messages.success(request, f"✅ Rol '{role_name}' eliminado exitosamente.")
+    return redirect("role_list")
 
 
 @login_required
@@ -40,12 +110,9 @@ def role_assign(request):
     if request.method == "POST":
         form = RoleAssignForm(request.POST)
         if form.is_valid():
-            user = form.cleaned_data["user"]
-            roles = form.cleaned_data["roles"]
-            user.groups.set(roles)
-            role_names = ", ".join([r.name for r in roles])
+            user = form.save()
             messages.success(
-                request, f"✅ Usuario '{user.username}' asignado a roles: {role_names}."
+                request, f"✅ Usuario '{user.username}' asignado a roles exitosamente."
             )
             return redirect("role_list")
     else:

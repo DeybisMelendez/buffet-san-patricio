@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="mb-0">
+                <span class="material-icons">admin_panel_settings</span>
+                {{ title }}
+            </h1>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'role_list' %}" class="btn btn-outline-secondary btn-sm">
+                <span class="material-icons">arrow_back</span> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">{{ form.is_active.label }}</label>
+                        <div class="form-check form-switch mt-2">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                {% if form.is_active.checked %}Activo{% else %}Inactivo{% endif %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ form.permissions.label }}</label>
+                    <div class="form-text mb-2">{{ form.permissions.help_text }}</div>
+
+                    {% if form.permissions.errors %}
+                        <div class="text-danger small">{{ form.permissions.errors.0 }}</div>
+                    {% endif %}
+
+                    <div class="row">
+                        {% regroup form.permissions.field.queryset|dictsort:"content_type.app_label" by content_type.app_label as grouped_perms %}
+                        {% for group in grouped_perms %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <strong>{{ group.grouper|title }}</strong>
+                                </div>
+                                <div class="card-body py-2">
+                                    {% for perm in group.list %}
+                                    <div class="form-check">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions"
+                                            id="id_permissions_{{ perm.id }}"
+                                            value="{{ perm.id }}"
+                                            class="form-check-input"
+                                            {% if perm in form.permissions.value or perm.id in form.permissions.value %}
+                                            checked
+                                            {% endif %}
+                                        >
+                                        <label
+                                            class="form-check-label small"
+                                            for="id_permissions_{{ perm.id }}"
+                                            title="{{ perm.name }}"
+                                        >
+                                            {{ perm.codename }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <span class="material-icons">save</span> {{ submit_label }}
+                    </button>
+                    <a href="{% url 'role_list' %}" class="btn btn-outline-secondary">
+                        <span class="material-icons">close</span> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
