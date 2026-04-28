@@ -80,6 +80,11 @@ class Product(SoftDeleteModel):
 
 
 class Ingredient(SoftDeleteModel):
+    INGREDIENT_TYPES = [
+        ("MATERIA_PRIMA", "Materia Prima"),
+        ("PROCESADO", "Procesado"),
+    ]
+
     UNITS = [
         ("oz", "Onzas"),
         ("lb", "Libras"),
@@ -91,6 +96,12 @@ class Ingredient(SoftDeleteModel):
     ]
 
     name = models.CharField(max_length=255, unique=True, verbose_name="Nombre")
+    ingredient_type = models.CharField(
+        max_length=20,
+        choices=INGREDIENT_TYPES,
+        default="MATERIA_PRIMA",
+        verbose_name="Tipo",
+    )
     stock_quantity = models.DecimalField(
         max_digits=10, decimal_places=2, default=0, verbose_name="Cantidad"
     )

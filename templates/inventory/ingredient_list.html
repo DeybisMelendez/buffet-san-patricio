@@ -49,6 +49,18 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="col-md-4">
+                            <label for="ingredient_type" class="form-label">Tipo</label>
+                            <select id="ingredient_type" name="ingredient_type" class="form-select">
+                                <option value="">Todos los tipos</option>
+                                {% for type_code, type_name in ingredient_types %}
+                                    <option value="{{ type_code }}"
+                                            {% if ingredient_type_filter == type_code %}selected{% endif %}>
+                                        {{ type_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="material-icons">search</i> Filtrar
@@ -94,9 +106,11 @@
     function getFilters() {
         var search = document.getElementById('search');
         var warehouse = document.getElementById('warehouse');
+        var ingredientType = document.getElementById('ingredient_type');
         var params = new URLSearchParams();
         if (search && search.value) params.set('search', search.value);
         if (warehouse && warehouse.value) params.set('warehouse', warehouse.value);
+        if (ingredientType && ingredientType.value) params.set('ingredient_type', ingredientType.value);
         return params.toString();
     }
 
@@ -104,6 +118,7 @@
         columns: [
             { id: 'id', hidden: true },
             { name: 'Nombre', id: 'name', sort: { enabled: true } },
+            { name: 'Tipo', id: 'ingredient_type', sort: { enabled: true } },
             { name: 'Unidad', id: 'unit', sort: { enabled: true } },
             { name: 'Almacén', id: 'warehouse', sort: { enabled: true } },
             {
@@ -135,7 +150,7 @@
             url: apiBase + '?' + getFilters(),
             then: function(data) {
                 return data.results.map(function(i) {
-                    return [i.id, i.name, i.unit, i.warehouse, i.stock, null];
+                    return [i.id, i.name, i.ingredient_type, i.unit, i.warehouse, i.stock, null];
                 });
             },
             total: function(data) { return data.count; }

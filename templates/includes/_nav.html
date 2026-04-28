@@ -100,15 +100,6 @@
                                 <li>
                                     <a href="{% url 'inventory_movement' %}" class="dropdown-item"><i class="material-icons">sync</i> Ajuste de Ingredientes</a>
                                 </li>
-                                <li>
-                                    <a href="{% url 'purchase_list' %}" class="dropdown-item"><i class="material-icons">shopping_cart</i> Lista de Compras</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'purchase_create' %}" class="dropdown-item"><i class="material-icons">add</i> Nueva Compra</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'supplier_list' %}" class="dropdown-item"><i class="material-icons">local_shipping</i> Proveedores</a>
-                                </li>
                             {% endif %}
                             {% if user|can_use_food_converter %}
                                 <li>
@@ -132,6 +123,29 @@
                                     </a>
                                 </li>
                             {% endif %}
+                        </ul>
+                    </li>
+                {% endif %}
+                <!-- Compras -->
+                {% if user|can_add_inventory_movement %}
+                    <li class="nav-item dropdown">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="material-icons">shopping_cart</i> Compras
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'purchase_list' %}" class="dropdown-item"><i class="material-icons">list</i> Lista de Compras</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'purchase_create' %}" class="dropdown-item"><i class="material-icons">add</i> Nueva Compra</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'supplier_list' %}" class="dropdown-item"><i class="material-icons">local_shipping</i> Proveedores</a>
+                            </li>
                         </ul>
                     </li>
                 {% endif %}

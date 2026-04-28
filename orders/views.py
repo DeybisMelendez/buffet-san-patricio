@@ -13,19 +13,40 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from core.config import BUSINESS_INFO
-from users.utils import (has_valid_role, user_can_add_inventory_movement,
-                         user_can_manage_food_recipes,
-                         user_can_manage_inventory_full, user_can_manage_menu,
-                         user_can_mark_paid, user_can_use_food_converter,
-                         user_can_view_inventory, user_can_view_reports,
-                         user_can_view_sales_report)
+from users.utils import (
+    has_valid_role,
+    user_can_add_inventory_movement,
+    user_can_manage_food_recipes,
+    user_can_manage_inventory_full,
+    user_can_manage_menu,
+    user_can_mark_paid,
+    user_can_use_food_converter,
+    user_can_view_inventory,
+    user_can_view_reports,
+    user_can_view_sales_report,
+)
 
 from .forms import ProductIngredientForm, TableForm
-from .models import (CashRegister, DispatchArea, FoodRecipe, FoodRecipeItem,
-                     Ingredient, IngredientMovement, Invoice, InvoiceItem,
-                     Order, OrderItem, Product, ProductCategory,
-                     ProductIngredient, Purchase, PurchaseItem, Supplier,
-                     Table, Warehouse)
+from .models import (
+    CashRegister,
+    DispatchArea,
+    FoodRecipe,
+    FoodRecipeItem,
+    Ingredient,
+    IngredientMovement,
+    Invoice,
+    InvoiceItem,
+    Order,
+    OrderItem,
+    Product,
+    ProductCategory,
+    ProductIngredient,
+    Purchase,
+    PurchaseItem,
+    Supplier,
+    Table,
+    Warehouse,
+)
 
 # ==========================
 # 🔐 UTILIDADES Y PERMISOS
@@ -1141,6 +1162,10 @@ def api_inventory(request):
     if warehouse_id:
         queryset = queryset.filter(warehouse_id=warehouse_id)
 
+    ingredient_type = request.GET.get("ingredient_type", "").strip()
+    if ingredient_type:
+        queryset = queryset.filter(ingredient_type=ingredient_type)
+
     sort = request.GET.get("sort", "")
     if sort:
         try:
@@ -1150,6 +1175,7 @@ def api_inventory(request):
                 "stock": "stock_quantity",
                 "unit": "unit",
                 "warehouse": "warehouse__name",
+                "ingredient_type": "ingredient_type",
             }
             field = sort_field_map.get(field, field)
             if direction == "desc":
@@ -1162,7 +1188,14 @@ def api_inventory(request):
 
     if limit == 0:
         items = list(
-            queryset.values("id", "name", "stock_quantity", "unit", "warehouse__name")
+            queryset.values(
+                "id",
+                "name",
+                "stock_quantity",
+                "unit",
+                "warehouse__name",
+                "ingredient_type",
+            )
         )
         data = [
             {
@@ -1171,6 +1204,9 @@ def api_inventory(request):
                 "stock": float(i["stock_quantity"]),
                 "unit": dict(Ingredient.UNITS).get(i["unit"], i["unit"]),
                 "warehouse": i["warehouse__name"] or "—",
+                "ingredient_type": dict(Ingredient.INGREDIENT_TYPES).get(
+                    i["ingredient_type"], i["ingredient_type"]
+                ),
             }
             for i in items
         ]
@@ -1180,9 +1216,9 @@ def api_inventory(request):
     start = (page - 1) * limit
     end = start + limit
     items = list(
-        queryset.values("id", "name", "stock_quantity", "unit", "warehouse__name")[
-            start:end
-        ]
+        queryset.values(
+            "id", "name", "stock_quantity", "unit", "warehouse__name", "ingredient_type"
+        )[start:end]
     )
 
     data = [
@@ -1192,6 +1228,9 @@ def api_inventory(request):
             "stock": float(i["stock_quantity"]),
             "unit": dict(Ingredient.UNITS).get(i["unit"], i["unit"]),
             "warehouse": i["warehouse__name"] or "—",
+            "ingredient_type": dict(Ingredient.INGREDIENT_TYPES).get(
+                i["ingredient_type"], i["ingredient_type"]
+            ),
         }
         for i in items
     ]
@@ -2018,11 +2057,12 @@ def product_recipes(request, product_id):
 @login_required
 @user_passes_test(user_can_manage_inventory_full)
 def ingredient_list(request):
-    """Lista todos los ingredientes con búsqueda por nombre y almacén."""
+    """Lista todos los ingredientes con búsqueda por nombre, almacén y tipo."""
     ingredients = Ingredient.objects.all().select_related("warehouse")
 
     search = request.GET.get("search", "").strip()
     warehouse_id = request.GET.get("warehouse", "").strip()
+    ingredient_type = request.GET.get("ingredient_type", "").strip()
 
     if search:
         ingredients = ingredients.filter(name__icontains=search)
@@ -2030,12 +2070,19 @@ def ingredient_list(request):
     if warehouse_id:
         ingredients = ingredients.filter(warehouse_id=warehouse_id)
 
+    if ingredient_type:
+        ingredients = ingredients.filter(ingredient_type=ingredient_type)
+
     ingredients = ingredients.order_by("name")
     warehouses = Warehouse.objects.all().order_by("name")
     return render(
         request,
         "inventory/ingredient_list.html",
-        {"ingredients": ingredients, "warehouses": warehouses},
+        {
+            "ingredients": ingredients,
+            "warehouses": warehouses,
+            "ingredient_types": Ingredient.INGREDIENT_TYPES,
+        },
     )
 
 
@@ -2048,15 +2095,17 @@ def ingredient_create(request):
     if request.method == "POST":
         name = request.POST.get("name")
         unit = request.POST.get("unit")
+        ingredient_type = request.POST.get("ingredient_type")
         warehouse_id = request.POST.get("warehouse") or None
 
-        if not name or not unit:
-            messages.error(request, " Nombre y unidad son obligatorios.")
+        if not name or not unit or not ingredient_type:
+            messages.error(request, " Nombre, unidad y tipo son obligatorios.")
         else:
             try:
                 ingredient = Ingredient.objects.create(
                     name=name,
                     unit=unit,
+                    ingredient_type=ingredient_type,
                     warehouse_id=warehouse_id,
                 )
                 messages.success(
@@ -2072,6 +2121,7 @@ def ingredient_create(request):
         {
             "warehouses": warehouses,
             "units": Ingredient.UNITS,
+            "ingredient_types": Ingredient.INGREDIENT_TYPES,
             "title": "Crear Ingrediente",
         },
     )
@@ -2087,14 +2137,16 @@ def ingredient_edit(request, ingredient_id):
     if request.method == "POST":
         name = request.POST.get("name")
         unit = request.POST.get("unit")
+        ingredient_type = request.POST.get("ingredient_type")
         warehouse_id = request.POST.get("warehouse") or None
 
-        if not name or not unit:
-            messages.error(request, " Nombre y unidad son obligatorios.")
+        if not name or not unit or not ingredient_type:
+            messages.error(request, " Nombre, unidad y tipo son obligatorios.")
         else:
             try:
                 ingredient.name = name
                 ingredient.unit = unit
+                ingredient.ingredient_type = ingredient_type
                 ingredient.warehouse_id = warehouse_id
                 ingredient.save()
                 messages.success(
@@ -2112,6 +2164,7 @@ def ingredient_edit(request, ingredient_id):
             "ingredient": ingredient,
             "warehouses": warehouses,
             "units": Ingredient.UNITS,
+            "ingredient_types": Ingredient.INGREDIENT_TYPES,
             "title": "Editar Ingrediente",
         },
     )
@@ -2272,10 +2325,15 @@ def warehouse_restore(request, warehouse_id):
 @user_passes_test(has_valid_role)
 def dashboard(request):
     """Dashboard principal con gráficos adaptados al grupo del usuario."""
-    from users.utils import (is_administrador, is_cajero, is_cocinero,
-                             is_servicio, is_supervisor,
-                             user_can_view_inventory,
-                             user_can_view_sales_report)
+    from users.utils import (
+        is_administrador,
+        is_cajero,
+        is_cocinero,
+        is_servicio,
+        is_supervisor,
+        user_can_view_inventory,
+        user_can_view_sales_report,
+    )
 
     # Obtener fecha actual
     today = timezone.now().date()
@@ -2395,6 +2453,7 @@ def api_ingredients(request):
         {
             "id": i.id,
             "name": i.name,
+            "ingredient_type": i.get_ingredient_type_display(),
             "unit": i.get_unit_display(),
             "warehouse": i.warehouse.name if i.warehouse else None,
             "warehouse_id": i.warehouse_id,
