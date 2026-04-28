@@ -76,55 +76,111 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-header">
                 <h5 class="mb-0">Ingredientes</h5>
             </div>
             <div class="card-body">
-                <div class="row mb-3">
+                <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label for="ingredient-search" class="form-label">Buscar ingrediente por nombre</label>
-                        <div class="position-relative">
-                            <input type="text"
-                                   id="ingredient-search"
-                                   class="form-control"
-                                   placeholder="Escriba para buscar...">
-                            <div id="search-results" class="list-group position-absolute w-100 mt-1 d-none" style="z-index: 1000; max-height: 300px; overflow-y: auto;"></div>
+                        <label class="form-label">Filtrar por tipo</label>
+                        <div class="d-flex gap-2 flex-wrap" id="type-filters">
+                            <button type="button" class="btn btn-sm btn-primary filter-btn active" data-type="">Todos</button>
+                            {% for type_value, type_display in ingredient_types %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-type="{{ type_value }}">{{ type_display }}</button>
+                            {% endfor %}
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <label for="warehouse-filter" class="form-label">Bodega</label>
+                        <select id="warehouse-filter" class="form-select form-select-sm">
+                            <option value="">Todas las bodegas</option>
+                            {% for w in warehouses %}
+                                <option value="{{ w.id }}">{{ w.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="mb-3" id="filter-label">Todos los ingredientes</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Ingrediente</th>
+                                <th scope="col">Tipo</th>
+                                <th scope="col">Bodega</th>
+                                <th scope="col">Stock</th>
+                                <th scope="col">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingredients-table-body">
+                            {% for ing in ingredients %}
+                                <tr data-type="{{ ing.ingredient_type }}" data-warehouse="{{ ing.warehouse_id|default:'' }}" class="ingredient-row">
+                                    <td>{{ ing.name }}</td>
+                                    <td>
+                                        {% if ing.ingredient_type == 'MATERIA_PRIMA' %}
+                                            <span class="badge bg-primary">Materia Prima</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Procesado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ing.warehouse.name|default:"Sin bodega" }}</td>
+                                    <td>{{ ing.stock_quantity }} {{ ing.get_unit_display }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQty({{ ing.id }})">
+                                                <span class="material-icons">remove</span>
+                                            </button>
+                                            <input type="number" class="form-control text-center" style="width: 80px;"
+                                                   id="qty_{{ ing.id }}" value="0" min="0" step="0.01">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQty({{ ing.id }})">
+                                                <span class="material-icons">add</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Ingrediente</th>
-                            <th>Bodega</th>
-                            <th>Stock Actual</th>
-                            <th>Cantidad</th>
-                            <th>Costo Unitario</th>
-                            <th>Monto</th>
-                            <th style="width: 50px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-body">
-                    </tbody>
-                    <tfoot class="table-light">
-                        <tr>
-                            <td colspan="4" class="text-end fw-bold">TOTAL:</td>
-                            <td class="text-end fw-bold" id="total-count">0 ingredientes</td>
-                            <td class="text-end fw-bold" id="total-amount">C$ 0.00</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                </table>
+        <div class="card border-warning mb-3" id="summary-card" style="display: none;">
+            <div class="card-header bg-warning bg-opacity-25">
+                <h5 class="mb-0">Resumen de Compras</h5>
             </div>
-            <div class="card-footer text-end">
-                <button type="submit" class="btn btn-primary" id="btn-submit" disabled>
-                    <span class="material-icons">save</span> Registrar Compra
-                </button>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Ingrediente</th>
+                                <th scope="col">Cantidad</th>
+                                <th scope="col">Costo Unitario</th>
+                                <th scope="col">Monto</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="summary-body">
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3"><strong>Total:</strong></td>
+                                <td><strong>C$ <span id="total-amount">0.00</span></strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mb-4">
+            <button type="submit" class="btn btn-primary" id="btn-submit" disabled>
+                <span class="material-icons">save</span> Registrar Compra
+            </button>
         </div>
     </form>
 </div>
@@ -167,170 +223,154 @@
 (function() {
     'use strict';
 
-    var items = [];
-    var searchTimeout = null;
+    var ingredientsData = {
+{% for ing in ingredients %}
+        {{ ing.id }}: {
+            name: '{{ ing.name|addslashes }}',
+            unit: '{{ ing.get_unit_display }}',
+            warehouse: '{{ ing.warehouse.name|default:"Sin bodega" }}',
+            warehouse_id: {{ ing.warehouse_id|default:"null" }},
+            stock: {{ ing.stock_quantity }},
+            type: '{{ ing.ingredient_type }}',
+            qty: 0,
+            unit_cost: ''
+        },
+{% endfor %}
+    };
+
+    var selectedItems = [];
+    var currentType = '';
+    var currentWarehouse = '';
 
     var today = new Date().toISOString().split('T')[0];
     document.getElementById('order_date').value = today;
 
-    function updateUI() {
-        var tbody = document.getElementById('items-body');
-        var btnSubmit = document.getElementById('btn-submit');
-        var totalCount = document.getElementById('total-count');
+    function filterIngredients() {
+        var rows = document.querySelectorAll('.ingredient-row');
+        rows.forEach(function(row) {
+            var rowType = row.dataset.type;
+            var rowWarehouse = row.dataset.warehouse;
 
-        tbody.innerHTML = '';
+            var typeMatch = currentType === '' || rowType === currentType;
+            var warehouseMatch = currentWarehouse === '' || rowWarehouse === currentWarehouse;
 
-        items.forEach(function(item, index) {
-            var tr = document.createElement('tr');
-            var itemTotal = (parseFloat(item.qty) || 0) * (parseFloat(item.unit_cost) || 0);
-            tr.innerHTML =
-                '<td>' + item.name + '<input type="hidden" name="item_id_' + index + '" value="' + item.id + '"></td>' +
-                '<td>' + (item.warehouse || '-') + '</td>' +
-                '<td>' + item.stock.toFixed(2) + ' ' + item.unit + '</td>' +
-                '<td style="width: 120px;">' +
-                    '<input type="number" name="item_qty_' + index + '" step="0.01" min="0.01" ' +
-                           'value="' + item.qty + '" class="form-control form-control-sm text-end item-qty" ' +
-                           'placeholder="0" required>' +
-                '</td>' +
-                '<td style="width: 130px;">' +
-                    '<div class="input-group input-group-sm">' +
-                        '<span class="input-group-text">C$</span>' +
-                        '<input type="number" name="item_cost_' + index + '" step="0.01" min="0" ' +
-                               'value="' + (item.unit_cost || '') + '" class="form-control form-control-sm text-end item-cost" ' +
-                               'placeholder="0.00" required>' +
-                    '</div>' +
-                '</td>' +
-                '<td class="text-end fw-bold">' +
-                    'C$ ' + itemTotal.toFixed(2) +
-                '</td>' +
-                '<td>' +
-                    '<button type="button" class="btn btn-danger btn-sm" onclick="removeItem(' + index + ')">' +
-                        '<span class="material-icons" style="font-size: 1rem;">close</span>' +
-                    '</button>' +
-                '</td>';
-            tbody.appendChild(tr);
+            row.style.display = (typeMatch && warehouseMatch) ? '' : 'none';
         });
 
-        var totalQty = items.reduce(function(sum, item) { return sum + (parseFloat(item.qty) || 0); }, 0);
-        var totalAmount = items.reduce(function(sum, item) {
-            return sum + (parseFloat(item.qty) || 0) * (parseFloat(item.unit_cost) || 0);
-        }, 0);
-        totalCount.textContent = items.length + ' ingrediente' + (items.length !== 1 ? 's' : '') + ' (total: ' + totalQty.toFixed(2) + ')';
-        document.getElementById('total-amount').textContent = 'C$ ' + totalAmount.toFixed(2);
-
-        btnSubmit.disabled = items.length === 0;
+        var label = currentType === '' ? 'Todos' : (currentType === 'MATERIA_PRIMA' ? 'Materia Prima' : 'Procesado');
+        if (currentWarehouse !== '') {
+            var warehouseSelect = document.getElementById('warehouse-filter');
+            var warehouseName = warehouseSelect.options[warehouseSelect.selectedIndex].text;
+            label += ' - ' + warehouseName;
+        }
+        document.getElementById('filter-label').textContent = label;
     }
 
-    function updateTotals() {
-        var totalQty = items.reduce(function(sum, item) {
-            return sum + (parseFloat(item.qty) || 0);
-        }, 0);
-        var totalAmount = items.reduce(function(sum, item) {
-            return sum + (parseFloat(item.qty) || 0) * (parseFloat(item.unit_cost) || 0);
-        }, 0);
-
-        var totalCountEl = document.getElementById('total-count');
-        var totalAmountEl = document.getElementById('total-amount');
-
-        totalCountEl.textContent = items.length + ' ingrediente' + (items.length !== 1 ? 's' : '') + ' (total: ' + totalQty.toFixed(2) + ')';
-        totalAmountEl.textContent = 'C$ ' + totalAmount.toFixed(2);
+    function decreaseQty(id) {
+        var input = document.getElementById('qty_' + id);
+        if (ingredientsData[id].qty > 0) {
+            ingredientsData[id].qty--;
+            input.value = ingredientsData[id].qty;
+            updateSummary();
+        }
     }
 
-    window.removeItem = function(index) {
-        items.splice(index, 1);
-        updateUI();
+    function increaseQty(id) {
+        var input = document.getElementById('qty_' + id);
+        ingredientsData[id].qty++;
+        input.value = ingredientsData[id].qty;
+        updateSummary();
+    }
+
+    function updateSummary() {
+        var summaryBody = document.getElementById('summary-body');
+        var summaryCard = document.getElementById('summary-card');
+        var total = 0;
+        var itemCount = 0;
+
+        selectedItems = [];
+        summaryBody.innerHTML = '';
+
+        Object.keys(ingredientsData).forEach(function(id) {
+            var ing = ingredientsData[id];
+            if (ing.qty > 0) {
+                var unitCost = parseFloat(ing.unit_cost) || 0;
+                var lineTotal = ing.qty * unitCost;
+                total += lineTotal;
+                itemCount++;
+
+                selectedItems.push({
+                    id: parseInt(id),
+                    name: ing.name,
+                    qty: ing.qty,
+                    unit_cost: unitCost
+                });
+
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + ing.name + '</td>' +
+                    '<td>' + ing.qty + ' ' + ing.unit + '</td>' +
+                    '<td style="width: 150px;">' +
+                        '<div class="input-group input-group-sm">' +
+                            '<span class="input-group-text">C$</span>' +
+                            '<input type="number" class="form-control text-end unit-cost-input" ' +
+                                   'data-id="' + id + '" step="0.01" min="0" value="' + (ing.unit_cost || '') + '" ' +
+                                   'placeholder="0.00">' +
+                        '</div>' +
+                    '</td>' +
+                    '<td class="text-end fw-bold">C$ ' + lineTotal.toFixed(2) + '</td>' +
+                    '<td>' +
+                        '<button type="button" class="btn btn-danger btn-sm" onclick="removeItem(' + id + ')">' +
+                            '<span class="material-icons" style="font-size: 1rem;">close</span>' +
+                        '</button>' +
+                    '</td>';
+                summaryBody.appendChild(tr);
+            }
+        });
+
+        document.getElementById('total-amount').textContent = total.toFixed(2);
+        document.getElementById('btn-submit').disabled = itemCount === 0;
+        summaryCard.style.display = itemCount > 0 ? 'block' : 'none';
+    }
+
+    window.removeItem = function(id) {
+        ingredientsData[id].qty = 0;
+        ingredientsData[id].unit_cost = '';
+        document.getElementById('qty_' + id).value = 0;
+        updateSummary();
     };
 
-    document.getElementById('ingredient-search').addEventListener('input', function() {
-        var query = this.value.trim();
-
-        if (searchTimeout) clearTimeout(searchTimeout);
-
-        if (query.length < 2) {
-            document.getElementById('search-results').classList.add('d-none');
-            return;
-        }
-
-        searchTimeout = setTimeout(function() {
-            var url = '/api/ingredients/?search=' + encodeURIComponent(query);
-
-            fetch(url)
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    var results = document.getElementById('search-results');
-                    results.innerHTML = '';
-                    results.classList.remove('d-none');
-
-                    if (data.length === 0) {
-                        results.innerHTML = '<div class="list-group-item text-muted">No se encontraron ingredientes</div>';
-                        return;
-                    }
-
-                    data.forEach(function(ing) {
-                        var a = document.createElement('a');
-                        a.href = '#';
-                        a.className = 'list-group-item list-group-item-action';
-                        a.dataset.id = ing.id;
-                        a.innerHTML = '<strong>' + ing.name + '</strong> <span class="text-muted">(' + ing.unit + ')</span> - ' + (ing.warehouse || 'Sin bodega');
-                        a.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            addIngredient(ing);
-                        });
-                        results.appendChild(a);
-                    });
-                })
-                .catch(function(err) {
-                    console.error('Error buscando ingredientes:', err);
-                });
-        }, 300);
-    });
-
-    function addIngredient(ing) {
-        var exists = items.some(function(item) { return item.id === ing.id; });
-        if (exists) {
-            alert('Este ingrediente ya está en la lista.');
-            return;
-        }
-
-        items.push({
-            id: ing.id,
-            name: ing.name,
-            unit: ing.unit,
-            warehouse: ing.warehouse,
-            warehouse_id: ing.warehouse_id,
-            stock: ing.stock_quantity,
-            qty: '',
-            unit_cost: ''
+    document.querySelectorAll('.filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(function(b) {
+                b.classList.remove('btn-primary', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('btn-primary', 'active');
+            currentType = this.dataset.type;
+            filterIngredients();
         });
+    });
 
-        document.getElementById('ingredient-search').value = '';
-        document.getElementById('search-results').classList.add('d-none');
-        updateUI();
+    document.getElementById('warehouse-filter').addEventListener('change', function() {
+        currentWarehouse = this.value;
+        filterIngredients();
+    });
 
-        document.querySelector('#items-body tr:last-child .item-qty').focus();
-    }
-
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('#ingredient-search') && !e.target.closest('#search-results')) {
-            document.getElementById('search-results').classList.add('d-none');
+    document.getElementById('ingredients-table-body').addEventListener('input', function(e) {
+        if (e.target.classList.contains('form-control') && e.target.id.startsWith('qty_')) {
+            var id = e.target.id.replace('qty_', '');
+            ingredientsData[id].qty = parseFloat(e.target.value) || 0;
+            updateSummary();
         }
     });
 
-    document.getElementById('items-body').addEventListener('input', function(e) {
-        if (e.target.classList.contains('item-qty')) {
-            var tr = e.target.closest('tr');
-            var index = Array.from(tr.parentNode.children).indexOf(tr);
-            items[index].qty = e.target.value;
-            updateTotals();
-        }
-        if (e.target.classList.contains('item-cost')) {
-            var tr = e.target.closest('tr');
-            var index = Array.from(tr.parentNode.children).indexOf(tr);
-            items[index].unit_cost = e.target.value;
-            var row = tr.closest('tr');
-            var itemTotal = (parseFloat(items[index].qty) || 0) * (parseFloat(items[index].unit_cost) || 0);
-            row.querySelector('td:nth-child(6)').textContent = 'C$ ' + itemTotal.toFixed(2);
-            updateTotals();
+    document.getElementById('summary-body').addEventListener('input', function(e) {
+        if (e.target.classList.contains('unit-cost-input')) {
+            var id = e.target.dataset.id;
+            ingredientsData[id].unit_cost = e.target.value;
+            updateSummary();
         }
     });
 
@@ -344,33 +384,30 @@
             return;
         }
 
-        if (items.length === 0) {
+        if (selectedItems.length === 0) {
             e.preventDefault();
-            alert('Debe agregar al menos un ingrediente.');
+            alert('Debe agregar al menos un ingrediente con cantidad mayor a cero.');
             return;
         }
 
-        for (var i = 0; i < items.length; i++) {
-            var qty = parseFloat(document.querySelector('[name="item_qty_' + i + '"]').value);
-            var unitCost = parseFloat(document.querySelector('[name="item_cost_' + i + '"]').value);
-            if (!qty || qty <= 0) {
+        for (var i = 0; i < selectedItems.length; i++) {
+            var item = selectedItems[i];
+            if (!item.qty || item.qty <= 0) {
                 e.preventDefault();
                 alert('Todos los ingredientes deben tener cantidad mayor a cero.');
                 return;
             }
-            if (!unitCost || unitCost <= 0) {
+            if (!item.unit_cost || item.unit_cost <= 0) {
                 e.preventDefault();
                 alert('Todos los ingredientes deben tener costo unitario mayor a cero.');
                 return;
             }
-            items[i].qty = qty;
-            items[i].unit_cost = unitCost;
         }
 
         var itemsJson = document.createElement('input');
         itemsJson.type = 'hidden';
         itemsJson.name = 'items_json';
-        itemsJson.value = JSON.stringify(items);
+        itemsJson.value = JSON.stringify(selectedItems);
         this.appendChild(itemsJson);
     });
 
@@ -425,6 +462,10 @@
             alert('Error al crear proveedor.');
         });
     });
+
+    window.decreaseQty = decreaseQty;
+    window.increaseQty = increaseQty;
+    window.removeItem = removeItem;
 
 })();
 </script>

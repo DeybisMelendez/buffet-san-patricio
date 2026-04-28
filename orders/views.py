@@ -1,4 +1,5 @@
 import csv
+import unicodedata
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
@@ -2442,18 +2443,39 @@ def dashboard(request):
 
 @login_required
 def api_ingredients(request):
-    """API endpoint que retorna lista de ingredientes en formato JSON para Grid.js."""
+    """API endpoint que retorna lista de ingredientes con filtros y búsqueda insensible a acentos."""
     ingredients = Ingredient.objects.select_related("warehouse").order_by("name")
 
     search = request.GET.get("search", "").strip()
     if search:
-        ingredients = ingredients.filter(name__icontains=search)
+        normalized = "".join(
+            c
+            for c in unicodedata.normalize("NFD", search)
+            if unicodedata.category(c) != "Mn"
+        ).lower()
+        ingredients = ingredients.extra(
+            where=[
+                "LOWER(REPLACE(REPLACE(REPLACE(name, 'á', 'a'), 'é', 'e'), 'í', 'i')) LIKE ?"
+            ],
+            params=[f"%{normalized}%"],
+        )
+
+    ingredient_type = request.GET.get("type", "").strip()
+    if ingredient_type:
+        ingredients = ingredients.filter(ingredient_type=ingredient_type)
+
+    warehouse_id = request.GET.get("warehouse", "").strip()
+    if warehouse_id:
+        ingredients = ingredients.filter(warehouse_id=warehouse_id)
+
+    ingredients = ingredients[:20]
 
     data = [
         {
             "id": i.id,
             "name": i.name,
             "ingredient_type": i.get_ingredient_type_display(),
+            "ingredient_type_value": i.ingredient_type,
             "unit": i.get_unit_display(),
             "warehouse": i.warehouse.name if i.warehouse else None,
             "warehouse_id": i.warehouse_id,
@@ -3203,6 +3225,7 @@ def purchase_create(request):
 
     suppliers = Supplier.objects.filter(is_deleted=False).order_by("name")
     warehouses = Warehouse.objects.all()
+    ingredients = Ingredient.objects.all().order_by("name")
 
     if request.method == "POST":
         supplier_id = request.POST.get("supplier")
@@ -3315,6 +3338,8 @@ def purchase_create(request):
         {
             "suppliers": suppliers,
             "warehouses": warehouses,
+            "ingredient_types": Ingredient.INGREDIENT_TYPES,
+            "ingredients": ingredients,
         },
     )
 
