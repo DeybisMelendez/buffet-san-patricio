@@ -60,6 +60,49 @@
     };
 
     // ============================================
+    // DARK MODE TOGGLE
+    // ============================================
+
+    window.initDarkModeToggle = function() {
+        var toggle = document.getElementById('theme-toggle');
+        if (!toggle) return;
+
+        var icon = toggle.querySelector('.material-icons');
+        var html = document.documentElement;
+
+        function getTheme() {
+            return html.getAttribute('data-bs-theme');
+        }
+
+        function setTheme(theme) {
+            html.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateIcon(theme);
+        }
+
+        function updateIcon(theme) {
+            if (icon) {
+                icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+            }
+        }
+
+        toggle.addEventListener('click', function() {
+            var next = getTheme() === 'dark' ? 'light' : 'dark';
+            setTheme(next);
+        });
+
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                if (!localStorage.getItem('theme')) {
+                    setTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+        }
+
+        updateIcon(getTheme());
+    };
+
+    // ============================================
     // INVOICE FORM (facturas)
     // ============================================
 
@@ -438,6 +481,9 @@
 
         // Init datetime updater
         new DateTimeUpdater();
+
+        // Init dark mode toggle
+        initDarkModeToggle();
 
         // Init invoice forms
         var invoiceForm = document.querySelector('[data-invoice-form]');

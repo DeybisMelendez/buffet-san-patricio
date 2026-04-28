@@ -28,10 +28,31 @@
         <!-- Grid.js CSS -->
         <link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css"
               rel="stylesheet">
+        <!-- Dark Mode CSS -->
+        <link href="{% static 'css/dark-mode.css' %}" rel="stylesheet">
         <!-- CSS adicional por template -->
         {% block extra_css %}{% endblock %}
+        <!-- Prevent FOUC (Flash of Unstyled Content) -->
+        <script>
+            (function() {
+                try {
+                    var saved = localStorage.getItem('theme');
+                    var theme = saved;
+                    if (!theme) {
+                        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                            theme = 'dark';
+                        } else {
+                            theme = 'light';
+                        }
+                    }
+                    document.documentElement.setAttribute('data-bs-theme', theme);
+                } catch (e) {
+                    document.documentElement.setAttribute('data-bs-theme', 'light');
+                }
+            })();
+        </script>
     </head>
-    <body data-bs-theme="auto">
+    <body>
         {% if user.is_authenticated %}
             {% include "includes/_nav.html" %}
         {% endif %}

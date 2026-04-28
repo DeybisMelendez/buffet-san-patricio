@@ -221,13 +221,18 @@
                     </li>
                 {% endif %}
             </ul>
-            <form method="post" action="{% url 'logout' %}" class="d-flex">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="material-icons">logout</i>
-                    <span>Salir</span>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="theme-toggle" title="Cambiar tema">
+                    <span class="material-icons">light_mode</span>
                 </button>
-            </form>
+                <form method="post" action="{% url 'logout' %}" class="d-flex">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="material-icons">logout</i>
+                        <span>Salir</span>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </nav>

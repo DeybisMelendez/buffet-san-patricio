@@ -67,11 +67,13 @@ buffet-san-patricio/
 │   ├── invoices/          # Facturación
 │   ├── cash/             # Arqueo de caja
 │   └── reports/          # Reportes
-├── static/js/            # JavaScript vanilla
-│   ├── global.js         # Utilidades de la app (470 líneas)
-│   ├── common.js         # Helpers comunes (42 líneas)
-│   ├── grid-utils.js     # Utilities de GridJS (150 líneas)
-│   └── grid.js           # Inicialización de GridJS (209 líneas)
+├── static/
+│   ├── css/              # CSS (dark-mode.css)
+│   └── js/               # JavaScript vanilla
+│       ├── global.js     # Utilidades de la app (490 líneas)
+│       ├── common.js     # Helpers comunes (42 líneas)
+│       ├── grid-utils.js # Utilities de GridJS (150 líneas)
+│       └── grid.js       # Inicialización de GridJS (209 líneas)
 └── docs/                 # Documentación
     ├── SYSTEM.md         # Documentación técnica completa
     ├── GRIDJS.md         # Guía de GridJS
@@ -376,10 +378,34 @@ def table_list(request):
 
 | Archivo | Líneas | Propósito |
 |---------|--------|-----------|
-| `global.js` | 470 | Utilidades: facturas, inventario, recetas, converter |
+| `global.js` | 490 | Utilidades: facturas, inventario, recetas, converter, dark mode |
 | `common.js` | 42 | Helpers comunes |
 | `grid-utils.js` | 150 | Exportar/copiar datos de GridJS |
 | `grid.js` | 209 | Inicialización de tablas GridJS |
+
+### Dark Mode (Modo Nocturno)
+
+El sistema soporta tema oscuro con las siguientes características:
+
+- **Tema por defecto**: Dark (oscuro)
+- **Persistencia**: Preferencia guardada en `localStorage`
+- **Toggle**: Botón en navbar para cambiar entre temas
+- **Print views**: Siempre usan tema light (no se affected por el toggle)
+
+**Archivos involucrados:**
+- `static/css/dark-mode.css` - Variables CSS para tema oscuro
+- `static/js/global.js` - Función `initDarkModeToggle()`
+- `templates/layout.html` - Carga CSS y script anti-FOUC
+- `templates/includes/_nav.html` - Botón toggle en navbar
+
+**Uso:**
+```javascript
+// El toggle se inicializa automáticamente en DOMContentLoaded
+// Para cambiar tema programáticamente:
+document.documentElement.setAttribute('data-bs-theme', 'dark'); // Oscuro
+document.documentElement.setAttribute('data-bs-theme', 'light'); // Claro
+localStorage.setItem('theme', 'dark'); // Guardar preferencia
+```
 
 ### Funciones Globales
 
@@ -407,6 +433,9 @@ window.GridJS.initLocal(tableId, data, columns, options)
 // Impresión
 window.printOrder(orderId, iframeId)
 window.printInventoryReport(iframeId)
+
+// Dark Mode
+window.initDarkModeToggle()
 ```
 
 ---
