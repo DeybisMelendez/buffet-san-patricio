@@ -513,7 +513,33 @@ def food_converter(request):
 @user_passes_test(user_can_use_food_converter)
 def conversion_history(request):
     """Historial de conversiones de ingredientes (manuales y por receta)."""
-    return render(request, "inventory/conversion_history.html")
+    today = datetime.today().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
+
+    start_str = request.GET.get("start")
+    end_str = request.GET.get("end")
+    date_format = "%Y-%m-%dT%H:%M"
+
+    if start_str and end_str:
+        try:
+            start = datetime.strptime(start_str, date_format)
+            end = datetime.strptime(end_str, date_format)
+        except ValueError:
+            start = datetime.combine(today, time.min)
+            end = datetime.combine(today, time.max)
+
+    search = request.GET.get("search", "").strip()
+
+    return render(
+        request,
+        "inventory/conversion_history.html",
+        {
+            "start": start,
+            "end": end,
+            "search": search,
+        },
+    )
 
 
 @login_required

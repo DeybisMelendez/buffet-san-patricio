@@ -2,54 +2,54 @@
 {% load static %}
 {% block title %}Historial de Conversiones{% endblock %}
 {% block extra_css %}
-    <style>
-    .gridjs-wrapper { box-shadow: none; }
-    .gridjs-table { width: 100%; }
-    </style>
+<style>
+.gridjs-wrapper { box-shadow: none; }
+.gridjs-table { width: 100%; }
+</style>
 {% endblock %}
 {% block body %}
-    <div class="container-fluid py-3">
-        <div class="row mb-3">
-            <div class="col">
-                <h2 class="mb-0"><i class="material-icons">history</i> Historial de Conversiones</h2>
-            </div>
-        </div>
-        <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Filtros</h5>
-            </div>
-            <div class="card-body">
-                <form method="get">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Desde:</label>
-                            <input type="datetime-local" name="start" value="{{ start|date:'Y-m-d\\TH:i' }}" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Hasta:</label>
-                            <input type="datetime-local" name="end" value="{{ end|date:'Y-m-d\\TH:i' }}" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Buscar:</label>
-                            <input type="text" name="search" placeholder="Ej: masa, receta, usuario…"
-                                   {% if search %}value="{{ search }}"{% endif %} class="form-control">
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <button type="submit" class="btn btn-secondary btn-sm">
-                            <i class="material-icons">search</i> Filtrar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-body p-0">
-                <div id="grid-toolbar"></div>
-                <div id="conversions"></div>
-            </div>
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h2 class="mb-0"><i class="material-icons">history</i> Historial de Conversiones</h2>
         </div>
     </div>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Desde:</label>
+                        <input type="datetime-local" id="start" name="start" value="{{ start|date:'Y-m-d\\TH:i' }}" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Hasta:</label>
+                        <input type="datetime-local" id="end" name="end" value="{{ end|date:'Y-m-d\\TH:i' }}" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Buscar:</label>
+                        <input type="text" id="search" name="search" placeholder="Ej: masa, receta, usuario…"
+                               {% if search %}value="{{ search }}"{% endif %} class="form-control">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="material-icons">search</i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body p-0">
+            <div id="grid-toolbar"></div>
+            <div id="conversions"></div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -66,10 +66,22 @@
     if (!container) return;
 
     GridUtils.showLoading('conversions');
-
     container.innerHTML = '';
 
-    var apiBase = '/api/recipe-executions/?start={{ start|date:"Y-m-d\\TH:i" }}&end={{ end|date:"Y-m-d\\TH:i" }}{% if search %}&search={{ search }}{% endif %}';
+    var apiBase = '/api/recipe-executions/';
+
+    function buildApiUrl() {
+        var url = new URL(apiBase, window.location.origin);
+        var startVal = document.getElementById('start').value;
+        var endVal = document.getElementById('end').value;
+        var searchVal = document.getElementById('search').value.trim();
+
+        if (startVal) url.searchParams.append('start', startVal);
+        if (endVal) url.searchParams.append('end', endVal);
+        if (searchVal) url.searchParams.append('search', searchVal);
+
+        return url.toString();
+    }
 
     var grid = new gridjs.Grid({
         columns: [
@@ -92,7 +104,7 @@
             { name: 'Notas', id: 'notes', sort: { enabled: false } }
         ],
         server: {
-            url: apiBase,
+            url: buildApiUrl(),
             then: function(data) {
                 return data.results.map(function(m) {
                     return [
@@ -117,15 +129,20 @@
             server: {
                 url: function(prev, page, limit) {
                     var url = new URL(apiBase, window.location.origin);
-                    url.searchParams.set('limit', limit);
-                    url.searchParams.set('offset', page * limit);
+                    var startVal = document.getElementById('start').value;
+                    var endVal = document.getElementById('end').value;
+                    var searchVal = document.getElementById('search').value.trim();
+
+                    if (startVal) url.searchParams.append('start', startVal);
+                    if (endVal) url.searchParams.append('end', endVal);
+                    if (searchVal) url.searchParams.append('search', searchVal);
+                    url.searchParams.append('limit', limit);
+                    url.searchParams.append('offset', page * limit);
                     return url.toString();
                 }
             },
-            summary: true,
-            labels: { first: '«', last: '»', prev: '‹', next: '›' }
-        },
-        language: 'es-ES'
+            summary: true
+        }
     }).render(container);
 
     grid.on('ready', function() {
@@ -136,6 +153,7 @@
         console.error('GridJS error:', err);
         GridUtils.showError('conversions', 'Error al cargar los datos. Por favor recargue la página.');
     });
+
 })();
 </script>
 {% endblock %}
