@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Historial de Conversiones{% endblock %}
+{% block extra_css %}
+<style>
+.gridjs-wrapper { box-shadow: none; }
+.gridjs-table { width: 100%; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h2 class="mb-0"><i class="material-icons">history</i> Historial de Conversiones</h2>
+        </div>
+    </div>
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Desde:</label>
+                        <input type="datetime-local" id="start" name="start" value="{{ start|date:'Y-m-d\\TH:i' }}" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Hasta:</label>
+                        <input type="datetime-local" id="end" name="end" value="{{ end|date:'Y-m-d\\TH:i' }}" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Buscar:</label>
+                        <input type="text" id="search" name="search" placeholder="Ej: masa, receta, usuario…"
+                               {% if search %}value="{{ search }}"{% endif %} class="form-control">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="material-icons">search</i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body p-0">
+            <div id="grid-toolbar"></div>
+            <div id="conversions"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    if (typeof gridjs === 'undefined') {
+        console.error('GridJS no está disponible');
+        GridUtils.showError('conversions', 'GridJS no está disponible. Recargue la página.');
+        return;
+    }
+
+    var container = document.getElementById('conversions');
+    if (!container) return;
+
+    GridUtils.showLoading('conversions');
+    container.innerHTML = '';
+
+    var apiBase = '/api/recipe-executions/';
+
+    function buildApiUrl() {
+        var url = new URL(apiBase, window.location.origin);
+        var startVal = document.getElementById('start').value;
+        var endVal = document.getElementById('end').value;
+        var searchVal = document.getElementById('search').value.trim();
+
+        if (startVal) url.searchParams.append('start', startVal);
+        if (endVal) url.searchParams.append('end', endVal);
+        if (searchVal) url.searchParams.append('search', searchVal);
+
+        return url.toString();
+    }
+
+    var grid = new gridjs.Grid({
+        columns: [
+            { name: 'Fecha', id: 'date', sort: { enabled: true } },
+            { name: 'Receta', id: 'recipe', sort: { enabled: true } },
+            {
+                name: 'Tipo',
+                id: 'is_manual',
+                sort: { enabled: true },
+                formatter: function(cell) {
+                    return cell
+                        ? gridjs.html('<span class="badge bg-warning">Manual</span>')
+                        : gridjs.html('<span class="badge bg-info">Receta</span>');
+                }
+            },
+            { name: 'Materiales Consumidos', id: 'raw_materials', sort: { enabled: false } },
+            { name: 'Productos Creados', id: 'products', sort: { enabled: false } },
+            { name: 'Cantidad Producida', id: 'quantity_produced', sort: { enabled: true } },
+            { name: 'Usuario', id: 'user', sort: { enabled: true } },
+            { name: 'Notas', id: 'notes', sort: { enabled: false } }
+        ],
+        server: {
+            url: buildApiUrl(),
+            then: function(data) {
+                return data.results.map(function(m) {
+                    return [
+                        m.date,
+                        m.recipe,
+                        m.is_manual,
+                        m.raw_materials,
+                        m.products,
+                        m.quantity_produced ? parseFloat(m.quantity_produced).toFixed(2) : '-',
+                        m.user,
+                        m.notes || '-'
+                    ];
+                });
+            },
+            total: function(data) { return data.count; }
+        },
+        sort: { enabled: true },
+        pagination: {
+            enabled: true,
+            limit: 25,
+            limits: [10, 25, 50, 100],
+            server: {
+                url: function(prev, page, limit) {
+                    var url = new URL(apiBase, window.location.origin);
+                    var startVal = document.getElementById('start').value;
+                    var endVal = document.getElementById('end').value;
+                    var searchVal = document.getElementById('search').value.trim();
+
+                    if (startVal) url.searchParams.append('start', startVal);
+                    if (endVal) url.searchParams.append('end', endVal);
+                    if (searchVal) url.searchParams.append('search', searchVal);
+                    url.searchParams.append('limit', limit);
+                    url.searchParams.append('offset', page * limit);
+                    return url.toString();
+                }
+            },
+            summary: true
+        }
+    }).render(container);
+
+    grid.on('ready', function() {
+        GridUtils.addToolbar('grid-toolbar', 'conversions', 'historial_conversiones');
+    });
+
+    grid.on('error', function(err) {
+        console.error('GridJS error:', err);
+        GridUtils.showError('conversions', 'Error al cargar los datos. Por favor recargue la página.');
+    });
+
+})();
+</script>
+{% endblock %}

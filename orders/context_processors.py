@@ -1,7 +1,6 @@
-from .models import Company
+from core.config import BUSINESS_INFO
 
 
 def company_info(request):
-    """Provee información de la empresa a todas las plantillas."""
-    company = Company.objects.first()
-    return {"company": company}
+    """Provee información del negocio a todas las plantillas."""
+    return {"company": BUSINESS_INFO}

@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}Mesa {{ table.name }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="material-icons">table_restaurant</i> Mesa {{ table.name }}
+        </h1>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Detalles de la Mesa</h5>
+                <div>
+                    <a href="{% url 'table_management_edit' table.id %}"
+                       class="btn btn-secondary btn-sm">
+                        <i class="material-icons">edit</i> Editar
+                    </a>
+                    <a href="{% url 'table_management_list' %}"
+                       class="btn btn-secondary btn-sm">
+                        <i class="material-icons">arrow_back</i> Volver
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p>
+                            <strong>Nombre:</strong> {{ table.name }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>
+                            <strong>Estado:</strong>
+                            {% if table.is_deleted %}
+                                <span class="badge bg-danger">Eliminada</span>
+                            {% else %}
+                                <span class="badge bg-success">Activa</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% if table.is_deleted and table.deleted_at %}
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <p>
+                                <strong>Fecha de eliminación:</strong> {{ table.deleted_at|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% if table.is_deleted %}
+            <div class="card mt-3">
+                <div class="card-body">
+                    <a href="{% url 'table_management_restore' table.id %}"
+                       class="btn btn-warning">
+                        <i class="material-icons">restore</i> Restaurar Mesa
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

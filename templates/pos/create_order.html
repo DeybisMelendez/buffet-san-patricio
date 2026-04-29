@@ -2,113 +2,176 @@
 {% load humanize %}
 {% block title %}Crear Comanda{% endblock %}
 {% block body %}
-    <div x-data="{ showCategory: '', products: {
-        {% for product in products %}
-            {{ product.id }}: { 'qty': 0, 'name': '{{ product.name }}', 'price': {{ product.price }} }
-            {% if not forloop.last %},{% endif %}
-        {% endfor %}
-        } }">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h1 class="mb-4">Nueva Comanda - Mesa {{ table.name }}</h1>
-                <!-- Categorías -->
-                <h2 class="h5 mb-3">Categorías</h2>
-                <div class="mb-4">
-                    <button type="button" class="btn btn-outline-primary" @click="showCategory=''">Todas</button>
-                    {% for category in categories %}
-                        <button type="button"
-                                class="btn btn-outline-primary"
-                                @click="showCategory='{{ category.name }}'">{{ category.name }}</button>
-                    {% endfor %}
-                </div>
-                <!-- Formulario -->
-                <form id="orderForm" method="post">
-                    {% csrf_token %}
-                    <h3 class="h6 mb-3" x-text="showCategory || 'Todos los productos'"></h3>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Producto</th>
-                                    <th scope="col">Precio</th>
-                                    <th scope="col">Cantidad</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for product in products %}
-                                    <tr x-show="showCategory==='' || showCategory==='{{ product.category.name }}'">
-                                        <td>{{ product.name }}</td>
-                                        <td>C$ {{ product.price }}</td>
-                                        <td class="text-center">
-                                            <div class="btn-group" role="group">
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary btn-sm"
-                                                        @click.prevent="products[{{ product.id }}].qty > 0 ? products[{{ product.id }}].qty-- : ''">
-                                                    <i class="material-icons">remove</i>
-                                                </button>
-                                                <input type="number"
-                                                       class="form-control text-center"
-                                                       style="width: 80px;"
-                                                       name="product_{{ product.id }}"
-                                                       min="0"
-                                                       x-model.number="products[{{ product.id }}].qty">
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary btn-sm"
-                                                        @click.prevent="products[{{ product.id }}].qty++"><i class="material-icons">add</i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h1 class="mb-4">Nueva Comanda - Mesa {{ table.name }}</h1>
+
+            <!-- Categorías -->
+            <h2 class="h5 mb-3">Categorías</h2>
+            <div class="mb-4">
+                <button type="button" class="btn btn-outline-primary" id="btn-all" onclick="filterCategory('')">Todas</button>
+                {% for category in categories %}
+                    <button type="button" class="btn btn-outline-primary" onclick="filterCategory('{{ category.name }}')">{{ category.name }}</button>
+                {% endfor %}
             </div>
-        </div>
-        <!-- Resumen de productos -->
-        <div class="card border-warning mb-4">
-            <div class="card-header bg-warning bg-opacity-25">
-                <h5 class="mb-0">Resumen de Productos</h5>
-            </div>
-            <div class="card-body">
+
+            <!-- Formulario -->
+            <form id="orderForm" method="post">
+                {% csrf_token %}
+                <h3 class="h6 mb-3" id="category-label">Todos los productos</h3>
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th scope="col">Producto</th>
-                                <th scope="col">Cantidad</th>
                                 <th scope="col">Precio</th>
-                                <th scope="col">Monto</th>
+                                <th scope="col">Cantidad</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <template x-for="(product, id) in products" :key="id">
-                                <tr x-show="product.qty > 0">
-                                    <td x-text="`${product.name}`"></td>
-                                    <td x-text="`${product.qty}`"></td>
-                                    <td x-text="`C$ ${product.price}`"></td>
-                                    <td x-text="`C$ ${product.qty * product.price}`"></td>
+                        <tbody id="products-table-body">
+                            {% for product in products %}
+                                <tr data-category="{{ product.category.name }}" class="product-row">
+                                    <td>{{ product.name }}</td>
+                                    <td>C$ {{ product.price }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQty({{ product.id }})">
+                                                <i class="material-icons">remove</i>
+                                            </button>
+                                            <input type="number" class="form-control text-center" style="width: 80px;"
+                                                   name="product_{{ product.id }}" id="qty_{{ product.id }}" value="0" min="0">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQty({{ product.id }})">
+                                                <i class="material-icons">add</i>
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </template>
+                            {% endfor %}
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="3"><strong>Total:</strong></td>
-                                <td><strong>C$ <span x-text="Object.values(products).reduce((sum, p) => sum + p.qty * p.price, 0)"></span></strong></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
-            </div>
+            </form>
         </div>
-        <div class="d-flex justify-content-end gap-2 mb-4">
-            <button type="submit" form="orderForm" class="btn btn-primary">Crear Comanda</button>
-        </div>
-        {% if order %}
-            <div x-data="{ comandaHtml: '', async init() { const response = await fetch('{% url "print_order" order.id %}'); this.comandaHtml = await response.text(); console.log(this.comandaHtml); } }">
-                <iframe :srcdoc="comandaHtml" frameborder="0" style="display: none"></iframe>
-            </div>
-        {% endif %}
     </div>
+
+    <!-- Resumen de productos -->
+    <div class="card border-warning mb-4">
+        <div class="card-header bg-warning bg-opacity-25">
+            <h5 class="mb-0">Resumen de Productos</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Producto</th>
+                            <th scope="col">Cantidad</th>
+                            <th scope="col">Precio</th>
+                            <th scope="col">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-body">
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3"><strong>Total:</strong></td>
+                            <td><strong>C$ <span id="total-amount">0.00</span></strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <button type="submit" form="orderForm" class="btn btn-primary">Crear Comanda</button>
+    </div>
+
+    {% if order %}
+        <iframe id="order-print-frame" frameborder="0" style="display: none"></iframe>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('{% url "print_order" order.id %}')
+                .then(function(response) { return response.text(); })
+                .then(function(html) {
+                    document.getElementById('order-print-frame').srcdoc = html;
+                });
+        });
+        </script>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var productsData = {
+{% for product in products %}
+    {{ product.id }}: { name: '{{ product.name }}', price: {{ product.price }}, qty: 0 },
+{% endfor %}
+};
+
+var currentCategory = '';
+
+function filterCategory(category) {
+    currentCategory = category;
+    document.getElementById('category-label').textContent = category || 'Todos los productos';
+
+    document.querySelectorAll('.product-row').forEach(function(row) {
+        var rowCat = row.dataset.category;
+        if (category === '' || rowCat === category) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function decreaseQty(id) {
+    var input = document.getElementById('qty_' + id);
+    if (productsData[id].qty > 0) {
+        productsData[id].qty--;
+        input.value = productsData[id].qty;
+        updateSummary();
+    }
+}
+
+function increaseQty(id) {
+    productsData[id].qty++;
+    document.getElementById('qty_' + id).value = productsData[id].qty;
+    updateSummary();
+}
+
+function updateSummary() {
+    var tbody = document.getElementById('summary-body');
+    var total = 0;
+    tbody.innerHTML = '';
+
+    Object.keys(productsData).forEach(function(id) {
+        var p = productsData[id];
+        if (p.qty > 0) {
+            var lineTotal = p.qty * p.price;
+            total += lineTotal;
+            tbody.innerHTML += '<tr>' +
+                '<td>' + p.name + '</td>' +
+                '<td>' + p.qty + '</td>' +
+                '<td>C$ ' + p.price.toFixed(2) + '</td>' +
+                '<td>C$ ' + lineTotal.toFixed(2) + '</td>' +
+                '</tr>';
+        }
+    });
+
+    document.getElementById('total-amount').textContent = total.toFixed(2);
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add change listeners to all qty inputs
+    document.querySelectorAll('input[id^="qty_"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            var id = this.id.replace('qty_', '');
+            productsData[id].qty = parseInt(this.value) || 0;
+            updateSummary();
+        });
+    });
+});
+</script>
 {% endblock %}

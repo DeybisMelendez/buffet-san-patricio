@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Lista de Proveedores{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0">
+                <span class="material-icons">local_shipping</span> Lista de Proveedores
+            </h4>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'supplier_create' %}" class="btn btn-primary">
+                <span class="material-icons">add</span> Nuevo Proveedor
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Persona de Contacto</th>
+                            <th>Teléfono</th>
+                            <th>Correo</th>
+                            <th>Estado</th>
+                            <th style="width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
+                            <tr>
+                                <td>{{ supplier.name }}</td>
+                                <td>{{ supplier.contact_name|default:"—" }}</td>
+                                <td>{{ supplier.phone|default:"—" }}</td>
+                                <td>{{ supplier.email|default:"—" }}</td>
+                                <td>
+                                    {% if supplier.is_deleted %}
+                                        <span class="badge bg-secondary">Eliminado</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {% if not supplier.is_deleted %}
+                                            <a href="{% url 'supplier_edit' supplier.id %}" class="btn btn-secondary" title="Editar">
+                                                <span class="material-icons" style="font-size: 1rem;">edit</span>
+                                            </a>
+                                            <a href="{% url 'supplier_delete' supplier.id %}" class="btn btn-danger" title="Eliminar">
+                                                <span class="material-icons" style="font-size: 1rem;">delete</span>
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'supplier_restore' supplier.id %}" class="btn btn-success" title="Restaurar">
+                                                <span class="material-icons" style="font-size: 1rem;">restore</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    No hay proveedores registrados.
+                                    <a href="{% url 'supplier_create' %}">Crear el primero</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

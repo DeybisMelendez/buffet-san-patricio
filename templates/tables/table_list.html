@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block title %}Administrar Mesas{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="material-icons">table_restaurant</i> Administrar Mesas
+        </h1>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Lista de Mesas</h5>
+                <a href="{% url 'table_management_create' %}"
+                   class="btn btn-primary btn-sm"><i class="material-icons">add</i> Nueva Mesa</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for table in tables %}
+                                <tr>
+                                    <td>{{ table.name }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'table_management_detail' table.id %}"
+                                               class="btn btn-info btn-sm"
+                                               title="Ver"><i class="material-icons">visibility</i></a>
+                                            <a href="{% url 'table_management_edit' table.id %}"
+                                               class="btn btn-secondary btn-sm"
+                                               title="Editar"><i class="material-icons">edit</i></a>
+                                            <a href="{% url 'table_management_delete' table.id %}"
+                                               class="btn btn-danger btn-sm"
+                                               title="Eliminar"><i class="material-icons">delete</i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">No hay mesas registradas.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

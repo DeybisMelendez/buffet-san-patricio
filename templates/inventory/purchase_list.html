@@ -1,0 +1,191 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Lista de Compras{% endblock %}
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet">
+<style>
+.gridjs-wrapper { box-shadow: none; }
+.gridjs-table { width: 100%; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0">
+                <span class="material-icons">shopping_cart</span> Lista de Compras
+            </h4>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'purchase_create' %}" class="btn btn-primary">
+                <span class="material-icons">add</span> Nueva Compra
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="supplier" class="form-label">Proveedor</label>
+                        <select id="supplier" name="supplier" class="form-select">
+                            <option value="">Todos los proveedores</option>
+                            {% for s in suppliers %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Estado</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="ACTIVE">Activa</option>
+                            <option value="COMPLETED">Completada</option>
+                            <option value="CANCELED">Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label">Desde</label>
+                        <input type="date" id="date_from" name="date_from" class="form-select">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <span class="material-icons">search</span> Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div id="grid-toolbar"></div>
+            <div id="grid-container"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    if (typeof gridjs === 'undefined') {
+        document.getElementById('grid-container').innerHTML =
+            '<div class="alert alert-danger">GridJS no está disponible. Recargue la página.</div>';
+        return;
+    }
+
+    var container = document.getElementById('grid-container');
+    GridUtils.showLoading('grid-container');
+    container.innerHTML = '';
+
+    var apiUrl = '/api/purchases/';
+
+    function buildApiUrl() {
+        var params = new URLSearchParams();
+        var supplier = document.getElementById('supplier');
+        var status = document.getElementById('status');
+        var dateFrom = document.getElementById('date_from');
+        if (supplier && supplier.value) params.set('supplier', supplier.value);
+        if (status && status.value) params.set('status', status.value);
+        if (dateFrom && dateFrom.value) params.set('date_from', dateFrom.value);
+        var queryString = params.toString();
+        return '/api/purchases/' + (queryString ? '?' + queryString : '');
+    }
+
+    function initGrid() {
+        container.innerHTML = '';
+        GridUtils.showLoading('grid-container');
+
+        var grid = new gridjs.Grid({
+        columns: [
+            { id: 'id', hidden: true },
+            { name: '#', id: 'id', width: '60px', sort: { enabled: true } },
+            { name: 'Fecha', id: 'order_date', sort: { enabled: true },
+              formatter: function(cell) {
+                  if (!cell) return '-';
+                  return new Date(cell).toLocaleDateString('es-NI');
+              }
+            },
+            { name: 'Proveedor', id: 'supplier__name', sort: { enabled: true } },
+            { name: 'Bodega', id: 'warehouse__name', sort: { enabled: true } },
+            { name: 'Tipo', id: 'purchase_type', sort: { enabled: true },
+              formatter: function(cell) {
+                  if (cell === 'CREDIT') {
+                      return gridjs.html('<span class="badge bg-warning">Crédito</span>');
+                  }
+                  return gridjs.html('<span class="badge bg-success">Contado</span>');
+              }
+            },
+            { name: 'Total', id: 'total_amount', sort: { enabled: true },
+              formatter: function(cell) {
+                  return 'C$ ' + parseFloat(cell || 0).toFixed(2);
+              }
+            },
+            { name: 'Acciones', id: 'acciones', sort: false, width: '150px',
+              formatter: function(cell, row) {
+                  var id = row.cells[0].data;
+                  var purchaseType = row.cells[5].data;
+                  var html = '<div class="btn-group btn-group-sm" role="group">' +
+                      '<a href="/inventory/purchases/' + id + '/" class="btn btn-secondary" title="Ver">' +
+                      '<span class="material-icons" style="font-size:1rem;">visibility</span></a>';
+                  if (purchaseType === 'CREDIT') {
+                      html += '<a href="/inventory/purchases/' + id + '/mark-paid/" class="btn btn-success" title="Pago Realizado" onclick="return confirm(\'¿Marcar esta compra como pagada?\')">' +
+                      '<span class="material-icons" style="font-size:1rem;">check_circle</span></a>';
+                  }
+                  html += '</div>';
+                  return gridjs.html(html);
+              }
+            }
+        ],
+        server: {
+            url: buildApiUrl(),
+            then: function(data) {
+                return data.results.map(function(item) {
+                    return [
+                        item.id,
+                        item.id,
+                        item.order_date,
+                        item.supplier__name || '-',
+                        item.warehouse__name || '-',
+                        item.purchase_type,
+                        item.total_amount,
+                        null
+                    ];
+                });
+            },
+            total: function(data) { return data.count; }
+        },
+        search: false,
+        sort: { enabled: true, multiColumn: true },
+        pagination: {
+            enabled: true,
+            limit: 25,
+            limits: [10, 25, 50, 100],
+            summary: true
+        }
+    });
+    container.innerHTML = '';
+    grid.render(container);
+
+    grid.on('ready', function() {
+        GridUtils.addToolbar('grid-toolbar', 'grid-container', 'compras');
+    });
+    }
+
+    initGrid();
+
+    document.getElementById('supplier').addEventListener('change', initGrid);
+    document.getElementById('status').addEventListener('change', initGrid);
+    document.getElementById('date_from').addEventListener('change', initGrid);
+
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}{% if supplier %}Editar{% else %}Nuevo{% endif %} Proveedor{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0">
+                <span class="material-icons">local_shipping</span>
+                {% if supplier %}Editar{% else %}Nuevo{% endif %} Proveedor
+            </h4>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'supplier_list' %}" class="btn btn-secondary">
+                <span class="material-icons">arrow_back</span> Volver
+            </a>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Nombre *</label>
+                        <input type="text"
+                               name="name"
+                               id="name"
+                               class="form-control"
+                               value="{{ supplier.name|default:'' }}"
+                               placeholder="Nombre del proveedor"
+                               required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contact_name" class="form-label">Persona de Contacto</label>
+                        <input type="text"
+                               name="contact_name"
+                               id="contact_name"
+                               class="form-control"
+                               value="{{ supplier.contact_name|default:'' }}"
+                               placeholder="Nombre de la persona de contacto">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="phone" class="form-label">Teléfono</label>
+                        <input type="text"
+                               name="phone"
+                               id="phone"
+                               class="form-control"
+                               value="{{ supplier.phone|default:'' }}"
+                               placeholder="Teléfono">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="email" class="form-label">Correo Electrónico</label>
+                        <input type="email"
+                               name="email"
+                               id="email"
+                               class="form-control"
+                               value="{{ supplier.email|default:'' }}"
+                               placeholder="correo@ejemplo.com">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="address" class="form-label">Dirección</label>
+                        <input type="text"
+                               name="address"
+                               id="address"
+                               class="form-control"
+                               value="{{ supplier.address|default:'' }}"
+                               placeholder="Dirección">
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-icons">save</span>
+                    {% if supplier %}Actualizar{% else %}Crear{% endif %} Proveedor
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

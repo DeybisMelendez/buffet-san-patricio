@@ -2,8 +2,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">{{ title }}</h1>
-        {% include "includes/_messages.html" %}
+        <h1 class="mb-4">{{ title }}        </h1>
         <div class="card">
             <div class="card-body">
                 <form method="post">
@@ -17,6 +16,18 @@
                                required
                                class="form-control"
                                placeholder="Ej: Harina de trigo">
+                    </div>
+                    <div class="mb-3">
+                        <label for="ingredient_type" class="form-label">Tipo *</label>
+                        <select id="ingredient_type" name="ingredient_type" required class="form-select">
+                            <option value="">--- Selecciona un tipo ---</option>
+                            {% for type_code, type_name in ingredient_types %}
+                                <option value="{{ type_code }}"
+                                        {% if ingredient and ingredient.ingredient_type == type_code %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="unit" class="form-label">Unidad *</label>

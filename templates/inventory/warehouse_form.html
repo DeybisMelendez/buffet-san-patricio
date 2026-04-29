@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="material-icons">warehouse</i> {{ title }}
+        </h1>
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nombre de la Bodega *</label>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               value="{% if warehouse %}{{ warehouse.name }}{% endif %}"
+                               required
+                               class="form-control"
+                               placeholder="Ej: Bodega Principal">
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="material-icons">save</i> Guardar
+                        </button>
+                        <a href="{% url 'warehouse_list' %}" class="btn btn-secondary"><i class="material-icons">arrow_back</i> Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

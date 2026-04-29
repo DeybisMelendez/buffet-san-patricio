@@ -1,10 +1,15 @@
 {% extends "layout.html" %}
 {% load humanize %}
 {% load user_tags %}
-{% block title %}Mesas{% endblock %}
+{% block title %}Comandar{% endblock %}
 {% block body %}
     <div class="container">
-        <h1 class="mb-4">Mesas</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Comandar</h1>
+            <a href="{% url 'order_history' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="material-icons">history</i> Historial de Comandas
+            </a>
+        </div>
         {% if user|has_group:"Cajero" or user|has_group:"Supervisor" or user|is_administrador or user.is_superuser %}
             <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
                 <i class="material-icons me-2">point_of_sale</i>
@@ -15,7 +20,7 @@
             {% for item in table_data %}
                 <div class="col">
                     <div class="card h-100">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
                                 <i class="material-icons text-primary">table_restaurant</i> Mesa {{ item.table.name }}
                             </h5>
@@ -32,18 +37,13 @@
                                    title="Crear nueva orden"><i class="material-icons">add</i></a>
                                 <a href="{% url 'table_orders' item.table.id %}"
                                    class="btn btn-secondary"
-                                   title="Ver órdenes de la mesa"><i class="material-icons">list_alt</i></a>
-                                {% if item.total_due > 0 %}
-                                    <button type="button"
-                                            class="btn btn-success"
-                                            title="Marcar como pagado"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#paymentModal"
-                                            data-table-id="{{ item.table.id }}"
-                                            data-table-name="{{ item.table.name }}"
-                                            data-table-total="{{ item.total_due|floatformat:2|intcomma }}">
-                                        <i class="material-icons">check_circle</i>
-                                    </button>
+                                   title="Ver ordenes de la mesa"><i class="material-icons">list_alt</i></a>
+                                {% if item.total_due > 0 and user|can_cashier %}
+                                    <a href="{% url 'invoice_table' item.table.id %}"
+                                       class="btn btn-success"
+                                       title="Cobrar mesa">
+                                        <i class="material-icons">payments</i>
+                                    </a>
                                 {% endif %}
                             </div>
                         </div>
@@ -52,54 +52,4 @@
             {% endfor %}
         </div>
     </div>
-    <!-- Modal de confirmación de pago -->
-    <div class="modal fade"
-         id="paymentModal"
-         tabindex="-1"
-         aria-labelledby="paymentModalLabel"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalLabel">
-                        Pagar mesa <span id="modalTableName"></span>
-                    </h5>
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>
-                        Se generará una <strong>factura</strong> para la mesa <strong><span id="modalTableName2"></span></strong>.
-                    </p>
-                    <p>
-                        <strong>Total a pagar: C$ <span id="modalTableTotal"></span></strong>
-                    </p>
-                    <p class="text-muted small">Se requiere una caja abierta para realizar el cobro.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <a id="confirmPaymentBtn" href="#" class="btn btn-primary">Confirmar pago</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const paymentModal = document.getElementById('paymentModal');
-            
-            paymentModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const tableId = button.getAttribute('data-table-id');
-                const tableName = button.getAttribute('data-table-name');
-                const tableTotal = button.getAttribute('data-table-total');
-                
-                document.getElementById('modalTableName').textContent = tableName;
-                document.getElementById('modalTableName2').textContent = tableName;
-                document.getElementById('modalTableTotal').textContent = tableTotal;
-                document.getElementById('confirmPaymentBtn').href = '/mesa/' + tableId + '/pagar/';
-            });
-        });
-    </script>
 {% endblock %}

@@ -1,0 +1,472 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Nueva Compra de Ingredientes{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0">
+                <span class="material-icons">shopping_cart</span> Nueva Compra de Ingredientes
+            </h4>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'purchase_list' %}" class="btn btn-secondary">
+                <span class="material-icons">arrow_back</span> Volver
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="purchase-form">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Datos de la Compra</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="supplier" class="form-label">Proveedor *</label>
+                        <div class="input-group">
+                            <select name="supplier" id="supplier" class="form-select" required>
+                                <option value="">Seleccione un proveedor...</option>
+                                {% for s in suppliers %}
+                                    <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newSupplierModal" title="Nuevo proveedor">
+                                <span class="material-icons">add</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="warehouse" class="form-label">Bodega *</label>
+                        <select name="warehouse" id="warehouse" class="form-select" required>
+                            <option value="">Seleccione una bodega...</option>
+                            {% for w in warehouses %}
+                                <option value="{{ w.id }}">{{ w.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="purchase_type" class="form-label">Tipo de Compra</label>
+                        <select name="purchase_type" id="purchase_type" class="form-select">
+                            <option value="CASH">Contado</option>
+                            <option value="CREDIT">Crédito</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="order_date" class="form-label">Fecha</label>
+                        <input type="date" name="order_date" id="order_date" class="form-control"
+                               value="">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="reference_number" class="form-label">Referencia</label>
+                        <input type="text" name="reference_number" id="reference_number"
+                               class="form-control" placeholder="Nº Factura">
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <label for="notes" class="form-label">Notas</label>
+                        <textarea name="notes" id="notes" class="form-control"
+                                  rows="2" placeholder="Observaciones adicionales..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Ingredientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Filtrar por tipo</label>
+                        <div class="d-flex gap-2 flex-wrap" id="type-filters">
+                            <button type="button" class="btn btn-sm btn-primary filter-btn active" data-type="">Todos</button>
+                            {% for type_value, type_display in ingredient_types %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-type="{{ type_value }}">{{ type_display }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="warehouse-filter" class="form-label">Bodega</label>
+                        <select id="warehouse-filter" class="form-select form-select-sm">
+                            <option value="">Todas las bodegas</option>
+                            {% for w in warehouses %}
+                                <option value="{{ w.id }}">{{ w.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="mb-3" id="filter-label">Todos los ingredientes</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Ingrediente</th>
+                                <th scope="col">Tipo</th>
+                                <th scope="col">Bodega</th>
+                                <th scope="col">Stock</th>
+                                <th scope="col">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingredients-table-body">
+                            {% for ing in ingredients %}
+                                <tr data-type="{{ ing.ingredient_type }}" data-warehouse="{{ ing.warehouse_id|default:'' }}" class="ingredient-row">
+                                    <td>{{ ing.name }}</td>
+                                    <td>
+                                        {% if ing.ingredient_type == 'MATERIA_PRIMA' %}
+                                            <span class="badge bg-primary">Materia Prima</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Procesado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ing.warehouse.name|default:"Sin bodega" }}</td>
+                                    <td>{{ ing.stock_quantity }} {{ ing.get_unit_display }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQty({{ ing.id }})">
+                                                <span class="material-icons">remove</span>
+                                            </button>
+                                            <input type="number" class="form-control text-center" style="width: 80px;"
+                                                   id="qty_{{ ing.id }}" value="0" min="0" step="0.01">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQty({{ ing.id }})">
+                                                <span class="material-icons">add</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-warning mb-3" id="summary-card" style="display: none;">
+            <div class="card-header bg-warning bg-opacity-25">
+                <h5 class="mb-0">Resumen de Compras</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Ingrediente</th>
+                                <th scope="col">Cantidad</th>
+                                <th scope="col">Costo Unitario</th>
+                                <th scope="col">Monto</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="summary-body">
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3"><strong>Total:</strong></td>
+                                <td><strong>C$ <span id="total-amount">0.00</span></strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mb-4">
+            <button type="submit" class="btn btn-primary" id="btn-submit" disabled>
+                <span class="material-icons">save</span> Registrar Compra
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="modal fade" id="newSupplierModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="new-supplier-name" class="form-label">Nombre *</label>
+                    <input type="text" id="new-supplier-name" class="form-control" placeholder="Nombre del proveedor" required>
+                </div>
+                <div class="mb-3">
+                    <label for="new-supplier-contact" class="form-label">Persona de Contacto</label>
+                    <input type="text" id="new-supplier-contact" class="form-control" placeholder="Nombre de contacto">
+                </div>
+                <div class="mb-3">
+                    <label for="new-supplier-phone" class="form-label">Teléfono</label>
+                    <input type="text" id="new-supplier-phone" class="form-control" placeholder="Teléfono">
+                </div>
+                <div class="mb-3">
+                    <label for="new-supplier-email" class="form-label">Correo</label>
+                    <input type="email" id="new-supplier-email" class="form-control" placeholder="correo@ejemplo.com">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-save-supplier">Guardar Proveedor</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    var ingredientsData = {
+{% for ing in ingredients %}
+        {{ ing.id }}: {
+            name: '{{ ing.name|addslashes }}',
+            unit: '{{ ing.get_unit_display }}',
+            warehouse: '{{ ing.warehouse.name|default:"Sin bodega" }}',
+            warehouse_id: {{ ing.warehouse_id|default:"null" }},
+            stock: {{ ing.stock_quantity }},
+            type: '{{ ing.ingredient_type }}',
+            qty: 0,
+            unit_cost: ''
+        },
+{% endfor %}
+    };
+
+    var selectedItems = [];
+    var currentType = '';
+    var currentWarehouse = '';
+
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('order_date').value = today;
+
+    function filterIngredients() {
+        var rows = document.querySelectorAll('.ingredient-row');
+        rows.forEach(function(row) {
+            var rowType = row.dataset.type;
+            var rowWarehouse = row.dataset.warehouse;
+
+            var typeMatch = currentType === '' || rowType === currentType;
+            var warehouseMatch = currentWarehouse === '' || rowWarehouse === currentWarehouse;
+
+            row.style.display = (typeMatch && warehouseMatch) ? '' : 'none';
+        });
+
+        var label = currentType === '' ? 'Todos' : (currentType === 'MATERIA_PRIMA' ? 'Materia Prima' : 'Procesado');
+        if (currentWarehouse !== '') {
+            var warehouseSelect = document.getElementById('warehouse-filter');
+            var warehouseName = warehouseSelect.options[warehouseSelect.selectedIndex].text;
+            label += ' - ' + warehouseName;
+        }
+        document.getElementById('filter-label').textContent = label;
+    }
+
+    function decreaseQty(id) {
+        var input = document.getElementById('qty_' + id);
+        if (ingredientsData[id].qty > 0) {
+            ingredientsData[id].qty--;
+            input.value = ingredientsData[id].qty;
+            updateSummary();
+        }
+    }
+
+    function increaseQty(id) {
+        var input = document.getElementById('qty_' + id);
+        ingredientsData[id].qty++;
+        input.value = ingredientsData[id].qty;
+        updateSummary();
+    }
+
+    function updateSummary() {
+        var summaryBody = document.getElementById('summary-body');
+        var summaryCard = document.getElementById('summary-card');
+        var total = 0;
+        var itemCount = 0;
+
+        selectedItems = [];
+        summaryBody.innerHTML = '';
+
+        Object.keys(ingredientsData).forEach(function(id) {
+            var ing = ingredientsData[id];
+            if (ing.qty > 0) {
+                var unitCost = parseFloat(ing.unit_cost) || 0;
+                var lineTotal = ing.qty * unitCost;
+                total += lineTotal;
+                itemCount++;
+
+                selectedItems.push({
+                    id: parseInt(id),
+                    name: ing.name,
+                    qty: ing.qty,
+                    unit_cost: unitCost
+                });
+
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + ing.name + '</td>' +
+                    '<td>' + ing.qty + ' ' + ing.unit + '</td>' +
+                    '<td style="width: 150px;">' +
+                        '<div class="input-group input-group-sm">' +
+                            '<span class="input-group-text">C$</span>' +
+                            '<input type="number" class="form-control text-end unit-cost-input" ' +
+                                   'data-id="' + id + '" step="0.01" min="0" value="' + (ing.unit_cost || '') + '" ' +
+                                   'placeholder="0.00">' +
+                        '</div>' +
+                    '</td>' +
+                    '<td class="text-end fw-bold">C$ ' + lineTotal.toFixed(2) + '</td>' +
+                    '<td>' +
+                        '<button type="button" class="btn btn-danger btn-sm" onclick="removeItem(' + id + ')">' +
+                            '<span class="material-icons" style="font-size: 1rem;">close</span>' +
+                        '</button>' +
+                    '</td>';
+                summaryBody.appendChild(tr);
+            }
+        });
+
+        document.getElementById('total-amount').textContent = total.toFixed(2);
+        document.getElementById('btn-submit').disabled = itemCount === 0;
+        summaryCard.style.display = itemCount > 0 ? 'block' : 'none';
+    }
+
+    window.removeItem = function(id) {
+        ingredientsData[id].qty = 0;
+        ingredientsData[id].unit_cost = '';
+        document.getElementById('qty_' + id).value = 0;
+        updateSummary();
+    };
+
+    document.querySelectorAll('.filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(function(b) {
+                b.classList.remove('btn-primary', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('btn-primary', 'active');
+            currentType = this.dataset.type;
+            filterIngredients();
+        });
+    });
+
+    document.getElementById('warehouse-filter').addEventListener('change', function() {
+        currentWarehouse = this.value;
+        filterIngredients();
+    });
+
+    document.getElementById('ingredients-table-body').addEventListener('input', function(e) {
+        if (e.target.classList.contains('form-control') && e.target.id.startsWith('qty_')) {
+            var id = e.target.id.replace('qty_', '');
+            ingredientsData[id].qty = parseFloat(e.target.value) || 0;
+            updateSummary();
+        }
+    });
+
+    document.getElementById('summary-body').addEventListener('input', function(e) {
+        if (e.target.classList.contains('unit-cost-input')) {
+            var id = e.target.dataset.id;
+            ingredientsData[id].unit_cost = e.target.value;
+            updateSummary();
+        }
+    });
+
+    document.getElementById('purchase-form').addEventListener('submit', function(e) {
+        var supplier = document.getElementById('supplier').value;
+        var warehouse = document.getElementById('warehouse').value;
+
+        if (!supplier || !warehouse) {
+            e.preventDefault();
+            alert('Debe seleccionar un proveedor y una bodega.');
+            return;
+        }
+
+        if (selectedItems.length === 0) {
+            e.preventDefault();
+            alert('Debe agregar al menos un ingrediente con cantidad mayor a cero.');
+            return;
+        }
+
+        for (var i = 0; i < selectedItems.length; i++) {
+            var item = selectedItems[i];
+            if (!item.qty || item.qty <= 0) {
+                e.preventDefault();
+                alert('Todos los ingredientes deben tener cantidad mayor a cero.');
+                return;
+            }
+            if (!item.unit_cost || item.unit_cost <= 0) {
+                e.preventDefault();
+                alert('Todos los ingredientes deben tener costo unitario mayor a cero.');
+                return;
+            }
+        }
+
+        var itemsJson = document.createElement('input');
+        itemsJson.type = 'hidden';
+        itemsJson.name = 'items_json';
+        itemsJson.value = JSON.stringify(selectedItems);
+        this.appendChild(itemsJson);
+    });
+
+    document.getElementById('btn-save-supplier').addEventListener('click', function() {
+        var name = document.getElementById('new-supplier-name').value.trim();
+        var contact = document.getElementById('new-supplier-contact').value.trim();
+        var phone = document.getElementById('new-supplier-phone').value.trim();
+        var email = document.getElementById('new-supplier-email').value.trim();
+
+        if (!name) {
+            alert('El nombre del proveedor es requerido.');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('name', name);
+        formData.append('contact_name', contact);
+        formData.append('phone', phone);
+        formData.append('email', email);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch('{% url "supplier_create" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                var select = document.getElementById('supplier');
+                var option = document.createElement('option');
+                option.value = data.supplier.id;
+                option.textContent = data.supplier.name;
+                select.appendChild(option);
+                select.value = data.supplier.id;
+
+                var modal = bootstrap.Modal.getInstance(document.getElementById('newSupplierModal'));
+                modal.hide();
+
+                document.getElementById('new-supplier-name').value = '';
+                document.getElementById('new-supplier-contact').value = '';
+                document.getElementById('new-supplier-phone').value = '';
+                document.getElementById('new-supplier-email').value = '';
+            } else {
+                alert('Error al crear proveedor: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) {
+            console.error('Error creando proveedor:', err);
+            alert('Error al crear proveedor.');
+        });
+    });
+
+    window.decreaseQty = decreaseQty;
+    window.increaseQty = increaseQty;
+    window.removeItem = removeItem;
+
+})();
+</script>
+{% endblock %}

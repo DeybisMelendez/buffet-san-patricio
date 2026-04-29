@@ -1,0 +1,146 @@
+{% extends 'layout.html' %}
+{% load humanize %}
+{% block title %}Conversor por Receta{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <span class="material-icons">menu_book</span> Conversor por Receta
+        </h1>
+        <p class="mb-4">
+            Transforma ingredientes crudos en productos procesados usando una receta guardada.
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <span class="material-icons">menu_book</span> Seleccionar Receta
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="recipe" class="form-label">Receta</label>
+                            <select id="recipe" name="recipe" class="form-select">
+                                <option value="">Selecciona una receta...</option>
+                                {% for recipe in recipes %}<option value="{{ recipe.id }}">{{ recipe.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="factor" class="form-label">Factor de Multiplicación</label>
+                            <input type="number"
+                                   id="factor"
+                                   name="factor"
+                                   value="1"
+                                   step="0.1"
+                                   min="0.1"
+                                   class="form-control">
+                            <small class="text-muted">Multiplica las cantidades de la receta por este factor.</small>
+                        </div>
+                    </div>
+                    <div id="recipe-preview" class="mt-4" style="display: none;">
+                        <h6>Vista Previa</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-danger">
+                                    <span class="material-icons">arrow_downward</span> Entradas (Consumo)
+                                </h6>
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Ingrediente</th>
+                                            <th class="text-end">Cantidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-inputs">
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-success">
+                                    <span class="material-icons">arrow_upward</span> Salidas (Procesado)
+                                </h6>
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Ingrediente</th>
+                                            <th class="text-end">Cantidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-outputs">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-success" id="btn-apply-recipe">
+                        <span class="material-icons">check</span> Aplicar Conversión
+                    </button>
+                    <a href="{% url 'food_recipe_create' %}"
+                       class="btn btn-outline-primary ms-2">
+                        <span class="material-icons">add</span> Nueva Receta
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script>
+    var recipeData = {
+        {% for recipe in recipes %}
+        "{{ recipe.id }}": {
+            name: "{{ recipe.name }}",
+            items: [
+                {% for item in recipe.items.all %}
+                { id: {{ item.ingredient.id }}, name: "{{ item.ingredient.name }}", quantity: {{ item.quantity }}, is_input: {{ item.is_input|yesno:"true,false" }}, unit: "{{ item.ingredient.unit }}" },
+                {% endfor %}
+            ]
+        },
+        {% endfor %}
+    };
+
+    function updateRecipePreview() {
+        var recipeId = document.getElementById('recipe') ? document.getElementById('recipe').value : '';
+        var factor = parseFloat(document.getElementById('factor') ? document.getElementById('factor').value : 1) || 1;
+        var previewEl = document.getElementById('recipe-preview');
+        var inputsBody = document.getElementById('preview-inputs');
+        var outputsBody = document.getElementById('preview-outputs');
+        var btnApply = document.getElementById('btn-apply-recipe');
+
+        if (!recipeId || !recipeData[recipeId]) {
+            previewEl.style.display = 'none';
+            btnApply.disabled = true;
+            return;
+        }
+
+        btnApply.disabled = false;
+        previewEl.style.display = '';
+
+        var recipe = recipeData[recipeId];
+        inputsBody.innerHTML = '';
+        outputsBody.innerHTML = '';
+
+        recipe.items.forEach(function(item) {
+            var qty = (item.quantity * factor).toFixed(2) + ' ' + item.unit;
+            var tr = '<tr><td>' + item.name + '</td><td class="text-end">' + qty + '</td></tr>';
+            if (item.is_input) {
+                inputsBody.innerHTML += tr;
+            } else {
+                outputsBody.innerHTML += tr;
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var recipeSelect = document.getElementById('recipe');
+        var factorInput = document.getElementById('factor');
+        if (recipeSelect) recipeSelect.addEventListener('change', updateRecipePreview);
+        if (factorInput) factorInput.addEventListener('input', updateRecipePreview);
+
+        updateRecipePreview();
+    });
+    </script>
+{% endblock %}

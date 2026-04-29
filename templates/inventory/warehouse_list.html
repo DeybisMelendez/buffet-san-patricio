@@ -1,0 +1,109 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}Bodegas de Ingredientes{% endblock %}
+{% block extra_css %}
+    <style>
+    .gridjs-wrapper { box-shadow: none; }
+    .gridjs-table { width: 100%; }
+    </style>
+{% endblock %}
+{% block body %}
+    <div class="container">
+        <div class="row mb-3">
+            <div class="col">
+                <h1 class="mb-0">
+                    <i class="material-icons">warehouse</i> Bodegas de Ingredientes
+                </h1>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'warehouse_create' %}" class="btn btn-primary">
+                    <i class="material-icons">add</i> Nueva Bodega
+                </a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="grid-toolbar"></div>
+                <div id="grid-container"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    if (typeof gridjs === 'undefined') {
+        console.error('GridJS no está disponible');
+        GridUtils.showError('grid-container', 'GridJS no está disponible. Recargue la página.');
+        return;
+    }
+
+    var container = document.getElementById('grid-container');
+    if (!container) return;
+
+    GridUtils.showLoading('grid-container');
+
+    container.innerHTML = '';
+
+    var grid = new gridjs.Grid({
+        columns: [
+            { id: 'id', hidden: true },
+            { name: 'Nombre', id: 'name', sort: { enabled: true } },
+            {
+                name: 'Acciones',
+                id: 'acciones',
+                sort: false,
+                formatter: function(cell, row) {
+                    var id = row.cells[0].data;
+                    return gridjs.html(
+                        '<div class="btn-group" role="group">' +
+                        '<a href="/inventory/warehouses/' + id + '/edit/" class="btn btn-secondary btn-sm" title="Editar">' +
+                        '<i class="material-icons" style="font-size:1rem;">edit</i></a>' +
+                        '<a href="/inventory/warehouses/' + id + '/delete/" class="btn btn-danger btn-sm" title="Eliminar">' +
+                        '<i class="material-icons" style="font-size:1rem;">delete</i></a>' +
+                        '</div>'
+                    );
+                }
+            }
+        ],
+        server: {
+            url: '/api/warehouses/',
+            then: function(data) {
+                return data.results.map(function(w) {
+                    return [w.id, w.name, null];
+                });
+            },
+            total: function(data) { return data.count; }
+        },
+        sort: { enabled: true },
+        pagination: {
+            enabled: true,
+            limit: 25,
+            limits: [10, 25, 50, 100],
+            server: {
+                url: function(prev, page, limit) {
+                    var url = new URL('/api/warehouses/', window.location.origin);
+                    url.searchParams.set('limit', limit);
+                    url.searchParams.set('offset', page * limit);
+                    return url.toString();
+                }
+            },
+            summary: true,
+            labels: { first: '«', last: '»', prev: '‹', next: '›' }
+        },
+        language: 'es-ES'
+    }).render(container);
+
+    grid.on('ready', function() {
+        GridUtils.addToolbar('grid-toolbar', 'grid-container', 'bodegas');
+    });
+
+    grid.on('error', function(err) {
+        console.error('GridJS error:', err);
+        GridUtils.showError('grid-container', 'Error al cargar los datos. Por favor recargue la página.');
+    });
+})();
+</script>
+{% endblock %}

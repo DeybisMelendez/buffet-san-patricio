@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}Ajuste de Inventario{% endblock %}
 {% block body %}
-    <div class="container" x-data>
+    <div class="container">
         <h1 class="mb-4"><i class="material-icons">fact_check</i> Ajuste de Inventario</h1>
         <p class="mb-4">
             Ingresa el saldo físico encontrado para cada ingrediente. El sistema calculará y aplicará automáticamente los ajustes necesarios.
@@ -14,31 +14,29 @@
                         <tr>
                             <th>Bodega</th>
                             <th>Ingrediente</th>
-                            <th class="text-end">Stock Actual</th>
-                            <th class="text-end">Saldo Encontrado</th>
-                            <th class="text-end">Diferencia</th>
+                            <th>Stock Actual</th>
+                            <th>Saldo Encontrado</th>
+                            <th>Diferencia</th>
                             <th>Unidad</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for ing in ingredients %}
-                            <tr x-data="{ actual: {{ ing.stock_quantity }}, found: {{ ing.stock_quantity }}, get diff() { return (this.found - this.actual).toFixed(2); } }">
+                            <tr data-inventory-row data-actual="{{ ing.stock_quantity }}">
                                 <td>{{ ing.warehouse }}</td>
                                 <td>{{ ing.name }}</td>
-                                <td class="text-end" x-text="actual"></td>
-                                <td class="text-end">
+                                <td>{{ ing.stock_quantity|floatformat:2 }}</td>
+                                <td>
                                     <input type="number"
                                            step="0.01"
                                            name="found_{{ ing.id }}"
-                                           x-model.number="found"
+                                           value="{{ ing.stock_quantity }}"
+                                           data-found
                                            required
-                                           class="form-control text-center"
+                                           class="form-control"
                                            style="width: 100px;">
                                 </td>
-                                <td class="text-end">
-                                    <span :class="diff > 0 ? 'text-success' : diff < 0 ? 'text-danger' : ''"
-                                          x-text="diff"></span>
-                                </td>
+                                <td data-diff>0.00</td>
                                 <td>{{ ing.unit }}</td>
                             </tr>
                         {% endfor %}
@@ -59,4 +57,23 @@
             </div>
         </form>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var rows = document.querySelectorAll('[data-inventory-row]');
+        rows.forEach(function(row) {
+            var input = row.querySelector('[data-found]');
+            var diffEl = row.querySelector('[data-diff]');
+            var actual = parseFloat(row.dataset.actual) || 0;
+
+            input.addEventListener('input', function() {
+                var found = parseFloat(input.value) || 0;
+                var diff = found - actual;
+                diffEl.textContent = diff.toFixed(2);
+                diffEl.classList.remove('text-success', 'text-danger');
+                if (diff > 0) diffEl.classList.add('text-success');
+                else if (diff < 0) diffEl.classList.add('text-danger');
+            });
+        });
+    });
+    </script>
 {% endblock %}

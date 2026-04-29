@@ -1,0 +1,243 @@
+{% extends "layout.html" %}
+{% load humanize %}
+{% block title %}Detalle de Compra #{{ purchase.id }}{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h4 class="mb-0">
+                <span class="material-icons">shopping_cart</span>
+                Compra #{{ purchase.id }}
+            </h4>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'purchase_list' %}" class="btn btn-secondary">
+                <span class="material-icons">arrow_back</span> Volver
+            </a>
+            {% if purchase.status == 'ACTIVE' %}
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                <span class="material-icons">cancel</span> Cancelar
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Estado</h6>
+                    {% if purchase.status == 'ACTIVE' %}
+                        <span class="badge bg-success fs-6">Activa</span>
+                    {% elif purchase.status == 'COMPLETED' %}
+                        <span class="badge bg-primary fs-6">Completada</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6">Cancelada</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Tipo</h6>
+                    <span class="fs-6">{{ purchase.get_purchase_type_display }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Total</h6>
+                    <span class="fs-5 fw-bold text-success">C$ {{ purchase.total_amount|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Fecha</h6>
+                    <span class="fs-6">{{ purchase.order_date }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Datos del Proveedor</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th class="text-muted w-25">Nombre:</th>
+                            <td>{{ purchase.supplier.name }}</td>
+                        </tr>
+                        {% if purchase.supplier.contact_name %}
+                        <tr>
+                            <th class="text-muted">Contacto:</th>
+                            <td>{{ purchase.supplier.contact_name }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if purchase.supplier.phone %}
+                        <tr>
+                            <th class="text-muted">Teléfono:</th>
+                            <td>{{ purchase.supplier.phone }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if purchase.supplier.email %}
+                        <tr>
+                            <th class="text-muted">Email:</th>
+                            <td>{{ purchase.supplier.email }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Datos de la Compra</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th class="text-muted w-25">Bodega:</th>
+                            <td>{{ purchase.warehouse.name }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Referencia:</th>
+                            <td>{{ purchase.reference_number|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Subtotal:</th>
+                            <td>C$ {{ purchase.subtotal|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Total:</th>
+                            <td class="fw-bold">C$ {{ purchase.total_amount|intcomma }}</td>
+                        </tr>
+                        {% if purchase.created_by %}
+                        <tr>
+                            <th class="text-muted">Creado por:</th>
+                            <td>{{ purchase.created_by.username }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5 class="mb-0">Ingredientes de la Compra</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ingrediente</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end">Costo Unit.</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td>{{ item.ingredient.name }}</td>
+                                <td class="text-end">{{ item.quantity|floatformat:2 }} {{ item.ingredient.unit }}</td>
+                                <td class="text-end">C$ {{ item.unit_cost|floatformat:2 }}</td>
+                                <td class="text-end">C$ {{ item.subtotal|intcomma }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No hay ítems en esta compra.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">TOTAL:</td>
+                            <td class="text-end fw-bold">C$ {{ purchase.total_amount|intcomma }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if purchase.notes %}
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5 class="mb-0">Notas</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ purchase.notes|linebreaks }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if movements %}
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5 class="mb-0">Movimientos de Inventario</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Ingrediente</th>
+                            <th class="text-end">Cantidad</th>
+                            <th>Razón</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in movements %}
+                            <tr>
+                                <td>{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>{{ m.ingredient.name }}</td>
+                                <td class="text-end {% if m.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ m.quantity|floatformat:2 }}
+                                </td>
+                                <td>{{ m.reason|default:"—" }}</td>
+                                <td>{{ m.user.username|default:"—" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if purchase.status == 'ACTIVE' %}
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancelar Compra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea <strong>cancelar</strong> esta compra?</p>
+                <p class="text-muted">Esta acción revertirá los movimientos de inventario creados.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <a href="{% url 'purchase_cancel' purchase.id %}" class="btn btn-danger">Cancelar Compra</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

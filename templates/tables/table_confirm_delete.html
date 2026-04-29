@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block title %}Eliminar Mesa{% endblock %}
+{% block body %}
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="material-icons">delete</i> Eliminar Mesa
+        </h1>
+        <div class="card">
+            <div class="card-body">
+                <p>
+                    ¿Está seguro que desea eliminar la mesa <strong>"{{ table.name }}"</strong>?
+                </p>
+                <p>Esta acción la moverá a la papelera y podrá ser restaurada posteriormente.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="material-icons">delete</i> Sí, eliminar mesa
+                        </button>
+                        <a href="{% url 'table_management_list' %}" class="btn btn-secondary">
+                            <i class="material-icons">arrow_back</i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

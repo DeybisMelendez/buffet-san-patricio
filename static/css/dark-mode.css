@@ -1,0 +1,311 @@
+/**
+ * Buffet San Patricio - Dark Mode CSS
+ * Variables CSS para el tema oscuro.
+ * Permitido según directrices (variables CSS para colores del tema).
+ */
+
+[data-bs-theme="dark"] {
+    --bs-body-bg: #1a1a2e;
+    --bs-body-color: #e0e0e0;
+    --bs-secondary-bg: #2d2d44;
+    --bs-tertiary-bg: #3d3d5c;
+    --bs-emphasis-color: #000000;
+    --bs-secondary-color: #a0a0a0;
+    --bs-tertiary-color: #707070;
+    --bs-primary-text-emphasis: #6ea8fe;
+    --bs-secondary-text-emphasis: #a0a0a0;
+    --bs-link-color: #6ea8fe;
+    --bs-link-hover-color: #9ec5fe;
+    --bs-code-color: #e0aaff;
+    --bs-border-color: #495057;
+    --bs-border-color-translucent: rgba(255, 255, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .bg-body,
+[data-bs-theme="dark"] .bg-body-tertiary {
+    background-color: #1a1a2e !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: #2d2d44 !important;
+}
+
+[data-bs-theme="dark"] .text-dark {
+    color: #e0e0e0 !important;
+}
+
+[data-bs-theme="dark"] .text-body {
+    color: #e0e0e0 !important;
+}
+
+[data-bs-theme="dark"] .text-body-secondary {
+    color: #a0a0a0 !important;
+}
+
+[data-bs-theme="dark"] .text-body-tertiary {
+    color: #707070 !important;
+}
+
+[data-bs-theme="dark"] .border {
+    border-color: #495057 !important;
+}
+
+[data-bs-theme="dark"] .border-bottom {
+    border-bottom-color: #495057 !important;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #2d2d44;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+    background-color: #3d3d5c;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .dropdown-divider {
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #2d2d44;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .card-header {
+    background-color: #3d3d5c;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .table {
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .table-light {
+    background-color: #2d2d44;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .table-dark {
+    background-color: #1a1a2e;
+}
+
+[data-bs-theme="dark"] .modal-content {
+    background-color: #2d2d44;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .modal-header {
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .modal-footer {
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #1a1a2e;
+    border-color: #495057;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #1a1a2e;
+    border-color: #6ea8fe;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .form-control:disabled,
+[data-bs-theme="dark"] .form-select:disabled {
+    background-color: #3d3d5c;
+    color: #707070;
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #3d3d5c;
+    border-color: #495057;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: #a0a0a0;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: #3d3d5c;
+    border-color: #6c757d;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .navbar.bg-body {
+    background-color: #2d2d44 !important;
+}
+
+[data-bs-theme="dark"] .nav-link {
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .nav-link:hover {
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .alert {
+    border-color: transparent;
+}
+
+[data-bs-theme="dark"] .alert-info {
+    background-color: #1a2a3a;
+    color: #9ec5fe;
+    border-color: #0d6efd;
+}
+
+[data-bs-theme="dark"] code {
+    color: #e0aaff;
+}
+
+[data-bs-theme="dark"] pre {
+    background-color: #2d2d44;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .gridjs-container {
+    background-color: transparent;
+}
+
+[data-bs-theme="dark"] .gridjs-wrapper {
+    background-color: #2d2d44;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .gridjs-header {
+    background-color: #3d3d5c;
+}
+
+[data-bs-theme="dark"] .gridjs-th {
+    background-color: #3d3d5c;
+    color: #e0e0e0;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .gridjs-td {
+    background-color: #2d2d44;
+    color: #e0e0e0;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .gridjs-footer {
+    background-color: #2d2d44;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .gridjs-pagination {
+    background-color: #2d2d44;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .gridjs-pagination .gridjs-pages button {
+    background-color: #3d3d5c;
+    color: #e0e0e0;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .gridjs-pagination .gridjs-pages button:hover:not([disabled]) {
+    background-color: #4d4d6c;
+}
+
+[data-bs-theme="dark"] .gridjs-pagination .gridjs-pages button.gridjs-current {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .gridjs-search-input {
+    background-color: #1a1a2e;
+    border-color: #495057;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .gridjs-sort {
+    color: #a0a0a0;
+}
+
+[data-bs-theme="dark"] .badge.bg-warning.text-dark {
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .table {
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .table > tbody > tr > td,
+[data-bs-theme="dark"] .table > tbody > tr > th,
+[data-bs-theme="dark"] .table > thead > tr > td,
+[data-bs-theme="dark"] .table > thead > tr > th {
+    color: #e0e0e0;
+    border-color: #495057;
+}
+
+[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+    background-color: #3d3d5c;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .gridjs-table {
+    color: #e0e0e0 !important;
+}
+
+[data-bs-theme="dark"] .gridjs-table th {
+    background-color: #3d3d5c !important;
+    color: #e0e0e0 !important;
+    border-color: #495057 !important;
+}
+
+[data-bs-theme="dark"] .gridjs-table td {
+    background-color: #2d2d44 !important;
+    color: #e0e0e0 !important;
+    border-color: #495057 !important;
+}
+
+[data-bs-theme="dark"] .gridjs-table tbody tr:nth-child(even) td {
+    background-color: #252540 !important;
+}
+
+[data-bs-theme="dark"] .gridjs-table tbody tr:hover td {
+    background-color: #3d3d5c !important;
+}
+
+[data-bs-theme="dark"] .gridjs-wrapper {
+    background-color: #2d2d44 !important;
+    border-color: #495057 !important;
+}
+
+[data-bs-theme="dark"] .gridjs-wrapper .gridjs-table {
+    background-color: transparent !important;
+}
+
+[data-bs-theme="dark"] .gridjs-cell {
+    background-color: #2d2d44 !important;
+    color: #e0e0e0 !important;
+    border-color: #495057 !important;
+}
+
+[data-bs-theme="dark"] .gridjs-cell.gridjs-selection {
+    background-color: #3d3d5c !important;
+}
+
+[data-bs-theme="dark"] .gridjs-tr:hover .gridjs-cell {
+    background-color: #3d3d5c !important;
+}

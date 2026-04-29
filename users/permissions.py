@@ -98,6 +98,11 @@ FULL_MANAGEMENT_PERMS = [
     "change_cashregister",
     "delete_cashregister",
     "view_cashregister",
+    # Recetas de conversión
+    "add_foodrecipe",
+    "change_foodrecipe",
+    "delete_foodrecipe",
+    "view_foodrecipe",
 ]
 
 # Permisos de usuario y grupo (solo administrador)
@@ -161,6 +166,10 @@ GROUP_PERMISSIONS = {
         "add_cashregister",
         "view_cashregister",
         "change_cashregister",
+        # Recetas de conversión
+        "add_foodrecipe",
+        "change_foodrecipe",
+        "view_foodrecipe",
         # Reportes
         # Nota: Los reportes no tienen permisos específicos, se controlan por vistas
     ],
@@ -178,6 +187,10 @@ GROUP_PERMISSIONS = {
         "view_ingredient",
         "view_productingredient",
         "view_ingredientmovement",
+        # Recetas de conversión
+        "add_foodrecipe",
+        "change_foodrecipe",
+        "view_foodrecipe",
     ],
     GROUP_CAJERO: [
         # Mesas y órdenes
@@ -227,12 +240,19 @@ def create_groups_with_permissions():
 
     for group_name in ALL_GROUPS:
         group, created = Group.objects.get_or_create(name=group_name)
-        if created:
-            # Asignar permisos
-            perm_names = get_group_permissions(group_name)
-            permissions = Permission.objects.filter(codename__in=perm_names)
-            group.permissions.set(permissions)
-            group.save()
+        perms = GROUP_PERMISSIONS.get(group_name, [])
+        perm_objects = []
+        for perm in perms:
+            app_label = "auth" if perm in USER_GROUP_PERMS else "orders"
+            try:
+                perm_obj = Permission.objects.get(
+                    codename=perm, content_type__app_label=app_label
+                )
+                perm_objects.append(perm_obj)
+            except Permission.DoesNotExist:
+                pass
+        group.permissions.set(perm_objects)
+        group.save()
 
 
 def user_in_group(user, group_name):

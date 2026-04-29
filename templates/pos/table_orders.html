@@ -7,9 +7,9 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Comandas de Mesa {{ table.name }}</h1>
             <div class="d-flex gap-2 align-items-center">
-                {% if user|can_mark_paid and orders %}
+                {% if user|can_cashier and orders %}
                     <a href="{% url 'invoice_table' table.id %}" class="btn btn-success">
-                        <i class="material-icons">receipt</i> Facturar
+                        <i class="material-icons">payments</i> Cobrar
                     </a>
                 {% endif %}
                 <a href="{% url 'create_order' table.id %}" class="btn btn-primary">
@@ -17,11 +17,10 @@
                 </a>
             </div>
         </div>
-        {% if user|can_mark_paid %}
-            <div class="alert alert-warning d-flex align-items-center mb-4"
-                 role="alert">
+        {% if orders and user|can_cashier %}
+            <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
                 <i class="material-icons me-2">info</i>
-                <span>Para cobrar y generar factura, haz clic en <strong>"Facturar"</strong>. Se requerirá una caja abierta.</span>
+                <span>Para cobrar haz clic en <strong>"Cobrar"</strong>. Se requiere caja abierta.</span>
             </div>
         {% endif %}
         {% if orders %}

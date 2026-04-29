@@ -1,24 +1,29 @@
 {% load static %}
 {% load user_tags %}
 <!-- Info bar: usuario y fecha/hora -->
-<div class="border-bottom bg-body" x-data="datetimeUpdater">
+<div class="border-bottom bg-body">
     <div class="container d-flex justify-content-between align-items-center py-1">
         <div class="d-flex align-items-center gap-2">
             <i class="material-icons text-primary">person</i>
             <strong>{{ user|get_group }}:</strong> {{ request.user }}
         </div>
         <div class="d-flex align-items-center gap-1 font-monospace">
-            <span x-text="time"></span>
+            <span data-datetime-time>--:--:--</span>
             <span class="text-body-tertiary">|</span>
-            <span x-text="date"></span>
+            <span data-datetime-date>---</span>
         </div>
     </div>
 </div>
-<nav class="navbar navbar-expand-lg bg-body sticky-top border-bottom" x-data="mobileMenu">
+<nav class="navbar navbar-expand-lg bg-body sticky-top border-bottom">
     <div class="container">
-        <a href="{% url 'dashboard' %}" class="navbar-brand fw-bold text-primary">
-            <i class="material-icons">restaurant</i>
-            <span>Boa POS</span>
+        <a href="{% url 'dashboard' %}"
+           class="navbar-brand fw-bold text-primary d-flex align-items-center"
+           title="Buffet San Patricio">
+            <img src="{% static 'favicon.png' %}"
+                 alt="Logo"
+                 width="32"
+                 height="32"
+                 class="me-2">
         </a>
         <button class="navbar-toggler"
                 type="button"
@@ -31,136 +36,227 @@
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- POS: Mesas + Historial -->
-                <li class="nav-item dropdown">
-                    <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="material-icons">restaurant</i> POS
+                <!-- 1. Comandar (botón directo) -->
+                <li class="nav-item">
+                    <a href="{% url 'table_list' %}" class="nav-link">
+                        <i class="material-icons">restaurant</i> Comandar
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{% url 'table_list' %}" class="dropdown-item"><i class="material-icons">table_restaurant</i> Mesas</a></li>
-                        <li><a href="{% url 'order_history' %}" class="dropdown-item"><i class="material-icons">history</i> Historial</a></li>
-                    </ul>
                 </li>
-                <!-- Gestión del Menú -->
-                {% if user|can_manage_menu %}
-                    <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="material-icons">menu_book</i> Menú
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a href="{% url 'product_list' %}" class="dropdown-item">Productos</a></li>
-                            <li><a href="{% url 'category_list' %}" class="dropdown-item">Categorías</a></li>
-                            <li><a href="{% url 'dispatch_area_list' %}" class="dropdown-item">Áreas</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a href="{% url 'company_settings' %}" class="dropdown-item">Configuración</a></li>
-                        </ul>
-                    </li>
-                {% endif %}
-                <!-- Inventario -->
-                {% if user|can_view_inventory %}
-                    <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="material-icons">inventory</i> Inventario
-                        </a>
-                        <ul class="dropdown-menu">
-                            {% if user|can_add_inventory_movement %}
-                                <li><a href="{% url 'inventory_movement' %}" class="dropdown-item">Movimientos</a></li>
-                                <li><a href="{% url 'purchase_ingredients' %}" class="dropdown-item">Ingresos</a></li>
-                            {% endif %}
-                            {% if user|can_view_inventory %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a href="{% url 'report_inventory' %}" class="dropdown-item">Saldo</a></li>
-                                <li><a href="{% url 'ingredient_list' %}" class="dropdown-item">Ingredientes</a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                {% endif %}
-                <!-- Facturación -->
-                {% if user|can_mark_paid %}
-                    <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="material-icons">receipt_long</i> Facturación
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a href="{% url 'invoice_list' %}" class="dropdown-item"><i class="material-icons">list</i> Lista de Facturas</a></li>
-                            {% if user|can_view_invoices %}
-                            <li><a href="{% url 'table_list' %}" class="dropdown-item"><i class="material-icons">table_restaurant</i> Facturar Mesas</a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                {% endif %}
-                <!-- Arqueo de Caja -->
+                <!-- 2. Caja -->
                 {% if user|has_group:"Cajero" or user|has_group:"Supervisor" or user|is_administrador or user.is_superuser %}
                     <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
                             <i class="material-icons">point_of_sale</i> Caja
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{% url 'cash_register_list' %}" class="dropdown-item"><i class="material-icons">account_balance_wallet</i> Arqueo de Caja</a></li>
+                            <li>
+                                <a href="{% url 'cash_register_list' %}" class="dropdown-item"><i class="material-icons">account_balance_wallet</i> Arqueo de Caja</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'cash_pending_invoices' %}" class="dropdown-item"><i class="material-icons">schedule</i> Pendientes de Cobro</a>
+                            </li>
                         </ul>
                     </li>
                 {% endif %}
-                <!-- Reportes -->
+                <!-- 3. Cocina (solo conversores) -->
+                {% if user|can_use_food_converter %}
+                    <li class="nav-item dropdown">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="material-icons">inventory</i> Cocina
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'food_recipe_list' %}" class="dropdown-item"><i class="material-icons">auto_fix_high</i> Recetas de Conversión</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'recipe_converter' %}" class="dropdown-item">
+                                    <i class="material-icons">menu_book</i> Conversor por Receta
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'manual_converter' %}" class="dropdown-item">
+                                    <i class="material-icons">edit</i> Conversor Manual
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a href="{% url 'conversion_history' %}" class="dropdown-item">
+                                    <i class="material-icons">history</i> Historial de Conversiones
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                {% endif %}
+                <!-- 4. Compras -->
+                {% if user|can_add_inventory_movement %}
+                    <li class="nav-item dropdown">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="material-icons">shopping_cart</i> Compras
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'purchase_list' %}" class="dropdown-item"><i class="material-icons">list</i> Lista de Compras</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'purchase_create' %}" class="dropdown-item"><i class="material-icons">add</i> Nueva Compra</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'supplier_list' %}" class="dropdown-item"><i class="material-icons">local_shipping</i> Proveedores</a>
+                            </li>
+                        </ul>
+                    </li>
+                {% endif %}
+                <!-- 5. Productos -->
+                {% if user|can_manage_menu %}
+                    <li class="nav-item dropdown">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="material-icons">menu_book</i> Productos
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'product_list' %}" class="dropdown-item"><i class="material-icons">fastfood</i> Listado de Productos</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'category_list' %}" class="dropdown-item"><i class="material-icons">local_offer</i> Categoría de Productos</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'dispatch_area_list' %}" class="dropdown-item"><i class="material-icons">location_city</i> Área de despacho</a>
+                            </li>
+                        </ul>
+                    </li>
+                {% endif %}
+                <!-- 6. Reportes -->
                 {% if user|can_view_reports %}
                     <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
                             <i class="material-icons">assessment</i> Reportes
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{% url 'reports_index' %}" class="dropdown-item"><i class="material-icons">dashboard</i> Panel de Reportes</a></li>
-                            <li><hr class="dropdown-divider"></li>
                             {% if user|can_view_sales_report %}
-                                <li><a href="{% url 'daily_report' %}" class="dropdown-item">Ventas del Día</a></li>
-                                <li><a href="{% url 'sales_report_by_product' %}" class="dropdown-item">Ventas por Producto</a></li>
+                                <li>
+                                    <a href="{% url 'sales_report_by_product' %}" class="dropdown-item"><i class="material-icons">trending_up</i> Reporte de Ventas por Producto</a>
+                                </li>
+                            {% endif %}
+                            {% if user|can_mark_paid %}
+                                <li>
+                                    <a href="{% url 'invoice_list' %}" class="dropdown-item"><i class="material-icons">receipt_long</i> Reporte de Facturas</a>
+                                </li>
                             {% endif %}
                             {% if user|can_view_order_history %}
-                                <li><a href="{% url 'report_orders' %}" class="dropdown-item">Comandas</a></li>
+                                <li>
+                                    <a href="{% url 'report_orders' %}" class="dropdown-item"><i class="material-icons">list_alt</i> Reporte de Comandas</a>
+                                </li>
                             {% endif %}
                             {% if user|can_view_inventory %}
-                                <li><a href="{% url 'report_inventory' %}" class="dropdown-item">Inventario</a></li>
-                                <li><a href="{% url 'report_movements' %}" class="dropdown-item">Movimientos</a></li>
+                                <li>
+                                    <a href="{% url 'report_inventory' %}" class="dropdown-item"><i class="material-icons">inventory</i> Reporte de Inventario</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'report_movements' %}" class="dropdown-item"><i class="material-icons">timeline</i> Reportes de Ajuste de Inventario</a>
+                                </li>
                             {% endif %}
                         </ul>
                     </li>
                 {% endif %}
+                <!-- 7. Admin (con subcategorías) -->
                 {% if user|can_manage_users %}
                     <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a href="#"
+                           class="nav-link dropdown-toggle"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
                             <i class="material-icons">admin_panel_settings</i> Admin
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{% url 'user_list' %}" class="dropdown-item">Usuarios</a></li>
+                            <li class="dropdown-header fw-bold text-primary small text-uppercase">Gestión</li>
+                            <li>
+                                <a href="{% url 'user_list' %}" class="dropdown-item"><i class="material-icons">people</i> Usuarios</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'role_list' %}" class="dropdown-item"><i class="material-icons">assignment_ind</i> Gestión de Roles</a>
+                            </li>
                             {% if user.is_superuser %}
-                            <li><a href="/admin/" class="dropdown-item" target="_blank">Panel Admin</a></li>
+                                <li>
+                                    <a href="/admin/" class="dropdown-item" target="_blank">Panel Admin</a>
+                                </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header fw-bold text-primary small text-uppercase">Mesas</li>
+                            <li>
+                                <a href="{% url 'table_management_list' %}" class="dropdown-item"><i class="material-icons">table_restaurant</i> Administrar Mesas</a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header fw-bold text-primary small text-uppercase">Inventario</li>
+                            <li>
+                                <a href="{% url 'ingredient_list' %}" class="dropdown-item"><i class="material-icons">egg_alt</i> Listado de Ingredientes</a>
+                            </li>
+                            {% if user|can_add_inventory_movement %}
+                                <li>
+                                    <a href="{% url 'inventory_movement' %}" class="dropdown-item"><i class="material-icons">sync</i> Ajuste de Ingredientes</a>
+                                </li>
+                            {% endif %}
+                            {% if user|can_manage_inventory_full %}
+                                <li>
+                                    <a href="{% url 'warehouse_list' %}" class="dropdown-item">
+                                        <i class="material-icons">warehouse</i> Bodegas de Ingredientes
+                                    </a>
+                                </li>
                             {% endif %}
                         </ul>
                     </li>
                 {% endif %}
             </ul>
-            <form method="post" action="{% url 'logout' %}" class="d-flex">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="material-icons">logout</i>
-                    <span>Salir</span>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="theme-toggle" title="Cambiar tema">
+                    <span class="material-icons">light_mode</span>
                 </button>
-            </form>
+                <form method="post" action="{% url 'logout' %}" class="d-flex">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="material-icons">logout</i>
+                        <span>Salir</span>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </nav>
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('datetimeUpdater', () => ({
-            time: '',
-            date: '',
-            update() {
-                const now = new Date();
-                this.time = now.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                this.date = now.toLocaleDateString('es-NI', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-            },
-            init() {
-                this.update();
-                setInterval(() => this.update(), 1000);
-            }
-        }));
-    });
+(function() {
+    function updateDateTime() {
+        var now = new Date();
+        var timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        var dateOptions = { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' };
+
+        var timeEl = document.querySelector('[data-datetime-time]');
+        var dateEl = document.querySelector('[data-datetime-date]');
+
+        if (timeEl) timeEl.textContent = now.toLocaleTimeString('es-NI', timeOptions);
+        if (dateEl) dateEl.textContent = now.toLocaleDateString('es-NI', dateOptions);
+    }
+
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+})();
 </script>

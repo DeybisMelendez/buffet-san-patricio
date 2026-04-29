@@ -1,55 +1,190 @@
 {% extends "layout.html" %}
-{% load humanize %}
-{% block title %}Ingredientes{% endblock %}
+{% load static %}
+{% block title %}Listado de Ingredientes{% endblock %}
+{% block extra_css %}
+    <style>
+    .gridjs-wrapper { box-shadow: none; }
+    .gridjs-table { width: 100%; }
+    </style>
+{% endblock %}
 {% block body %}
     <div class="container">
-        <h1 class="mb-4"><i class="material-icons">kitchen</i> Ingredientes</h1>
-        {% include "includes/_messages.html" %}
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Lista de Ingredientes</h5>
-                <a href="{% url 'ingredient_create' %}"
-                   class="btn btn-primary btn-sm"><i class="material-icons">add</i> Nuevo Ingrediente</a>
+        <div class="row mb-3">
+            <div class="col">
+                <h1 class="mb-0">
+                    <i class="material-icons">kitchen</i> Listado de Ingredientes
+                </h1>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'ingredient_create' %}" class="btn btn-primary">
+                    <i class="material-icons">add</i> Nuevo Ingrediente
+                </a>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Filtros</h5>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Unidad</th>
-                                <th>Almacén</th>
-                                <th class="text-end">Stock Actual</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for ingredient in ingredients %}
-                                <tr>
-                                    <td>{{ ingredient.name }}</td>
-                                    <td>{{ ingredient.get_unit_display }}</td>
-                                    <td>{{ ingredient.warehouse.name|default:"—" }}</td>
-                                    <td class="text-end">{{ ingredient.stock_quantity|floatformat:2|intcomma }} {{ ingredient.unit }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="{% url 'ingredient_edit' ingredient.id %}"
-                                               class="btn btn-secondary btn-sm"
-                                               title="Editar"><i class="material-icons">edit</i></a>
-                                            <a href="{% url 'ingredient_delete' ingredient.id %}"
-                                               class="btn btn-danger btn-sm"
-                                               title="Eliminar"><i class="material-icons">delete</i></a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center">No hay ingredientes registrados.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <form method="get" id="filter-form">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label for="search" class="form-label">Buscar ingrediente</label>
+                            <input type="text"
+                                   id="search"
+                                   name="search"
+                                   value="{{ search|default:'' }}"
+                                   class="form-control"
+                                   placeholder="Nombre del ingrediente...">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="warehouse" class="form-label">Almacén</label>
+                            <select id="warehouse" name="warehouse" class="form-select">
+                                <option value="">Todos los almacenes</option>
+                                {% for w in warehouses %}
+                                    <option value="{{ w.id }}"
+                                            {% if warehouse_id == w.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ w.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="ingredient_type" class="form-label">Tipo</label>
+                            <select id="ingredient_type" name="ingredient_type" class="form-select">
+                                <option value="">Todos los tipos</option>
+                                {% for type_code, type_name in ingredient_types %}
+                                    <option value="{{ type_code }}"
+                                            {% if ingredient_type_filter == type_code %}selected{% endif %}>
+                                        {{ type_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="material-icons">search</i> Filtrar
+                            </button>
+                        </div>
+                    </div>
+                    {% if search or warehouse_id %}
+                        <div class="mt-2">
+                            <a href="{% url 'ingredient_list' %}" class="btn btn-secondary btn-sm">
+                                <i class="material-icons">clear</i> Limpiar filtros
+                            </a>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="grid-toolbar"></div>
+                <div id="grid-container"></div>
             </div>
         </div>
     </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    if (typeof gridjs === 'undefined') {
+        console.error('GridJS no está disponible');
+        document.getElementById('grid-container').innerHTML =
+            '<div class="alert alert-danger">GridJS no está disponible. Recargue la página.</div>';
+        return;
+    }
+
+    var container = document.getElementById('grid-container');
+    GridUtils.showLoading('grid-container');
+    container.innerHTML = '';
+
+    var apiBase = '/api/inventory/';
+
+    function getFilters() {
+        var search = document.getElementById('search');
+        var warehouse = document.getElementById('warehouse');
+        var ingredientType = document.getElementById('ingredient_type');
+        var params = new URLSearchParams();
+        if (search && search.value) params.set('search', search.value);
+        if (warehouse && warehouse.value) params.set('warehouse', warehouse.value);
+        if (ingredientType && ingredientType.value) params.set('ingredient_type', ingredientType.value);
+        return params.toString();
+    }
+
+    var grid = new gridjs.Grid({
+        columns: [
+            { id: 'id', hidden: true },
+            { name: 'Nombre', id: 'name', sort: { enabled: true } },
+            { name: 'Tipo', id: 'ingredient_type', sort: { enabled: true } },
+            { name: 'Unidad', id: 'unit', sort: { enabled: true } },
+            { name: 'Almacén', id: 'warehouse', sort: { enabled: true } },
+            {
+                name: 'Stock',
+                id: 'stock',
+                sort: { enabled: true },
+                formatter: function(cell) {
+                    return cell != null ? parseFloat(cell).toFixed(2) : '0.00';
+                }
+            },
+            {
+                name: 'Acciones',
+                id: 'acciones',
+                sort: false,
+                formatter: function(cell, row) {
+                    var id = row.cells[0].data;
+                    return gridjs.html(
+                        '<div class="btn-group" role="group">' +
+                        '<a href="/inventory/ingredients/' + id + '/edit/" class="btn btn-secondary btn-sm" title="Editar">' +
+                        '<i class="material-icons" style="font-size:1rem;">edit</i></a>' +
+                        '<a href="/inventory/ingredients/' + id + '/delete/" class="btn btn-danger btn-sm" title="Eliminar">' +
+                        '<i class="material-icons" style="font-size:1rem;">delete</i></a>' +
+                        '</div>'
+                    );
+                }
+            }
+        ],
+        server: {
+            url: apiBase + '?' + getFilters(),
+            then: function(data) {
+                return data.results.map(function(i) {
+                    return [i.id, i.name, i.ingredient_type, i.unit, i.warehouse, i.stock, null];
+                });
+            },
+            total: function(data) { return data.count; }
+        },
+        sort: { enabled: true },
+        pagination: {
+            enabled: true,
+            limit: 25,
+            limits: [10, 25, 50, 100],
+            server: {
+                url: function(prev, page, limit) {
+                    var url = new URL(apiBase, window.location.origin);
+                    url.searchParams.set('limit', limit);
+                    url.searchParams.set('offset', page * limit);
+                    var filters = getFilters();
+                    if (filters) url.searchParams = new URLSearchParams(filters);
+                    return url.toString();
+                }
+            },
+            summary: true,
+            labels: { first: '«', last: '»', prev: '‹', next: '›' }
+        },
+        language: 'es-ES'
+    }).render(container);
+
+    grid.on('ready', function() {
+        GridUtils.addToolbar('grid-toolbar', 'grid-container', 'ingredientes');
+    });
+
+    grid.on('error', function(err) {
+        console.error('GridJS error:', err);
+        GridUtils.showError('grid-container', 'Error al cargar los datos. Por favor recargue la página.');
+    });
+
+})();
+</script>
 {% endblock %}

@@ -5,13 +5,17 @@ Reemplaza a user_extras.py con un enfoque más correcto.
 
 from django import template
 
-from users.permissions import (GROUP_ADMINISTRADOR, GROUP_CAJERO,
-                               GROUP_SUPERVISOR)
+from users.permissions import GROUP_ADMINISTRADOR, GROUP_CAJERO, GROUP_SUPERVISOR
 from users.utils import is_admin  # compatibilidad
 from users.utils import is_encargado  # compatibilidad
 from users.utils import is_mesero  # compatibilidad
-from users.utils import (is_administrador, is_cajero, is_cocinero, is_servicio,
-                         is_supervisor)
+from users.utils import (
+    is_administrador,
+    is_cajero,
+    is_cocinero,
+    is_servicio,
+    is_supervisor,
+)
 
 register = template.Library()
 
@@ -91,6 +95,12 @@ def filter_can_create_orders(user):
 def filter_can_mark_paid(user):
     """Verifica si el usuario puede marcar órdenes como pagadas."""
     return user.has_perm("orders.change_order")
+
+
+@register.filter(name="can_cashier")
+def filter_can_cashier(user):
+    """Verifica si el usuario tiene rol de cajero (puede procesar cobros)."""
+    return user.has_perm("orders.add_invoice")
 
 
 @register.filter(name="can_manage_inventory")
@@ -189,6 +199,14 @@ def filter_can_view_products(user):
 def filter_can_view_ingredients(user):
     """Verifica si el usuario puede ver ingredientes."""
     return user.has_perm("orders.view_ingredient")
+
+
+@register.filter(name="can_use_food_converter")
+def filter_can_use_food_converter(user):
+    """Verifica si el usuario puede usar el conversor de alimentos."""
+    from users.utils import user_can_use_food_converter
+
+    return user_can_use_food_converter(user)
 
 
 # ==========================
