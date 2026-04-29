@@ -44,6 +44,7 @@ from .models import (
     ProductIngredient,
     Purchase,
     PurchaseItem,
+    RecipeExecutionReport,
     Supplier,
     Table,
     Warehouse,
@@ -510,6 +511,130 @@ def food_converter(request):
 
 @login_required
 @user_passes_test(user_can_use_food_converter)
+def conversion_history(request):
+    """Historial de conversiones de ingredientes (manuales y por receta)."""
+    return render(request, "inventory/conversion_history.html")
+
+
+@login_required
+@user_passes_test(user_can_use_food_converter)
+def api_recipe_executions(request):
+    """API JSON: Historial de ejecuciones de recetas (conversiones) con paginación."""
+    start, end = parse_date_range(request)
+
+    queryset = RecipeExecutionReport.objects.filter(
+        created_at__range=(start, end)
+    ).select_related("recipe", "created_by")
+
+    search = request.GET.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(
+            Q(recipe__name__icontains=search)
+            | Q(notes__icontains=search)
+            | Q(created_by__username__icontains=search)
+        )
+
+    sort = request.GET.get("sort", "")
+    if sort:
+        try:
+            field, direction = sort.split(",")
+            sort_field_map = {
+                "date": "created_at",
+                "recipe": "recipe__name",
+                "user": "created_by__username",
+                "produced": "quantity_produced",
+            }
+            field = sort_field_map.get(field, field)
+            if direction == "desc":
+                field = f"-{field}"
+            queryset = queryset.order_by(field)
+        except ValueError:
+            queryset = queryset.order_by("-created_at")
+    else:
+        queryset = queryset.order_by("-created_at")
+
+    page, limit = parse_pagination(request)
+
+    def format_materials(materials):
+        if not materials:
+            return "-"
+        return ", ".join(
+            [f"{m['name']}: {m['quantity']} {m['unit']}" for m in materials]
+        )
+
+    if limit == 0:
+        items = list(
+            queryset.values(
+                "id",
+                "created_at",
+                "recipe__name",
+                "is_manual",
+                "quantity_produced",
+                "raw_materials_used",
+                "products_created",
+                "notes",
+                "created_by__username",
+            )
+        )
+        data = [
+            {
+                "id": i["id"],
+                "date": i["created_at"].strftime("%d/%m/%Y %H:%M"),
+                "recipe": (
+                    i["recipe__name"] if i["recipe__name"] else "Conversión Manual"
+                ),
+                "is_manual": i["is_manual"],
+                "quantity_produced": (
+                    float(i["quantity_produced"]) if i["quantity_produced"] else 0
+                ),
+                "raw_materials": format_materials(i["raw_materials_used"]),
+                "products": format_materials(i["products_created"]),
+                "notes": i["notes"] or "",
+                "user": i["created_by__username"] or "—",
+            }
+            for i in items
+        ]
+        return JsonResponse({"count": len(data), "results": data}, safe=False)
+
+    total = queryset.count()
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    items = list(
+        queryset.values(
+            "id",
+            "created_at",
+            "recipe__name",
+            "is_manual",
+            "quantity_produced",
+            "raw_materials_used",
+            "products_created",
+            "notes",
+            "created_by__username",
+        )[start_idx:end_idx]
+    )
+
+    data = [
+        {
+            "id": i["id"],
+            "date": i["created_at"].strftime("%d/%m/%Y %H:%M"),
+            "recipe": i["recipe__name"] if i["recipe__name"] else "Conversión Manual",
+            "is_manual": i["is_manual"],
+            "quantity_produced": (
+                float(i["quantity_produced"]) if i["quantity_produced"] else 0
+            ),
+            "raw_materials": format_materials(i["raw_materials_used"]),
+            "products": format_materials(i["products_created"]),
+            "notes": i["notes"] or "",
+            "user": i["created_by__username"] or "—",
+        }
+        for i in items
+    ]
+
+    return JsonResponse({"count": total, "results": data}, safe=False)
+
+
+@login_required
+@user_passes_test(user_can_use_food_converter)
 def recipe_converter(request):
     """Conversor de ingredientes por receta guardada."""
     ingredients = Ingredient.objects.all().order_by("name")
@@ -526,6 +651,10 @@ def recipe_converter(request):
             return redirect("recipe_converter")
 
         with transaction.atomic():
+            raw_materials_used = []
+            products_created = []
+            total_produced = Decimal("0")
+
             for item in recipe.items.all():
                 qty = item.quantity * factor
 
@@ -544,6 +673,14 @@ def recipe_converter(request):
                         user=request.user,
                         reason=f"Conversión: {recipe.name} (entrada)",
                     )
+                    raw_materials_used.append(
+                        {
+                            "id": item.ingredient.id,
+                            "name": item.ingredient.name,
+                            "quantity": float(qty),
+                            "unit": item.ingredient.unit,
+                        }
+                    )
                 else:
                     IngredientMovement.objects.create(
                         ingredient=item.ingredient,
@@ -551,6 +688,25 @@ def recipe_converter(request):
                         user=request.user,
                         reason=f"Conversión: {recipe.name} (salida)",
                     )
+                    products_created.append(
+                        {
+                            "id": item.ingredient.id,
+                            "name": item.ingredient.name,
+                            "quantity": float(qty),
+                            "unit": item.ingredient.unit,
+                        }
+                    )
+                    total_produced += qty
+
+            RecipeExecutionReport.objects.create(
+                recipe=recipe,
+                is_manual=False,
+                quantity_produced=total_produced,
+                raw_materials_used=raw_materials_used,
+                products_created=products_created,
+                notes=request.POST.get("notes", ""),
+                created_by=request.user,
+            )
 
         messages.success(request, f" Conversión '{recipe.name}' aplicada exitosamente.")
         return redirect("recipe_converter")
@@ -598,6 +754,10 @@ def manual_converter(request):
             return redirect("manual_converter")
 
         with transaction.atomic():
+            raw_materials_used = []
+            products_created = []
+            total_produced = Decimal("0")
+
             for ing_id, qty in inputs:
                 try:
                     ing = Ingredient.objects.get(id=ing_id)
@@ -618,6 +778,14 @@ def manual_converter(request):
                     user=request.user,
                     reason="Conversión manual (entrada)",
                 )
+                raw_materials_used.append(
+                    {
+                        "id": ing.id,
+                        "name": ing.name,
+                        "quantity": float(qty),
+                        "unit": ing.unit,
+                    }
+                )
 
             for ing_id, qty in outputs:
                 try:
@@ -631,6 +799,25 @@ def manual_converter(request):
                     user=request.user,
                     reason="Conversión manual (salida)",
                 )
+                products_created.append(
+                    {
+                        "id": ing.id,
+                        "name": ing.name,
+                        "quantity": float(qty),
+                        "unit": ing.unit,
+                    }
+                )
+                total_produced += qty
+
+            RecipeExecutionReport.objects.create(
+                recipe=None,
+                is_manual=True,
+                quantity_produced=total_produced,
+                raw_materials_used=raw_materials_used,
+                products_created=products_created,
+                notes=request.POST.get("notes", ""),
+                created_by=request.user,
+            )
 
         messages.success(request, " Conversión manual aplicada exitosamente.")
         return redirect("manual_converter")

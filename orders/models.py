@@ -175,6 +175,36 @@ class FoodRecipeItem(models.Model):
         return f"{self.quantity} {self.ingredient.unit} {self.ingredient.name} ({tipo})"
 
 
+class RecipeExecutionReport(models.Model):
+    recipe = models.ForeignKey(
+        "FoodRecipe", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    is_manual = models.BooleanField(default=False, verbose_name="Conversión manual")
+    quantity_produced = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0, verbose_name="Cantidad producida"
+    )
+    raw_materials_used = models.JSONField(
+        default=list, verbose_name="Materiales consumidos"
+    )
+    products_created = models.JSONField(
+        default=list, verbose_name="Productos creados"
+    )
+    notes = models.TextField(blank=True, default="", verbose_name="Notas")
+    created_by = models.ForeignKey(
+        "auth.User", on_delete=models.SET_NULL, null=True, related_name="conversions"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Reporte de Conversión"
+        verbose_name_plural = "Reportes de Conversión"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        recipe_name = self.recipe.name if self.recipe else "Manual"
+        return f"Conversión #{self.id} - {recipe_name} ({self.created_at.strftime('%d/%m/%Y %H:%M')})"
+
+
 class IngredientMovement(models.Model):
     ingredient = models.ForeignKey("Ingredient", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
