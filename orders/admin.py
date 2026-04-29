@@ -3,8 +3,8 @@ from django.contrib import admin
 from .models import (CashRegister, DispatchArea, FoodRecipe, FoodRecipeItem,
                      Ingredient, IngredientMovement, Invoice, InvoiceItem,
                      Order, OrderItem, Product, ProductCategory,
-                     ProductIngredient, Purchase, PurchaseItem, Supplier,
-                     Table, Warehouse)
+                     ProductIngredient, Purchase, PurchaseItem, RecipeExecutionReport,
+                     Supplier, Table, Warehouse)
 
 
 @admin.register(Table)
@@ -131,3 +131,106 @@ class PurchaseAdmin(admin.ModelAdmin):
     list_filter = ("status", "purchase_type", "created_at")
     inlines = [PurchaseItemInline]
     readonly_fields = ("created_at",)
+
+
+class FoodRecipeItemInline(admin.TabularInline):
+    model = FoodRecipeItem
+    extra = 1
+
+
+@admin.register(FoodRecipe)
+class FoodRecipeAdmin(admin.ModelAdmin):
+    list_display = ("name", "description", "is_active", "created_at")
+    search_fields = ("name", "description")
+    list_filter = ("is_active",)
+    inlines = [FoodRecipeItemInline]
+    readonly_fields = ("created_at",)
+
+
+@admin.register(FoodRecipeItem)
+class FoodRecipeItemAdmin(admin.ModelAdmin):
+    list_display = ("recipe", "ingredient", "quantity", "is_input")
+    list_filter = ("recipe", "is_input")
+    search_fields = ("recipe__name", "ingredient__name")
+
+
+@admin.register(RecipeExecutionReport)
+class RecipeExecutionReportAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "recipe",
+        "quantity_produced",
+        "is_manual",
+        "created_by",
+        "created_at",
+    )
+    list_filter = ("is_manual", "created_at", "recipe")
+    search_fields = ("notes",)
+    readonly_fields = ("created_at",)
+
+
+class InvoiceItemInline(admin.TabularInline):
+    model = InvoiceItem
+    extra = 1
+
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        "invoice_number",
+        "table",
+        "total",
+        "payment_type",
+        "cashier",
+        "payment_date",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("payment_type", "is_active", "created_at", "table")
+    date_hierarchy = "created_at"
+    search_fields = ("invoice_number", "table__name")
+    inlines = [InvoiceItemInline]
+    readonly_fields = ("created_at",)
+
+
+@admin.register(InvoiceItem)
+class InvoiceItemAdmin(admin.ModelAdmin):
+    list_display = ("invoice", "product", "quantity", "unit_price", "total")
+    list_filter = ("product",)
+    search_fields = ("invoice__invoice_number", "product__name")
+
+
+@admin.register(CashRegister)
+class CashRegisterAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "date",
+        "opening_amount",
+        "total_sales",
+        "total_contado",
+        "get_status_display",
+        "get_difference_display",
+        "closing_time",
+    )
+    list_filter = ("date", "closing_time")
+    date_hierarchy = "created_at"
+    search_fields = ("user__username",)
+    readonly_fields = (
+        "created_at",
+        "total_sales",
+        "total_contado",
+        "total_tarjeta_credito",
+        "total_tarjeta_debito",
+        "total_transferencia",
+        "total_otros",
+        "total_pendiente",
+    )
+
+    def get_difference_display(self, obj):
+        diff = obj.get_difference()
+        if diff is None:
+            return "-"
+        return f"C${diff:,.2f}"
+
+    get_difference_display.short_description = "Diferencia"
