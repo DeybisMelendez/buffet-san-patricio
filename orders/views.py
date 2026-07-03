@@ -2942,23 +2942,21 @@ def invoice_table(request, table_id):
                 )
 
             if active_register:
+                orders.update(is_paid=True)
+
+                active_register.total_sales += subtotal
                 if payment_type == "PENDIENTE":
                     active_register.total_pendiente += subtotal
-                    active_register.total_sales += subtotal
+                elif payment_type == "EFECTIVO":
+                    active_register.total_contado += subtotal
+                elif payment_type == "TARJETA_CREDITO":
+                    active_register.total_tarjeta_credito += subtotal
+                elif payment_type == "TARJETA_DEBITO":
+                    active_register.total_tarjeta_debito += subtotal
+                elif payment_type == "TRANSFERENCIA":
+                    active_register.total_transferencia += subtotal
                 else:
-                    orders.update(is_paid=True)
-
-                    active_register.total_sales += subtotal
-                    if payment_type == "EFECTIVO":
-                        active_register.total_contado += subtotal
-                    elif payment_type == "TARJETA_CREDITO":
-                        active_register.total_tarjeta_credito += subtotal
-                    elif payment_type == "TARJETA_DEBITO":
-                        active_register.total_tarjeta_debito += subtotal
-                    elif payment_type == "TRANSFERENCIA":
-                        active_register.total_transferencia += subtotal
-                    else:
-                        active_register.total_otros += subtotal
+                    active_register.total_otros += subtotal
                 active_register.save()
 
             if payment_type == "PENDIENTE":
