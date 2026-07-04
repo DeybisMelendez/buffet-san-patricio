@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% load user_tags %}
 {% block title %}{{ title }}{% endblock %}
 {% block body %}
 <div class="container">
@@ -43,6 +44,7 @@
                 <div class="mb-3">
                     <label class="form-label">{{ form.description.label }}</label>
                     {{ form.description }}
+                    <div class="form-text">Describe las responsabilidades principales de este rol.</div>
                     {% if form.description.errors %}
                         <div class="text-danger small">{{ form.description.errors.0 }}</div>
                     {% endif %}
@@ -52,7 +54,10 @@
 
                 <div class="mb-3">
                     <label class="form-label">{{ form.permissions.label }}</label>
-                    <div class="form-text mb-2">{{ form.permissions.help_text }}</div>
+                    <div class="form-text mb-3">
+                        Selecciona los permisos que tendrá este rol.
+                        Pasa el mouse sobre un permiso para ver su descripción y caso de uso.
+                    </div>
 
                     {% if form.permissions.errors %}
                         <div class="text-danger small">{{ form.permissions.errors.0 }}</div>
@@ -61,14 +66,20 @@
                     <div class="row">
                         {% regroup form.permissions.field.queryset|dictsort:"content_type.app_label" by content_type.app_label as grouped_perms %}
                         {% for group in grouped_perms %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card">
-                                <div class="card-header py-2">
-                                    <strong>{{ group.grouper|title }}</strong>
+                        <div class="col-md-6 mb-3">
+                            <div class="card border">
+                                <div class="card-header py-2 bg-light">
+                                    <strong>
+                                        {% if group.grouper == 'orders' %}📋 Órdenes y Menú
+                                        {% elif group.grouper == 'auth' %}👥 Usuarios y Grupos
+                                        {% else %}{{ group.grouper|title }}
+                                        {% endif %}
+                                    </strong>
                                 </div>
                                 <div class="card-body py-2">
                                     {% for perm in group.list %}
-                                    <div class="form-check">
+                                    {% with permission_descriptions|get_item:perm.codename as perm_info %}
+                                    <div class="form-check mb-2">
                                         <input
                                             type="checkbox"
                                             name="permissions"
@@ -80,13 +91,20 @@
                                             {% endif %}
                                         >
                                         <label
-                                            class="form-check-label small"
+                                            class="form-check-label small d-flex align-items-start"
                                             for="id_permissions_{{ perm.id }}"
-                                            title="{{ perm.name }}"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="right"
+                                            title="{{ perm_info.description|default:perm.name }}"
                                         >
-                                            {{ perm.codename }}
+                                            <span class="me-2">
+                                                <strong>{{ perm_info.name|default:perm.codename }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ perm_info.use_case|default:"" }}</small>
+                                            </span>
                                         </label>
                                     </div>
+                                    {% endwith %}
                                     {% endfor %}
                                 </div>
                             </div>
@@ -107,4 +125,15 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}

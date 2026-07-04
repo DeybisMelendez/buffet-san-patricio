@@ -18,12 +18,12 @@
 
     <div class="row g-4">
         {% for data in roles_data %}
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-xl-6">
             <div class="card h-100">
-                <div class="card-header bg-{% if data.role.name == 'Administrador' %}danger{% elif data.role.name == 'Supervisor' %}warning{% elif data.role.name == 'Cajero' %}info{% elif data.role.name == 'Cocinero' %}success{% else %}primary{% endif %} text-white">
+                <div class="card-header bg-{{ data.role_info.color }} text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
-                            <span class="material-icons">group</span>
+                            <span class="material-icons">{{ data.role_info.icon }}</span>
                             {{ data.role.name }}
                         </h5>
                         <div>
@@ -36,19 +36,22 @@
                             </a>
                         </div>
                     </div>
-                    {% if data.role.description %}
-                    <small>{{ data.role.description }}</small>
+                    {% if data.role.description or data.role_info.description %}
+                    <small class="d-block mt-1">{{ data.role.description|default:data.role_info.description }}</small>
                     {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Usuarios ({{ data.user_count }})</h6>
+                        <div class="col-md-5">
+                            <h6 class="text-muted mb-2">
+                                <span class="material-icons" style="font-size: 1rem;">people</span>
+                                Usuarios ({{ data.user_count }})
+                            </h6>
                             {% if data.users %}
-                                <ul class="list-unstyled mb-0" style="max-height: 120px; overflow-y: auto;">
+                                <ul class="list-unstyled mb-0" style="max-height: 100px; overflow-y: auto;">
                                     {% for user in data.users %}
                                         <li class="mb-1">
-                                            <span class="material-icons" style="font-size: 1rem;">person</span>
+                                            <span class="material-icons" style="font-size: 0.875rem;">person</span>
                                             {{ user.get_full_name|default:user.username }}
                                             {% if not user.get_full_name %}
                                                 <small class="text-muted">({{ user.username }})</small>
@@ -57,26 +60,49 @@
                                     {% endfor %}
                                 </ul>
                             {% else %}
-                                <p class="text-body-secondary mb-0">Sin usuarios asignados</p>
+                                <p class="text-body-secondary mb-0 small">Sin usuarios asignados</p>
                             {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Permisos ({{ data.permissions|length }})</h6>
-                            <div class="permissions-list" style="max-height: 120px; overflow-y: auto;">
-                                {% if data.permissions %}
-                                    {% for perm in data.permissions %}
-                                        <span class="badge bg-light text-dark me-1 mb-1">{{ perm.codename }}</span>
+                        <div class="col-md-7">
+                            <h6 class="text-muted mb-2">
+                                <span class="material-icons" style="font-size: 1rem;">key</span>
+                                Permisos ({{ data.permissions|length }})
+                            </h6>
+                            <div class="permissions-list" style="max-height: 150px; overflow-y: auto;">
+                                {% if data.grouped_permissions %}
+                                    {% for group_name, group_data in data.grouped_permissions.items %}
+                                    <div class="mb-2">
+                                        <small class="text-secondary fw-semibold">{{ group_name }}</small>
+                                        <div class="mt-1">
+                                            {% for perm in group_data.permissions %}
+                                            <span
+                                                class="badge bg-light text-dark border d-inline-flex align-items-center me-1 mb-1"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                title="{{ perm.description }}"
+                                            >
+                                                <span class="material-icons me-1" style="font-size: 0.75rem;">check</span>
+                                                {{ perm.name }}
+                                            </span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
                                     {% endfor %}
                                 {% else %}
-                                    <p class="text-body-secondary mb-0">Sin permisos específicos</p>
+                                    <p class="text-body-secondary mb-0 small">Sin permisos específicos</p>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">
+                <div class="card-footer bg-transparent">
                     <small class="text-muted">
-                        Creado: {{ data.role.created_at|date:"d/m/Y H:i" }}
+                        {% if data.role.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                        | Creado: {{ data.role.created_at|date:"d/m/Y H:i" }}
                         {% if data.role.updated_at != data.role.created_at %}
                         | Actualizado: {{ data.role.updated_at|date:"d/m/Y H:i" }}
                         {% endif %}
@@ -94,4 +120,15 @@
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}
