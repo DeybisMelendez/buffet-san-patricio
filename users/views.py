@@ -10,6 +10,9 @@ from django.views.decorators.http import require_http_methods
 
 from users.forms import RoleAssignForm, RoleForm, UserCreateForm, UserEditForm
 from users.models import Role
+from users.permissions import (
+    PERMISSION_DESCRIPTIONS, get_grouped_permissions, get_role_info
+)
 from users.utils import is_admin
 
 
@@ -24,16 +27,23 @@ def role_list(request):
             group = Group.objects.get(name=role.name)
             users = User.objects.filter(groups=group).order_by("username")
             permissions = role.permissions.all().order_by("codename")
+            permission_codes = [p.codename for p in permissions]
+            grouped_permissions = get_grouped_permissions(permission_codes)
+            role_info = get_role_info(role.name)
         except Group.DoesNotExist:
             users = []
             permissions = []
+            grouped_permissions = {}
+            role_info = {"name": role.name, "description": "", "color": "secondary", "icon": "help"}
 
         roles_data.append(
             {
                 "role": role,
+                "role_info": role_info,
                 "users": users,
                 "user_count": users.count(),
                 "permissions": permissions,
+                "grouped_permissions": grouped_permissions,
             }
         )
     return render(request, "users/role_list.html", {"roles_data": roles_data})
@@ -55,7 +65,12 @@ def role_create(request):
     return render(
         request,
         "users/role_form.html",
-        {"form": form, "title": "Crear Rol", "submit_label": "Crear Rol"},
+        {
+            "form": form,
+            "title": "Crear Rol",
+            "submit_label": "Crear Rol",
+            "permission_descriptions": PERMISSION_DESCRIPTIONS,
+        },
     )
 
 
@@ -77,7 +92,13 @@ def role_edit(request, role_id):
     return render(
         request,
         "users/role_form.html",
-        {"form": form, "title": "Editar Rol", "submit_label": "Guardar Cambios", "role": role},
+        {
+            "form": form,
+            "title": "Editar Rol",
+            "submit_label": "Guardar Cambios",
+            "role": role,
+            "permission_descriptions": PERMISSION_DESCRIPTIONS,
+        },
     )
 
 
