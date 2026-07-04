@@ -228,3 +228,14 @@ def filter_get_group(user):
     """
     group = user.groups.first()
     return group.name if group else None
+
+
+@register.filter(name="get_item")
+def filter_get_item(dictionary, key):
+    """
+    Obtiene un elemento de un diccionario por su clave.
+    Uso: {{ dict|get_item:key }}
+    """
+    if dictionary is None:
+        return {}
+    return dictionary.get(key, {})

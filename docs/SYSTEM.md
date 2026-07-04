@@ -441,49 +441,165 @@ class SoftDeleteModel(models.Model):
 
 ### Grupos de Usuarios
 
-El sistema define 5 grupos con permisos preestablecidos:
+El sistema define 5 grupos con permisos preestablecidos. Cada grupo tiene una descripción intuitiva y permisos específicos:
 
 | Grupo | Descripción | Permisos principales |
 |-------|-------------|----------------------|
-| **Servicio** | Meseros y personal de piso | Crear/ver órdenes, ver productos |
-| **Cocinero** | Personal de cocina | Ver órdenes, usar conversor |
-| **Cajero** | Personal de caja | Facturación, arqueo de caja |
-| **Supervisor** | Encargados de turno | Inventario, movimientos, cierres |
-| **Administrador** | Gerencia | Acceso completo al sistema |
+| **Servicio** | Meseros y personal de piso. Encargados de tomar pedidos y gestionar órdenes de los clientes en las mesas. | Crear/ver órdenes, ver productos, ver menú |
+| **Cocinero** | Personal de cocina. Puede ver las órdenes pendientes y usar el conversor de alimentos para calcular recetas. | Ver órdenes, ver productos, gestionar recetas de conversión |
+| **Cajero** | Personal de caja. Encargado de cobrar a los clientes, generar facturas y gestionar el arqueo de caja diario. | Facturación, arqueo de caja, crear órdenes |
+| **Supervisor** | Encargados de turno. Tienen acceso a inventario, reportes y movimientos de caja para supervisar operaciones. | Inventario completo, reportes, arqueo de caja |
+| **Administrador** | Gerencia con acceso completo al sistema. Puede gestionar usuarios, permisos, productos, inventario y configuración. | Acceso total a todos los módulos |
 
 ### Permisos por Grupo
 
 #### Servicio
-- Ver mesas, productos, categorías, áreas
-- Crear y modificar órdenes propias
-- Ver órdenes pendientes
+- **Ver mesas**: Ver lista de mesas y su estado (ocupada/disponible)
+- **Ver productos/categorías/áreas**: Navegar el menú por categorías
+- **Crear órdenes**: Registrar pedidos de los clientes en cada mesa
+- **Editar órdenes**: Modificar órdenes pendientes (agregar/quitar productos)
+- **Ver órdenes**: Ver comandas pendientes y su historial
 
 #### Cocinero
-- Ver mesas y órdenes
-- Ver productos, categorías, áreas
-- Ver ingredientes y recetas
-- Usar conversor de alimentos
-- Gestionar recetas de conversión
+- **Ver mesas y órdenes**: Ver qué preparar y para qué mesa
+- **Ver productos**: Consultar el catálogo de productos
+- **Ver ingredientes**: Ver stock disponible de insumos
+- **Ver recetas de conversión**: Consultar cómo preparar ingredientes
+- **Gestionar recetas de conversión**: Crear/editar recetas de conversión
 
 #### Cajero
-- Ver y crear órdenes
-- Marcar órdenes como pagadas
-- Facturar mesas
-- Abrir/cerrar caja
-- Ver reportes de ventas
-- Registrar ingresos de ingredientes
+- **Ver mesas y órdenes**: Identificar qué mesa cobrar antes de facturar
+- **Crear órdenes**: Tomar pedidos directos de clientes
+- **Marcar órdenes como pagadas**: Cerrar la cuenta de una mesa
+- **Crear facturas**: Generar facturas para las órdenes pagadas
+- **Ver facturas**: Ver historial de facturas
+- **Abrir turno de caja**: Iniciar jornada con monto de apertura
+- **Cerrar turno de caja**: Finalizar jornada y cuadrar caja
+- **Registrar movimientos de inventario**: Registrar ingresos de ingredientes
 
 #### Supervisor
-- Todo lo de Cajero
-- Registrar movimientos de inventario
-- Ver reportes de inventario
+- **Todo lo de Cajero**
+- **Gestionar inventario**: Ver, crear, editar ingredientes
+- **Registrar movimientos**: Registrar entradas/salidas de inventario
+- **Ver reportes**: Ventas, inventario, comandas
 
 #### Administrador
-- Acceso completo a todas las funcionalidades
-- Gestionar usuarios y permisos
-- Configurar empresa
-- Gestionar productos, categorías, áreas
-- Gestionar ingredientes y recetas
+- **Acceso completo** a todas las funcionalidades
+- **Gestionar usuarios y grupos**: Crear, editar, eliminar usuarios y roles
+- **Gestionar menú**: Productos, categorías, áreas de despacho
+- **Gestionar inventario**: Ingredientes, bodegas, recetas de conversión
+- **Gestionar caja**: Arqueos de caja
+- **Configurar empresa**: Datos de la empresa para facturas
+
+### Catálogo Completo de Permisos
+
+Los permisos están organizados por módulo y incluyen:
+
+#### 📋 Mesas
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_table` | Ver Mesas | Ver lista de mesas con estado (ocupada/disponible) |
+| `add_table` | Crear Mesas | Agregar nuevas mesas al restaurante |
+| `change_table` | Editar Mesas | Modificar datos de una mesa |
+| `delete_table` | Eliminar Mesas | Eliminar una mesa (soft delete) |
+
+#### 🍽️ Menú (Productos y Categorías)
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_product` | Ver Productos | Ver catálogo con precios |
+| `add_product` | Crear Productos | Agregar nuevos platos/bebidas |
+| `change_product` | Editar Productos | Modificar productos existentes |
+| `delete_product` | Eliminar Productos | Quitar producto del menú |
+| `view_productcategory` | Ver Categorías | Ver categorías del menú |
+| `add_productcategory` | Crear Categorías | Nueva categoría |
+| `change_productcategory` | Editar Categorías | Modificar categoría |
+| `delete_productcategory` | Eliminar Categorías | Eliminar categoría |
+| `view_dispatcharea` | Ver Áreas de Despacho | Ver áreas de preparación |
+| `add_dispatcharea` | Crear Áreas | Nueva área de trabajo |
+| `change_dispatcharea` | Editar Áreas | Modificar área |
+| `delete_dispatcharea` | Eliminar Áreas | Eliminar área |
+| `view_productingredient` | Ver Recetas | Ver ingredientes de cada producto |
+| `add_productingredient` | Crear Recetas | Definir ingredientes de un producto |
+| `change_productingredient` | Editar Recetas | Modificar receta |
+| `delete_productingredient` | Eliminar Recetas | Quitar ingrediente de receta |
+
+#### 📦 Inventario
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_ingredient` | Ver Ingredientes | Ver stock actual |
+| `add_ingredient` | Crear Ingredientes | Agregar nuevo insumo |
+| `change_ingredient` | Editar Ingredientes | Modificar ingrediente |
+| `delete_ingredient` | Eliminar Ingredientes | Eliminar insumo |
+| `view_warehouse` | Ver Bodegas | Ver ubicaciones de almacenamiento |
+| `add_warehouse` | Crear Bodegas | Nueva bodega |
+| `change_warehouse` | Editar Bodegas | Modificar bodega |
+| `delete_warehouse` | Eliminar Bodegas | Eliminar bodega |
+| `view_ingredientmovement` | Ver Movimientos | Ver historial de entradas/salidas |
+| `add_ingredientmovement` | Registrar Movimientos | Registrar compras y ajustes |
+| `change_ingredientmovement` | Editar Movimientos | Corregir movimiento |
+| `delete_ingredientmovement` | Eliminar Movimientos | Eliminar movimiento |
+| `view_foodrecipe` | Ver Recetas de Conversión | Ver conversiones de ingredientes |
+| `add_foodrecipe` | Crear Recetas de Conversión | Crear fórmula de conversión |
+| `change_foodrecipe` | Editar Recetas de Conversión | Modificar conversión |
+| `delete_foodrecipe` | Eliminar Recetas de Conversión | Eliminar conversión |
+
+#### 📝 Órdenes
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_order` | Ver Órdenes | Ver órdenes pendientes e historial |
+| `add_order` | Crear Órdenes | Nueva orden para mesa |
+| `change_order` | Editar Órdenes | Modificar orden o marcar pagada |
+| `delete_order` | Eliminar Órdenes | Eliminar orden (excepcional) |
+| `view_orderitem` | Ver Items de Orden | Ver productos de cada orden |
+| `add_orderitem` | Agregar Items | Agregar producto a orden |
+| `change_orderitem` | Editar Items | Modificar item |
+| `delete_orderitem` | Eliminar Items | Quitar producto de orden |
+
+#### 🧾 Facturación
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_invoice` | Ver Facturas | Ver historial de facturas |
+| `add_invoice` | Crear Facturas | Generar factura para orden pagada |
+| `change_invoice` | Editar Facturas | Modificar factura (no recomendado) |
+| `delete_invoice` | Eliminar Facturas | Eliminar factura (no recomendado) |
+| `view_invoiceitem` | Ver Items de Factura | Ver detalle de productos facturados |
+| `add_invoiceitem` | Agregar Items a Factura | Añadir cargos adicionales |
+| `change_invoiceitem` | Editar Items de Factura | Corregir producto |
+| `delete_invoiceitem` | Eliminar Items de Factura | Quitar producto |
+
+#### 💰 Caja
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_cashregister` | Ver Arqueos | Ver historial de turnos |
+| `add_cashregister` | Abrir Turno | Iniciar jornada con monto inicial |
+| `change_cashregister` | Cerrar Turno | Finalizar jornada y cuadrar |
+| `delete_cashregister` | Eliminar Arqueo | Eliminar registro (solo admin) |
+
+#### 👥 Administración
+| Permiso | Nombre | Descripción |
+|---------|--------|-------------|
+| `view_user` | Ver Usuarios | Ver lista de usuarios |
+| `add_user` | Crear Usuarios | Dar de alta empleados |
+| `change_user` | Editar Usuarios | Modificar datos o contraseñas |
+| `delete_user` | Eliminar Usuarios | Eliminar usuario |
+| `view_group` | Ver Grupos | Ver grupos de permisos |
+| `add_group` | Crear Grupos | Crear nuevo rol |
+| `change_group` | Editar Grupos | Modificar permisos de rol |
+| `delete_group` | Eliminar Grupos | Eliminar rol |
+
+### Referencia Rápida de Permisos por Rol
+
+```
+ROL              | MESAS | MENÚ | INVENTARIO | ÓRDENES | FACTURAS | CAJA  | ADMIN
+-----------------|-------|------|-----------|---------|----------|-------|------
+Servicio         | V     | V    | V         | A,C,E,V | -        | -     | -
+Cocinero         | V     | V    | V         | V       | -        | -     | -
+Cajero           | V     | V    | VM        | A,C,E,V | AV       | AVCE  | -
+Supervisor       | V     | V    | AVCE      | AVCE,V  | AV       | AVCE  | -
+Administrador    | AVCE  | AVCE | AVCE      | AVCE    | AVCE     | AVCE  | AVCE
+
+V = Ver, A = Agregar, C = Crear, E = Editar, D = Eliminar, M = Movimientos
+```
 
 ---
 
