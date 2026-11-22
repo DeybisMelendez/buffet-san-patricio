@@ -309,3 +309,27 @@
 [data-bs-theme="dark"] .gridjs-tr:hover .gridjs-cell {
     background-color: #3d3d5c !important;
 }
+
+/* ============================================
+   NAVBAR - Logo (independiente del tema)
+   ============================================ */
+
+/* Ajusta el logo al alto del navbar sin deformarlo.
+   La altura fija evita que el logo estire la barra de navegacion. */
+.nav-logo {
+    height: 42px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: left center;
+}
+
+/* Version compacta (movil) */
+.nav-logo.d-block {
+    height: 32px;
+}
+
+.navbar-brand {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}

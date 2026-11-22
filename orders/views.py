@@ -1,7 +1,7 @@
 import csv
 import unicodedata
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -3498,6 +3498,48 @@ def purchase_create(request):
         else:
             order_date = date.today()
 
+        # Valida los items del formulario y reporta todos los errores juntos
+        valid_items = []
+        errors = []
+
+        for item_data in items_data:
+            if not isinstance(item_data, dict):
+                continue
+
+            ingredient_id = item_data.get("id")
+            if not ingredient_id:
+                continue
+
+            item_name = str(item_data.get("name", "")).strip() or "Ingrediente"
+
+            try:
+                qty = Decimal(str(item_data.get("qty", "0")))
+                unit_cost = Decimal(str(item_data.get("unit_cost", "0")))
+            except (InvalidOperation, TypeError, ValueError):
+                errors.append(f"{item_name}: cantidad o costo inválido.")
+                continue
+
+            if qty <= 0:
+                errors.append(f"{item_name}: la cantidad debe ser mayor a cero.")
+                continue
+
+            if unit_cost <= 0:
+                errors.append(f"{item_name}: el costo unitario debe ser mayor a cero.")
+                continue
+
+            try:
+                ingredient = Ingredient.objects.get(id=ingredient_id, is_deleted=False)
+            except (Ingredient.DoesNotExist, ValueError):
+                errors.append(f"{item_name}: el ingrediente no existe o fue eliminado.")
+                continue
+
+            valid_items.append((ingredient, qty, unit_cost))
+
+        if errors:
+            for error in errors:
+                messages.error(request, f" {error}")
+            return redirect("purchase_create")
+
         with transaction.atomic():
             purchase = Purchase.objects.create(
                 supplier=supplier,
@@ -3512,26 +3554,7 @@ def purchase_create(request):
             item_count = 0
             total = Decimal("0")
 
-            for item_data in items_data:
-                ingredient_id = item_data.get("id")
-                qty = Decimal(str(item_data.get("qty", "0")))
-                unit_cost = Decimal(str(item_data.get("unit_cost", "0")))
-
-                if not ingredient_id or qty <= 0:
-                    continue
-
-                if unit_cost <= 0:
-                    messages.error(
-                        request,
-                        f" El ingrediente debe tener costo unitario mayor a cero.",
-                    )
-                    return redirect("purchase_create")
-
-                try:
-                    ingredient = Ingredient.objects.get(id=ingredient_id)
-                except Ingredient.DoesNotExist:
-                    continue
-
+            for ingredient, qty, unit_cost in valid_items:
                 subtotal_item = qty * unit_cost
 
                 PurchaseItem.objects.create(
@@ -3576,6 +3599,7 @@ def purchase_create(request):
             "warehouses": warehouses,
             "ingredient_types": Ingredient.INGREDIENT_TYPES,
             "ingredients": ingredients,
+            "ingredients_without_warehouse": ingredients.filter(warehouse__isnull=True),
         },
     )
 
