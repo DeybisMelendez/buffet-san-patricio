@@ -2,235 +2,472 @@
 {% load static %}
 {% block title %}Nueva Compra de Ingredientes{% endblock %}
 {% block body %}
-<div class="container-fluid py-3">
-    <div class="row mb-3">
-        <div class="col">
-            <h4 class="mb-0">
-                <span class="material-icons">shopping_cart</span> Nueva Compra de Ingredientes
-            </h4>
-        </div>
-        <div class="col-auto">
-            <a href="{% url 'purchase_list' %}" class="btn btn-secondary">
-                <span class="material-icons">arrow_back</span> Volver
-            </a>
-        </div>
-    </div>
-
-    <form method="post" id="purchase-form">
-        {% csrf_token %}
-
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">Datos de la Compra</h5>
+    <div class="container-fluid py-3">
+        <div class="row mb-3">
+            <div class="col">
+                <h4 class="mb-0">
+                    <span class="material-icons">shopping_cart</span> Nueva Compra de Ingredientes
+                </h4>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label for="supplier" class="form-label">Proveedor *</label>
-                        <div class="input-group">
-                            <select name="supplier" id="supplier" class="form-select" required>
-                                <option value="">Seleccione un proveedor...</option>
-                                {% for s in suppliers %}
-                                    <option value="{{ s.id }}">{{ s.name }}</option>
-                                {% endfor %}
+            <div class="col-auto d-flex gap-2">
+                <a href="{% url 'purchase_list' %}" class="btn btn-secondary">
+                    <span class="material-icons">arrow_back</span> Volver
+                </a>
+                <button type="submit"
+                        form="purchase-form"
+                        class="btn btn-primary"
+                        id="btn-submit"
+                        disabled>
+                    <span class="material-icons">save</span> Registrar Compra
+                </button>
+            </div>
+        </div>
+        <form method="post" id="purchase-form">
+            {% csrf_token %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Datos de la Compra</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="supplier" class="form-label">Proveedor *</label>
+                            <div class="input-group">
+                                <select name="supplier" id="supplier" class="form-select" required>
+                                    <option value="">Seleccione un proveedor...</option>
+                                    {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                                </select>
+                                <button type="button"
+                                        class="btn btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#newSupplierModal"
+                                        title="Nuevo proveedor">
+                                    <span class="material-icons">add</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="warehouse" class="form-label">Bodega *</label>
+                            <select name="warehouse" id="warehouse" class="form-select" required>
+                                <option value="">Seleccione una bodega...</option>
+                                {% for w in warehouses %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newSupplierModal" title="Nuevo proveedor">
-                                <span class="material-icons">add</span>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="purchase_type" class="form-label">Tipo de Compra</label>
+                            <select name="purchase_type" id="purchase_type" class="form-select">
+                                <option value="CASH">Contado</option>
+                                <option value="CREDIT">Crédito</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="order_date" class="form-label">Fecha</label>
+                            <input type="date"
+                                   name="order_date"
+                                   id="order_date"
+                                   class="form-control"
+                                   value="">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="reference_number" class="form-label">Referencia</label>
+                            <input type="text"
+                                   name="reference_number"
+                                   id="reference_number"
+                                   class="form-control"
+                                   placeholder="Nº Factura">
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notas</label>
+                            <textarea name="notes"
+                                      id="notes"
+                                      class="form-control"
+                                      rows="2"
+                                      placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <!-- ==================== Panel izquierdo: grid de ingredientes ==================== -->
+                <div class="col-12 col-lg-8">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">Ingredientes</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Pestañas de bodega -->
+                            <div class="d-flex flex-wrap gap-2 mb-3" id="warehouse-tabs">
+                                {% for w in warehouses %}
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-sm"
+                                            data-warehouse="{{ w.name }}">{{ w.name }}</button>
+                                {% endfor %}
+                                {% if ingredients_without_warehouse %}
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-sm"
+                                            data-warehouse="__sin_bodega__">Sin bodega</button>
+                                {% endif %}
+                            </div>
+                            <!-- Filtro por tipo de ingrediente -->
+                            <div class="d-flex flex-wrap gap-2 mb-3" id="type-tabs">
+                                {% for type_value, type_display in ingredient_types %}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary filter-type{% if forloop.first %} active{% endif %}"
+                                            data-type="{{ type_value }}">{{ type_display }}</button>
+                                {% endfor %}
+                            </div>
+                            <p class="text-body-secondary small mb-3" id="filter-label"></p>
+                            <!-- Grid de tarjetas de ingrediente -->
+                            <div class="row g-2" id="ingredients-grid">
+                                {% for ing in ingredients %}
+                                    <div class="col-6 col-md-4 col-xxl-3 ingredient-cell"
+                                         data-warehouse="{% if ing.warehouse %}{{ ing.warehouse.name }}{% else %}__sin_bodega__{% endif %}"
+                                         data-type="{{ ing.ingredient_type }}">
+                                        <button type="button"
+                                                class="btn btn-outline-primary w-100 d-flex flex-column align-items-start justify-content-between text-start py-3 px-3 h-100 ingredient-btn"
+                                                data-ingredient-id="{{ ing.id }}"
+                                                data-ingredient-name="{{ ing.name|escapejs }}"
+                                                data-ingredient-unit="{{ ing.unit }}"
+                                                data-ingredient-stock="{{ ing.stock_quantity }}"
+                                                title="{{ ing.name }}">
+                                            <span class="ingredient-name">{{ ing.name }}</span>
+                                            <span class="small mt-2 stock-label">Stock: {{ ing.stock_quantity|floatformat:2 }} {{ ing.unit }}</span>
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <p class="text-body-secondary mb-0 d-none" id="empty-ingredients">No hay ingredientes en esta bodega.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ==================== Panel derecho: resumen lateral ==================== -->
+                <div class="col-12 col-lg-4">
+                    <div class="card sticky-lg-top summary-sticky">
+                        <div class="card-header bg-warning bg-opacity-25">
+                            <h5 class="mb-0">Resumen de Compra</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="summary-list">
+                                <!-- Se renderiza con JS -->
+                            </div>
+                            <p class="text-body-secondary mb-0" id="summary-empty">No hay ingredientes seleccionados.</p>
+                            <hr class="my-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold">Ingredientes:</span>
+                                <span class="fw-bold"><span id="total-items">0</span></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold">Total:</span>
+                                <span class="fs-5 fw-bold">C$ <span id="total-amount">0.00</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3 mb-4">
+                <button type="submit"
+                        class="btn btn-primary d-lg-none"
+                        id="btn-submit-mobile"
+                        disabled>
+                    <span class="material-icons">save</span> Registrar Compra
+                </button>
+            </div>
+        </form>
+    </div>
+    <!-- ==================== Modal de cantidad y costo ==================== -->
+    <div class="modal fade"
+         id="qtyModal"
+         tabindex="-1"
+         aria-labelledby="qtyModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qtyModalLabel">Ingrediente</h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-body-secondary mb-3">
+                        Stock actual: <strong id="modal-ingredient-stock">0</strong>
+                    </p>
+                    <!-- Cantidad (solo lectura, se cambia con el teclado numerico) -->
+                    <div class="text-center mb-3">
+                        <input type="text"
+                               class="form-control form-control-lg text-center fw-bold"
+                               id="qtyInput"
+                               value=""
+                               placeholder="Cantidad"
+                               readonly
+                               inputmode="none"
+                               autocomplete="off"
+                               aria-live="polite">
+                    </div>
+                    <!-- Teclado numerico tactil -->
+                    <div class="row g-2" id="qty-keypad">
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="1">1</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="2">2</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="3">3</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="4">4</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="5">5</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="6">6</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="7">7</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="8">8</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="9">9</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="clear"
+                                    aria-label="Borrar todo">C</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="0">0</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="backspace"
+                                    aria-label="Borrar ultimo digito">
+                                <i class="material-icons">backspace</i>
                             </button>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="warehouse" class="form-label">Bodega *</label>
-                        <select name="warehouse" id="warehouse" class="form-select" required>
-                            <option value="">Seleccione una bodega...</option>
-                            {% for w in warehouses %}
-                                <option value="{{ w.id }}">{{ w.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="purchase_type" class="form-label">Tipo de Compra</label>
-                        <select name="purchase_type" id="purchase_type" class="form-select">
-                            <option value="CASH">Contado</option>
-                            <option value="CREDIT">Crédito</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="order_date" class="form-label">Fecha</label>
-                        <input type="date" name="order_date" id="order_date" class="form-control"
-                               value="">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="reference_number" class="form-label">Referencia</label>
-                        <input type="text" name="reference_number" id="reference_number"
-                               class="form-control" placeholder="Nº Factura">
-                    </div>
-                </div>
-                <div class="row g-3 mt-2">
-                    <div class="col-12">
-                        <label for="notes" class="form-label">Notas</label>
-                        <textarea name="notes" id="notes" class="form-control"
-                                  rows="2" placeholder="Observaciones adicionales..."></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">Ingredientes</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Filtrar por tipo</label>
-                        <div class="d-flex gap-2 flex-wrap" id="type-filters">
-                            <button type="button" class="btn btn-sm btn-primary filter-btn active" data-type="">Todos</button>
-                            {% for type_value, type_display in ingredient_types %}
-                                <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-type="{{ type_value }}">{{ type_display }}</button>
-                            {% endfor %}
+                        <div class="col-4">
+                            <button type="button"
+                                    class="btn btn-outline-secondary w-100 qty-key"
+                                    data-key="."
+                                    aria-label="Punto decimal">.</button>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <label for="warehouse-filter" class="form-label">Bodega</label>
-                        <select id="warehouse-filter" class="form-select form-select-sm">
-                            <option value="">Todas las bodegas</option>
-                            {% for w in warehouses %}
-                                <option value="{{ w.id }}">{{ w.name }}</option>
-                            {% endfor %}
-                        </select>
+                    <!-- Costo unitario -->
+                    <div class="mt-3">
+                        <label for="unitCostInput" class="form-label">Costo unitario (C$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">C$</span>
+                            <input type="number"
+                                   id="unitCostInput"
+                                   class="form-control text-end"
+                                   step="0.01"
+                                   min="0"
+                                   placeholder="0.00"
+                                   inputmode="decimal">
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <span class="text-body-secondary">Subtotal</span>
+                        <span class="fs-5 fw-semibold" id="modal-subtotal">C$ 0.00</span>
                     </div>
                 </div>
-
-                <h6 class="mb-3" id="filter-label">Todos los ingredientes</h6>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col">Ingrediente</th>
-                                <th scope="col">Tipo</th>
-                                <th scope="col">Bodega</th>
-                                <th scope="col">Stock</th>
-                                <th scope="col">Cantidad</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ingredients-table-body">
-                            {% for ing in ingredients %}
-                                <tr data-type="{{ ing.ingredient_type }}" data-warehouse="{{ ing.warehouse_id|default:'' }}" class="ingredient-row">
-                                    <td>{{ ing.name }}</td>
-                                    <td>
-                                        {% if ing.ingredient_type == 'MATERIA_PRIMA' %}
-                                            <span class="badge bg-primary">Materia Prima</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Procesado</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ ing.warehouse.name|default:"Sin bodega" }}</td>
-                                    <td>{{ ing.stock_quantity }} {{ ing.get_unit_display }}</td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQty({{ ing.id }})">
-                                                <span class="material-icons">remove</span>
-                                            </button>
-                                            <input type="number" class="form-control text-center" style="width: 80px;"
-                                                   id="qty_{{ ing.id }}" value="0" min="0" step="0.01">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQty({{ ing.id }})">
-                                                <span class="material-icons">add</span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button"
+                            class="btn btn-primary btn-lg flex-grow-1"
+                            id="qtyConfirmBtn">Agregar</button>
                 </div>
-            </div>
-        </div>
-
-        <div class="card border-warning mb-3" id="summary-card" style="display: none;">
-            <div class="card-header bg-warning bg-opacity-25">
-                <h5 class="mb-0">Resumen de Compras</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Ingrediente</th>
-                                <th scope="col">Cantidad</th>
-                                <th scope="col">Costo Unitario</th>
-                                <th scope="col">Monto</th>
-                                <th style="width: 50px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="summary-body">
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="3"><strong>Total:</strong></td>
-                                <td><strong>C$ <span id="total-amount">0.00</span></strong></td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-end gap-2 mb-4">
-            <button type="submit" class="btn btn-primary" id="btn-submit" disabled>
-                <span class="material-icons">save</span> Registrar Compra
-            </button>
-        </div>
-    </form>
-</div>
-
-<div class="modal fade" id="newSupplierModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nuevo Proveedor</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="new-supplier-name" class="form-label">Nombre *</label>
-                    <input type="text" id="new-supplier-name" class="form-control" placeholder="Nombre del proveedor" required>
-                </div>
-                <div class="mb-3">
-                    <label for="new-supplier-contact" class="form-label">Persona de Contacto</label>
-                    <input type="text" id="new-supplier-contact" class="form-control" placeholder="Nombre de contacto">
-                </div>
-                <div class="mb-3">
-                    <label for="new-supplier-phone" class="form-label">Teléfono</label>
-                    <input type="text" id="new-supplier-phone" class="form-control" placeholder="Teléfono">
-                </div>
-                <div class="mb-3">
-                    <label for="new-supplier-email" class="form-label">Correo</label>
-                    <input type="email" id="new-supplier-email" class="form-control" placeholder="correo@ejemplo.com">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-save-supplier">Guardar Proveedor</button>
             </div>
         </div>
     </div>
-</div>
+    <div class="modal fade" id="newSupplierModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Proveedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new-supplier-name" class="form-label">Nombre *</label>
+                        <input type="text"
+                               id="new-supplier-name"
+                               class="form-control"
+                               placeholder="Nombre del proveedor"
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-supplier-contact" class="form-label">Persona de Contacto</label>
+                        <input type="text"
+                               id="new-supplier-contact"
+                               class="form-control"
+                               placeholder="Nombre de contacto">
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-supplier-phone" class="form-label">Teléfono</label>
+                        <input type="text"
+                               id="new-supplier-phone"
+                               class="form-control"
+                               placeholder="Teléfono">
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-supplier-email" class="form-label">Correo</label>
+                        <input type="email"
+                               id="new-supplier-email"
+                               class="form-control"
+                               placeholder="correo@ejemplo.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-supplier">Guardar Proveedor</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_css %}
+    <style>
+    /* Resumen lateral pegajoso al hacer scroll (solo en pantallas grandes) */
+    .summary-sticky {
+        top: 5rem;
+    }
+
+    /* Tarjeta de ingrediente: alto fijo para que el grid no se descuadre */
+    .ingredient-btn {
+        min-height: 6.5rem;
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    /* Nombre del ingrediente: maximo 2 lineas con puntos suspensivos.
+       Evita que nombres largos corten la tarjeta o la deformen. */
+    .ingredient-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.3;
+        /* Texto claro y legible sobre el fondo de la tarjeta.
+           Se usa --bs-body-color porque --bs-emphasis-color es negro en tema oscuro. */
+        color: var(--bs-body-color);
+        /* Reserva el alto de 2 lineas para que todas las tarjetas queden iguales */
+        min-height: 2.6em;
+    }
+
+    /* Tarjeta seleccionada (pintada): texto blanco para contrastar con el fondo azul */
+    .ingredient-btn.btn-primary .ingredient-name {
+        color: #ffffff;
+    }
+
+    /* Texto del stock: tono suave para que el nombre domine la tarjeta */
+    .stock-label {
+        color: var(--bs-secondary-color);
+        opacity: 1;
+    }
+
+    /* Tarjeta seleccionada: el stock se mantiene legible sobre el fondo azul */
+    .ingredient-btn.btn-primary .stock-label {
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Stock negativo se resalta en rojo */
+    .stock-label.stock-negative {
+        color: var(--bs-danger);
+        font-weight: 600;
+    }
+
+    /* Stock negativo en tarjeta seleccionada: rojo claro sobre fondo azul */
+    .ingredient-btn.btn-primary .stock-label.stock-negative {
+        color: #ffc9c9;
+    }
+
+    /* Teclado numerico tactil: botones grandes para uso con el dedo */
+    .qty-key {
+        min-height: 3.75rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        line-height: 1;
+        touch-action: manipulation;
+    }
+
+    /* Evita el zoom por doble toque y el menu de seleccion en toques rapidos */
+    .qty-key:active {
+        transform: scale(0.95);
+    }
+
+    /* Resumen lateral: nombre en 2 lineas con puntos suspensivos */
+    .summary-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        line-height: 1.25;
+    }
+
+    /* Detalle de cada fila del resumen */
+    .summary-detail {
+        font-size: 0.8rem;
+        color: var(--bs-secondary-color);
+    }
+
+    /* Stock resultante en el resumen */
+    .summary-stock-negative {
+        color: var(--bs-danger);
+        font-weight: 600;
+    }
+
+    .summary-stock-positive {
+        color: var(--bs-success);
+        font-weight: 600;
+    }
+    </style>
 {% endblock %}
 {% block extra_js %}
-<script>
+    <script>
 (function() {
     'use strict';
 
+    // Estado de los ingredientes: id -> { name, unit, stock, warehouse, type, qty, unit_cost }
     var ingredientsData = {
 {% for ing in ingredients %}
         {{ ing.id }}: {
-            name: '{{ ing.name|addslashes }}',
-            unit: '{{ ing.get_unit_display }}',
-            warehouse: '{{ ing.warehouse.name|default:"Sin bodega" }}',
-            warehouse_id: {{ ing.warehouse_id|default:"null" }},
+            name: '{{ ing.name|escapejs }}',
+            unit: '{{ ing.unit }}',
             stock: {{ ing.stock_quantity }},
+            warehouse: '{% if ing.warehouse %}{{ ing.warehouse.name|escapejs }}{% else %}__sin_bodega__{% endif %}',
             type: '{{ ing.ingredient_type }}',
             qty: 0,
             unit_cost: ''
@@ -238,235 +475,606 @@
 {% endfor %}
     };
 
-    var selectedItems = [];
-    var currentType = '';
+    var currentIngredientId = null;
+    var qtyModalInstance = null;
+    /* Indica si el usuario ya tecleo un numero en el teclado del modal.
+       Sirve para que el primer toque reemplace el valor previo en lugar de concatenarlo. */
+    var qtyUserTyped = false;
     var currentWarehouse = '';
+    /* Tipo de ingrediente activo. Siempre hay uno seleccionado:
+       el filtro "Todos" fue eliminado, por lo que inicia con el primer tipo. */
+    var currentType = '';
+
+    var MAX_INTEGER_DIGITS = 6;
+    var MAX_DECIMALS = 2;
 
     var today = new Date().toISOString().split('T')[0];
     document.getElementById('order_date').value = today;
 
-    function filterIngredients() {
-        var rows = document.querySelectorAll('.ingredient-row');
-        rows.forEach(function(row) {
-            var rowType = row.dataset.type;
-            var rowWarehouse = row.dataset.warehouse;
+    function getIngredient(id) {
+        return ingredientsData[id];
+    }
 
-            var typeMatch = currentType === '' || rowType === currentType;
-            var warehouseMatch = currentWarehouse === '' || rowWarehouse === currentWarehouse;
+    function formatMoney(value) {
+        return 'C$ ' + parseFloat(value || 0).toFixed(2);
+    }
 
-            row.style.display = (typeMatch && warehouseMatch) ? '' : 'none';
+    /**
+     * Muestra u oculta los ingredientes segun la bodega y el tipo seleccionados.
+     */
+    function applyFilters() {
+        var visibleCount = 0;
+
+        document.querySelectorAll('.ingredient-cell').forEach(function(cell) {
+            var warehouseMatch = currentWarehouse === '' || cell.dataset.warehouse === currentWarehouse;
+            var typeMatch = currentType === '' || cell.dataset.type === currentType;
+
+            if (warehouseMatch && typeMatch) {
+                cell.classList.remove('d-none');
+                visibleCount++;
+            } else {
+                cell.classList.add('d-none');
+            }
         });
 
-        var label = currentType === '' ? 'Todos' : (currentType === 'MATERIA_PRIMA' ? 'Materia Prima' : 'Procesado');
+        document.getElementById('empty-ingredients').classList.toggle('d-none', visibleCount > 0);
+
+        // Nombre de la bodega y el tipo activos
+        var label = 'Todos los ingredientes';
         if (currentWarehouse !== '') {
-            var warehouseSelect = document.getElementById('warehouse-filter');
-            var warehouseName = warehouseSelect.options[warehouseSelect.selectedIndex].text;
-            label += ' - ' + warehouseName;
+            var activeTab = document.querySelector('#warehouse-tabs button[data-warehouse="' + currentWarehouse + '"]');
+            label = activeTab ? activeTab.textContent.trim() : currentWarehouse;
+        }
+        if (currentType !== '') {
+            label += ' - ' + currentTypeLabel();
         }
         document.getElementById('filter-label').textContent = label;
     }
 
-    function decreaseQty(id) {
-        var input = document.getElementById('qty_' + id);
-        if (ingredientsData[id].qty > 0) {
-            ingredientsData[id].qty--;
-            input.value = ingredientsData[id].qty;
-            updateSummary();
+    function currentTypeLabel() {
+        if (currentType === '') {
+            return '';
+        }
+        var btn = document.querySelector('#type-tabs button[data-type="' + currentType + '"]');
+        return btn ? btn.textContent.trim() : currentType;
+    }
+
+    /**
+     * Abre el modal de cantidad para el ingrediente indicado.
+     */
+    function openQtyModal(ingredientId) {
+        var ing = getIngredient(ingredientId);
+        if (!ing) {
+            return;
+        }
+
+        currentIngredientId = ingredientId;
+
+        document.getElementById('qtyModalLabel').textContent = ing.name + ' (' + ing.unit + ')';
+
+        var stockEl = document.getElementById('modal-ingredient-stock');
+        stockEl.textContent = ing.stock + ' ' + ing.unit;
+        stockEl.classList.toggle('text-danger', parseFloat(ing.stock) < 0);
+
+        var input = document.getElementById('qtyInput');
+
+        // Ingrediente nuevo: campo vacio para teclear la cantidad desde cero.
+        // Ingrediente ya agregado: muestra la cantidad actual (el primer toque la reemplaza).
+        if (ing.qty > 0) {
+            input.value = formatQty(ing.qty);
+        } else {
+            input.value = '';
+            input.placeholder = 'Cantidad';
+        }
+
+        // El usuario aun no ha tecleado nada en esta apertura
+        qtyUserTyped = false;
+
+        var costInput = document.getElementById('unitCostInput');
+        costInput.value = ing.unit_cost !== '' && ing.unit_cost !== null ? ing.unit_cost : '';
+
+        updateModalSubtotal();
+
+        var confirmBtn = document.getElementById('qtyConfirmBtn');
+        confirmBtn.textContent = ing.qty > 0 ? 'Actualizar' : 'Agregar';
+
+        if (qtyModalInstance) {
+            qtyModalInstance.show();
+            // Enfoca el campo de costo para escribir rapido despues de la cantidad
+            window.setTimeout(function() {
+                costInput.focus();
+            }, 200);
         }
     }
 
-    function increaseQty(id) {
-        var input = document.getElementById('qty_' + id);
-        ingredientsData[id].qty++;
-        input.value = ingredientsData[id].qty;
+    /**
+     * Formatea un numero a texto sin ceros sobrantes (ej. 25.50 -> "25.5").
+     */
+    function formatQty(value) {
+        var num = parseFloat(value) || 0;
+        return String(Math.round(num * 100) / 100);
+    }
+
+    /**
+     * Procesa una pulsacion del teclado numerico.
+     * key: '0'-'9' | '.' | 'backspace' | 'clear'
+     *
+     * El primer numero tecleado reemplaza el valor previo (para evitar
+     * que "1" + "2" se lea como "12"); los siguientes se concatenan.
+     */
+    function pressQtyKey(key) {
+        var input = document.getElementById('qtyInput');
+        var current = input.value;
+
+        if (key === 'clear') {
+            input.value = '';
+            qtyUserTyped = false;
+        } else if (key === 'backspace') {
+            input.value = current.length > 1 ? current.slice(0, -1) : '';
+            qtyUserTyped = true;
+        } else if (key === '.') {
+            if (current.indexOf('.') !== -1) {
+                // Solo se permite un punto decimal
+                return;
+            }
+            if (!qtyUserTyped) {
+                // Primer toque: el punto inicia el numero
+                input.value = '0.';
+                qtyUserTyped = true;
+            } else if (current === '') {
+                input.value = '0.';
+            } else {
+                input.value = current + '.';
+            }
+        } else {
+            var next;
+
+            if (!qtyUserTyped) {
+                // Primer toque: reemplaza el valor anterior
+                next = key;
+                qtyUserTyped = true;
+            } else if (current === '0') {
+                // Evita ceros a la izquierda: "0" + "5" -> "5"
+                next = key;
+            } else {
+                // Continua escribiendo sobre lo ya tecleado
+                next = current === '' ? key : current + key;
+            }
+
+            input.value = sanitizeQty(next);
+        }
+
+        updateModalSubtotal();
+    }
+
+    /**
+     * Limita el texto a 6 digitos enteros y 2 decimales, y normaliza ceros a la izquierda.
+     */
+    function sanitizeQty(value) {
+        var text = value;
+        var dotIndex = text.indexOf('.');
+
+        if (dotIndex !== -1) {
+            var intPart = text.slice(0, dotIndex);
+            var decPart = text.slice(dotIndex + 1).replace(/[^0-9]/g, '');
+
+            intPart = intPart.replace(/[^0-9]/g, '');
+            decPart = decPart.slice(0, MAX_DECIMALS);
+
+            if (intPart.length > MAX_INTEGER_DIGITS) {
+                intPart = intPart.slice(0, MAX_INTEGER_DIGITS);
+            }
+
+            // Quita ceros a la izquierda, pero conserva un solo cero antes del punto
+            intPart = intPart.replace(/^0+(?=\d)/, '');
+
+            return intPart + '.' + decPart;
+        }
+
+        var digits = text.replace(/[^0-9]/g, '');
+        if (digits.length > MAX_INTEGER_DIGITS) {
+            digits = digits.slice(0, MAX_INTEGER_DIGITS);
+        }
+        return digits.replace(/^0+(?=\d)/, '');
+    }
+
+    /**
+     * Actualiza el subtotal mostrado en el modal.
+     */
+    function updateModalSubtotal() {
+        var ing = getIngredient(currentIngredientId);
+        if (!ing) {
+            return;
+        }
+
+        var qty = parseFloat(document.getElementById('qtyInput').value) || 0;
+        var unitCost = parseFloat(document.getElementById('unitCostInput').value) || 0;
+        var subtotalEl = document.getElementById('modal-subtotal');
+
+        if (qty <= 0) {
+            subtotalEl.textContent = 'Sin cantidad';
+            subtotalEl.classList.add('text-body-secondary');
+            subtotalEl.classList.remove('fw-semibold');
+        } else {
+            subtotalEl.textContent = formatMoney(qty * unitCost);
+            subtotalEl.classList.remove('text-body-secondary');
+            subtotalEl.classList.add('fw-semibold');
+        }
+    }
+
+    /**
+     * Aplica la cantidad y el costo seleccionados en el modal.
+     */
+    function applyQty() {
+        if (currentIngredientId === null) {
+            return;
+        }
+
+        var ing = getIngredient(currentIngredientId);
+        var input = document.getElementById('qtyInput');
+        var qty = parseFloat(input.value) || 0;
+        var unitCost = parseFloat(document.getElementById('unitCostInput').value) || 0;
+
+        if (qty <= 0) {
+            alert('Ingresa una cantidad mayor a cero.');
+            return;
+        }
+
+        if (unitCost <= 0) {
+            alert('Ingresa el costo unitario del ingrediente.');
+            return;
+        }
+
+        ing.qty = Math.round(qty * 100) / 100;
+        ing.unit_cost = Math.round(unitCost * 100) / 100;
+
+        updateIngredientButton(currentIngredientId);
+        updateSummary();
+
+        if (qtyModalInstance) {
+            qtyModalInstance.hide();
+        }
+    }
+
+    /**
+     * Quita un ingrediente de la compra.
+     */
+    function removeIngredient(ingredientId) {
+        var ing = getIngredient(ingredientId);
+        if (!ing) {
+            return;
+        }
+
+        ing.qty = 0;
+        ing.unit_cost = '';
+        updateIngredientButton(ingredientId);
         updateSummary();
     }
 
-    function updateSummary() {
-        var summaryBody = document.getElementById('summary-body');
-        var summaryCard = document.getElementById('summary-card');
-        var total = 0;
-        var itemCount = 0;
+    /**
+     * Pinta el boton del ingrediente segun si esta seleccionado o no.
+     */
+    function updateIngredientButton(ingredientId) {
+        var ing = getIngredient(ingredientId);
+        var button = document.querySelector('.ingredient-btn[data-ingredient-id="' + ingredientId + '"]');
+        if (!ing || !button) {
+            return;
+        }
 
-        selectedItems = [];
-        summaryBody.innerHTML = '';
+        if (ing.qty > 0) {
+            button.classList.remove('btn-outline-primary');
+            button.classList.add('btn-primary');
+        } else {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-primary');
+        }
+    }
+
+    /**
+     * Re-renderiza el resumen lateral y el total.
+     */
+    function updateSummary() {
+        var list = document.getElementById('summary-list');
+        var emptyMsg = document.getElementById('summary-empty');
+        var total = 0;
+        var selected = 0;
+
+        list.innerHTML = '';
 
         Object.keys(ingredientsData).forEach(function(id) {
             var ing = ingredientsData[id];
-            if (ing.qty > 0) {
+            if (ing.qty <= 0) {
+                return;
+            }
+
+            selected++;
+            var unitCost = parseFloat(ing.unit_cost) || 0;
+            var lineTotal = ing.qty * unitCost;
+            total += lineTotal;
+
+            var newStock = parseFloat(ing.stock) + ing.qty;
+
+            var row = document.createElement('div');
+            row.className = 'd-flex justify-content-between align-items-start gap-2 py-2 border-bottom';
+
+            var info = document.createElement('div');
+            info.className = 'min-w-0';
+
+            var name = document.createElement('div');
+            name.className = 'fw-semibold summary-name';
+            name.textContent = ing.name;
+            name.title = ing.name;
+
+            var detail = document.createElement('div');
+            detail.className = 'summary-detail';
+            detail.textContent = formatQty(ing.qty) + ' ' + ing.unit + ' × ' + formatMoney(unitCost);
+
+            var stockLine = document.createElement('div');
+            stockLine.className = 'summary-detail ' + (newStock < 0 ? 'summary-stock-negative' : 'summary-stock-positive');
+            stockLine.textContent = 'Stock: ' + formatQty(ing.stock) + ' → ' + formatQty(newStock) + ' ' + ing.unit;
+
+            info.appendChild(name);
+            info.appendChild(detail);
+            info.appendChild(stockLine);
+
+            var right = document.createElement('div');
+            right.className = 'd-flex align-items-center gap-2 flex-shrink-0';
+
+            var amount = document.createElement('span');
+            amount.className = 'fw-semibold';
+            amount.textContent = formatMoney(lineTotal);
+
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger border-0 p-0';
+            removeBtn.setAttribute('aria-label', 'Quitar ' + ing.name);
+            removeBtn.innerHTML = '<i class="material-icons">close</i>';
+            removeBtn.addEventListener('click', function() {
+                removeIngredient(id);
+            });
+
+            right.appendChild(amount);
+            right.appendChild(removeBtn);
+
+            row.appendChild(info);
+            row.appendChild(right);
+            list.appendChild(row);
+        });
+
+        emptyMsg.classList.toggle('d-none', selected > 0);
+        document.getElementById('total-amount').textContent = total.toFixed(2);
+        document.getElementById('total-items').textContent = selected;
+
+        // Boton de la cabecera (visible siempre) y el de pie (solo en movil)
+        var headerBtn = document.getElementById('btn-submit');
+        var mobileBtn = document.getElementById('btn-submit-mobile');
+        if (headerBtn) {
+            headerBtn.disabled = selected === 0;
+        }
+        if (mobileBtn) {
+            mobileBtn.disabled = selected === 0;
+        }
+    }
+
+    // Init on load
+    document.addEventListener('DOMContentLoaded', function() {
+        var modalEl = document.getElementById('qtyModal');
+        if (typeof bootstrap !== 'undefined' && modalEl) {
+            qtyModalInstance = new bootstrap.Modal(modalEl);
+        }
+
+        // Tarjetas de ingrediente: abrir modal de cantidad
+        document.querySelectorAll('.ingredient-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                openQtyModal(this.dataset.ingredientId);
+            });
+        });
+
+        // Teclado numerico tactil
+        document.querySelectorAll('.qty-key').forEach(function(key) {
+            key.addEventListener('click', function() {
+                pressQtyKey(this.dataset.key);
+            });
+        });
+
+        // Campo de costo: recalcula el subtotal del modal
+        document.getElementById('unitCostInput').addEventListener('input', updateModalSubtotal);
+
+        // Confirmar cantidad y costo
+        var confirmBtn = document.getElementById('qtyConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', applyQty);
+        }
+
+        // Pestanas de bodega
+        document.querySelectorAll('#warehouse-tabs button').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                currentWarehouse = this.dataset.warehouse;
+
+                document.querySelectorAll('#warehouse-tabs button').forEach(function(btn) {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                });
+                this.classList.remove('btn-outline-primary');
+                this.classList.add('btn-primary');
+
+                applyFilters();
+            });
+        });
+
+        // Filtro por tipo de ingrediente
+        document.querySelectorAll('#type-tabs button').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                currentType = this.dataset.type;
+
+                document.querySelectorAll('#type-tabs button').forEach(function(btn) {
+                    btn.classList.remove('btn-primary', 'active');
+                    btn.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary', 'active');
+
+                applyFilters();
+            });
+        });
+
+        // Teclado fisico (para uso con mouse/teclado en escritorio)
+        document.addEventListener('keydown', function(event) {
+            if (!document.getElementById('qtyModal').classList.contains('show')) {
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applyQty();
+            } else if (event.key === 'Backspace') {
+                event.preventDefault();
+                pressQtyKey('backspace');
+            } else if (event.key === 'Escape') {
+                if (qtyModalInstance) {
+                    qtyModalInstance.hide();
+                }
+            } else if (/^[0-9]$/.test(event.key)) {
+                pressQtyKey(event.key);
+            } else if (event.key === '.' || event.key === ',') {
+                pressQtyKey('.');
+            }
+        });
+
+        // Validar y enviar
+        document.getElementById('purchase-form').addEventListener('submit', function(e) {
+            var supplier = document.getElementById('supplier').value;
+            var warehouse = document.getElementById('warehouse').value;
+
+            if (!supplier || !warehouse) {
+                e.preventDefault();
+                alert('Debe seleccionar un proveedor y una bodega.');
+                return;
+            }
+
+            var selectedItems = [];
+            var hasInvalid = false;
+
+            Object.keys(ingredientsData).forEach(function(id) {
+                var ing = ingredientsData[id];
+                if (ing.qty <= 0) {
+                    return;
+                }
+
                 var unitCost = parseFloat(ing.unit_cost) || 0;
-                var lineTotal = ing.qty * unitCost;
-                total += lineTotal;
-                itemCount++;
+                if (unitCost <= 0) {
+                    hasInvalid = true;
+                    return;
+                }
 
                 selectedItems.push({
-                    id: parseInt(id),
+                    id: parseInt(id, 10),
                     name: ing.name,
                     qty: ing.qty,
                     unit_cost: unitCost
                 });
-
-                var tr = document.createElement('tr');
-                tr.innerHTML =
-                    '<td>' + ing.name + '</td>' +
-                    '<td>' + ing.qty + ' ' + ing.unit + '</td>' +
-                    '<td style="width: 150px;">' +
-                        '<div class="input-group input-group-sm">' +
-                            '<span class="input-group-text">C$</span>' +
-                            '<input type="number" class="form-control text-end unit-cost-input" ' +
-                                   'data-id="' + id + '" step="0.01" min="0" value="' + (ing.unit_cost || '') + '" ' +
-                                   'placeholder="0.00">' +
-                        '</div>' +
-                    '</td>' +
-                    '<td class="text-end fw-bold">C$ ' + lineTotal.toFixed(2) + '</td>' +
-                    '<td>' +
-                        '<button type="button" class="btn btn-danger btn-sm" onclick="removeItem(' + id + ')">' +
-                            '<span class="material-icons" style="font-size: 1rem;">close</span>' +
-                        '</button>' +
-                    '</td>';
-                summaryBody.appendChild(tr);
-            }
-        });
-
-        document.getElementById('total-amount').textContent = total.toFixed(2);
-        document.getElementById('btn-submit').disabled = itemCount === 0;
-        summaryCard.style.display = itemCount > 0 ? 'block' : 'none';
-    }
-
-    window.removeItem = function(id) {
-        ingredientsData[id].qty = 0;
-        ingredientsData[id].unit_cost = '';
-        document.getElementById('qty_' + id).value = 0;
-        updateSummary();
-    };
-
-    document.querySelectorAll('.filter-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(function(b) {
-                b.classList.remove('btn-primary', 'active');
-                b.classList.add('btn-outline-secondary');
             });
-            this.classList.remove('btn-outline-secondary');
-            this.classList.add('btn-primary', 'active');
-            currentType = this.dataset.type;
-            filterIngredients();
-        });
-    });
 
-    document.getElementById('warehouse-filter').addEventListener('change', function() {
-        currentWarehouse = this.value;
-        filterIngredients();
-    });
-
-    document.getElementById('ingredients-table-body').addEventListener('input', function(e) {
-        if (e.target.classList.contains('form-control') && e.target.id.startsWith('qty_')) {
-            var id = e.target.id.replace('qty_', '');
-            ingredientsData[id].qty = parseFloat(e.target.value) || 0;
-            updateSummary();
-        }
-    });
-
-    document.getElementById('summary-body').addEventListener('input', function(e) {
-        if (e.target.classList.contains('unit-cost-input')) {
-            var id = e.target.dataset.id;
-            ingredientsData[id].unit_cost = e.target.value;
-            updateSummary();
-        }
-    });
-
-    document.getElementById('purchase-form').addEventListener('submit', function(e) {
-        var supplier = document.getElementById('supplier').value;
-        var warehouse = document.getElementById('warehouse').value;
-
-        if (!supplier || !warehouse) {
-            e.preventDefault();
-            alert('Debe seleccionar un proveedor y una bodega.');
-            return;
-        }
-
-        if (selectedItems.length === 0) {
-            e.preventDefault();
-            alert('Debe agregar al menos un ingrediente con cantidad mayor a cero.');
-            return;
-        }
-
-        for (var i = 0; i < selectedItems.length; i++) {
-            var item = selectedItems[i];
-            if (!item.qty || item.qty <= 0) {
+            if (selectedItems.length === 0) {
                 e.preventDefault();
-                alert('Todos los ingredientes deben tener cantidad mayor a cero.');
+                alert('Debe agregar al menos un ingrediente con cantidad.');
                 return;
             }
-            if (!item.unit_cost || item.unit_cost <= 0) {
+
+            if (hasInvalid) {
                 e.preventDefault();
                 alert('Todos los ingredientes deben tener costo unitario mayor a cero.');
                 return;
             }
+
+            var itemsJson = document.createElement('input');
+            itemsJson.type = 'hidden';
+            itemsJson.name = 'items_json';
+            itemsJson.value = JSON.stringify(selectedItems);
+            this.appendChild(itemsJson);
+        });
+
+        // Resalta los ingredientes con stock negativo
+        document.querySelectorAll('.ingredient-btn').forEach(function(button) {
+            var stock = parseFloat(button.dataset.ingredientStock) || 0;
+            var label = button.querySelector('.stock-label');
+            if (stock < 0 && label) {
+                label.classList.add('stock-negative');
+            }
+        });
+
+        // Activa la primera bodega y el primer tipo por defecto
+        var firstWarehouseTab = document.querySelector('#warehouse-tabs button');
+        var firstTypeTab = document.querySelector('#type-tabs button');
+
+        if (firstTypeTab) {
+            firstTypeTab.click();
         }
 
-        var itemsJson = document.createElement('input');
-        itemsJson.type = 'hidden';
-        itemsJson.name = 'items_json';
-        itemsJson.value = JSON.stringify(selectedItems);
-        this.appendChild(itemsJson);
+        if (firstWarehouseTab) {
+            firstWarehouseTab.click();
+        } else {
+            applyFilters();
+        }
+
+        updateSummary();
     });
 
-    document.getElementById('btn-save-supplier').addEventListener('click', function() {
-        var name = document.getElementById('new-supplier-name').value.trim();
-        var contact = document.getElementById('new-supplier-contact').value.trim();
-        var phone = document.getElementById('new-supplier-phone').value.trim();
-        var email = document.getElementById('new-supplier-email').value.trim();
+    // Crear proveedor (usado tambien desde el boton de la cabecera)
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('btn-save-supplier').addEventListener('click', function() {
+            var name = document.getElementById('new-supplier-name').value.trim();
+            var contact = document.getElementById('new-supplier-contact').value.trim();
+            var phone = document.getElementById('new-supplier-phone').value.trim();
+            var email = document.getElementById('new-supplier-email').value.trim();
 
-        if (!name) {
-            alert('El nombre del proveedor es requerido.');
-            return;
-        }
-
-        var formData = new FormData();
-        formData.append('name', name);
-        formData.append('contact_name', contact);
-        formData.append('phone', phone);
-        formData.append('email', email);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-        fetch('{% url "supplier_create" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+            if (!name) {
+                alert('El nombre del proveedor es requerido.');
+                return;
             }
-        })
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (data.success) {
-                var select = document.getElementById('supplier');
-                var option = document.createElement('option');
-                option.value = data.supplier.id;
-                option.textContent = data.supplier.name;
-                select.appendChild(option);
-                select.value = data.supplier.id;
 
-                var modal = bootstrap.Modal.getInstance(document.getElementById('newSupplierModal'));
-                modal.hide();
+            var formData = new FormData();
+            formData.append('name', name);
+            formData.append('contact_name', contact);
+            formData.append('phone', phone);
+            formData.append('email', email);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
-                document.getElementById('new-supplier-name').value = '';
-                document.getElementById('new-supplier-contact').value = '';
-                document.getElementById('new-supplier-phone').value = '';
-                document.getElementById('new-supplier-email').value = '';
-            } else {
-                alert('Error al crear proveedor: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(function(err) {
-            console.error('Error creando proveedor:', err);
-            alert('Error al crear proveedor.');
+            fetch('{% url "supplier_create" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLMLHttpRequest'
+                }
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var select = document.getElementById('supplier');
+                    var option = document.createElement('option');
+                    option.value = data.supplier.id;
+                    option.textContent = data.supplier.name;
+                    select.appendChild(option);
+                    select.value = data.supplier.id;
+
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('newSupplierModal'));
+                    modal.hide();
+
+                    document.getElementById('new-supplier-name').value = '';
+                    document.getElementById('new-supplier-contact').value = '';
+                    document.getElementById('new-supplier-phone').value = '';
+                    document.getElementById('new-supplier-email').value = '';
+                } else {
+                    alert('Error al crear proveedor: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(function(err) {
+                console.error('Error creando proveedor:', err);
+                alert('Error al crear proveedor.');
+            });
         });
     });
 
-    window.decreaseQty = decreaseQty;
-    window.increaseQty = increaseQty;
-    window.removeItem = removeItem;
-
 })();
-</script>
+    </script>
 {% endblock %}
