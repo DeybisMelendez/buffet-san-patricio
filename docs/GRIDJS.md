@@ -1,4 +1,4 @@
-# Guía de GridJS - Buffet San Patricio
+# Guía de GridJS - Asados Km9
 
 Sistema de tablas interactivas para listados, reportes y datos paginados.
 

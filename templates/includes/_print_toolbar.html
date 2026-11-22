@@ -1,0 +1,22 @@
+{% comment %}
+Barra de herramientas reutilizable para vistas de impresión (facturas, arqueos).
+Se muestra en pantalla y se oculta al imprimir (clase .no-print).
+
+Contexto opcional:
+    print_toolbar_back_url   - URL del botón "Volver" (por defecto, lista de facturas)
+    print_toolbar_back_label - Texto del botón "Volver" (por defecto "Volver")
+{% endcomment %}
+{% load static %}
+<div class="print-toolbar no-print">
+    <div class="print-toolbar__group">
+        <button type="button" onclick="window.print()" class="print-btn print-btn--primary">
+            <span class="material-icons">print</span>
+            <span>Imprimir</span>
+        </button>
+        <a href="{{ print_toolbar_back_url|default:'#' }}"
+           class="print-btn print-btn--secondary">
+            <span class="material-icons">arrow_back</span>
+            <span>{{ print_toolbar_back_label|default:'Volver' }}</span>
+        </a>
+    </div>
+</div>

@@ -1,12 +1,12 @@
-# Agente - Buffet San Patricio
+# Agente - Asados Km9
 
-Documento de referencia rápida para agentes de IA que trabajan en el proyecto Django **Buffet San Patricio**.
+Documento de referencia rápida para agentes de IA que trabajan en el proyecto Django **Asados Km9**.
 
 ---
 
 ## Descripción del Proyecto
 
-**Buffet San Patricio** es un sistema de gestión integral para restaurantes tipo buffet. Maneja mesas, comandas, inventario con control de recetas, facturación, arqueo de caja y reportes de ventas.
+**Asados Km9** es un sistema de gestión integral para restaurantes tipo buffet. Maneja mesas, comandas, inventario con control de recetas, facturación, arqueo de caja y reportes de ventas.
 
 ### Funcionalidades Principales
 

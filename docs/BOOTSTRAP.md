@@ -1,4 +1,4 @@
-# Guía de Bootstrap - Buffet San Patricio
+# Guía de Bootstrap - Asados Km9
 
 Este documento define las convenciones para el uso de Bootstrap 5 en el proyecto.
 

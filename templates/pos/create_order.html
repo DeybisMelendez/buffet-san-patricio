@@ -2,89 +2,158 @@
 {% load humanize %}
 {% block title %}Crear Comanda{% endblock %}
 {% block body %}
-    <div class="card mb-4">
-        <div class="card-body">
-            <h1 class="mb-4">Nueva Comanda - Mesa {{ table.name }}</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0">Nueva Comanda - Mesa {{ table.name }}</h1>
+        <button type="submit" form="orderForm" class="btn btn-primary" id="createOrderBtn">
+            <i class="material-icons">check</i> Crear Comanda
+        </button>
+    </div>
 
-            <!-- Categorías -->
-            <h2 class="h5 mb-3">Categorías</h2>
-            <div class="mb-4">
-                <button type="button" class="btn btn-outline-primary" id="btn-all" onclick="filterCategory('')">Todas</button>
-                {% for category in categories %}
-                    <button type="button" class="btn btn-outline-primary" onclick="filterCategory('{{ category.name }}')">{{ category.name }}</button>
-                {% endfor %}
-            </div>
+    <form id="orderForm" method="post">
+        {% csrf_token %}
+        <!-- Hidden inputs generados por JS (uno por producto seleccionado) -->
+        <div id="order-items-container"></div>
 
-            <!-- Formulario -->
-            <form id="orderForm" method="post">
-                {% csrf_token %}
-                <h3 class="h6 mb-3" id="category-label">Todos los productos</h3>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th scope="col">Producto</th>
-                                <th scope="col">Precio</th>
-                                <th scope="col">Cantidad</th>
-                            </tr>
-                        </thead>
-                        <tbody id="products-table-body">
-                            {% for product in products %}
-                                <tr data-category="{{ product.category.name }}" class="product-row">
-                                    <td>{{ product.name }}</td>
-                                    <td>C$ {{ product.price }}</td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQty({{ product.id }})">
-                                                <i class="material-icons">remove</i>
-                                            </button>
-                                            <input type="number" class="form-control text-center" style="width: 80px;"
-                                                   name="product_{{ product.id }}" id="qty_{{ product.id }}" value="0" min="0">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQty({{ product.id }})">
-                                                <i class="material-icons">add</i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+        <div class="row g-3">
+            <!-- ==================== Panel izquierdo: grid de productos ==================== -->
+            <div class="col-12 col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h2 class="h6 mb-0">Productos</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Pestañas de categorías -->
+                        <div class="d-flex flex-wrap gap-2 mb-3" id="category-tabs">
+                            {% for category in categories %}
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-category="{{ category.name }}" onclick="filterCategory('{{ category.name }}')">{{ category.name }}</button>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        </div>
-    </div>
+                        </div>
 
-    <!-- Resumen de productos -->
-    <div class="card border-warning mb-4">
-        <div class="card-header bg-warning bg-opacity-25">
-            <h5 class="mb-0">Resumen de Productos</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Producto</th>
-                            <th scope="col">Cantidad</th>
-                            <th scope="col">Precio</th>
-                            <th scope="col">Monto</th>
-                        </tr>
-                    </thead>
-                    <tbody id="summary-body">
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3"><strong>Total:</strong></td>
-                            <td><strong>C$ <span id="total-amount">0.00</span></strong></td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        <p class="text-body-secondary small mb-3" id="category-label"></p>
+
+                        <!-- Grid de botones de producto -->
+                        <div class="row g-2" id="products-grid">
+                            {% for product in products %}
+                                <div class="col-6 col-md-4 col-xxl-3 product-cell" data-category="{{ product.category.name }}">
+                                    <button type="button" class="btn btn-outline-primary w-100 d-flex flex-column align-items-start justify-content-between text-start py-3 px-3 h-100 product-btn"
+                                            data-product-id="{{ product.id }}"
+                                            data-product-name="{{ product.name|escapejs }}"
+                                            data-product-price="{{ product.price }}"
+                                            title="{{ product.name }}">
+                                        <span class="product-name">{{ product.name }}</span>
+                                        <span class="small opacity-75 mt-2">C$ {{ product.price|floatformat:2|intcomma }}</span>
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <p class="text-body-secondary mb-0 d-none" id="empty-products">
+                            No hay productos en esta categoría.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== Panel derecho: resumen lateral ==================== -->
+            <div class="col-12 col-lg-4">
+                <div class="card sticky-lg-top" style="top: 5rem;">
+                    <div class="card-header bg-warning bg-opacity-25">
+                        <h2 class="h6 mb-0">Resumen de Productos</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="summary-list">
+                            <!-- Se renderiza con JS -->
+                        </div>
+
+                        <p class="text-body-secondary mb-0" id="summary-empty">
+                            No hay productos seleccionados.
+                        </p>
+
+                        <hr class="my-3">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold">Total:</span>
+                            <span class="fs-5 fw-bold">C$ <span id="total-amount">0.00</span></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </form>
 
-    <div class="d-flex justify-content-end gap-2 mb-4">
-        <button type="submit" form="orderForm" class="btn btn-primary">Crear Comanda</button>
+    <!-- ==================== Modal de cantidad ==================== -->
+    <div class="modal fade" id="qtyModal" tabindex="-1" aria-labelledby="qtyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qtyModalLabel">Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-body-secondary mb-3">
+                        Precio unitario: <strong id="modal-product-price">C$ 0.00</strong>
+                    </p>
+
+                    <!-- Cantidad (solo lectura, se cambia con el teclado numerico) -->
+                    <div class="text-center mb-3">
+                        <input type="text" class="form-control form-control-lg text-center fw-bold"
+                               id="qtyInput" value="" placeholder="Cantidad" readonly
+                               inputmode="none" autocomplete="off" aria-live="polite">
+                    </div>
+
+                    <!-- Teclado numerico tactil -->
+                    <div class="row g-2" id="qty-keypad">
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="1">1</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="2">2</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="3">3</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="4">4</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="5">5</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="6">6</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="7">7</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="8">8</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="9">9</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="clear" aria-label="Borrar todo">C</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="0">0</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 qty-key" data-key="backspace" aria-label="Borrar ultimo digito">
+                                <i class="material-icons">backspace</i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <span class="text-body-secondary">Subtotal</span>
+                        <span class="fs-5 fw-semibold" id="modal-subtotal">C$ 0.00</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-lg flex-grow-1" id="qtyConfirmBtn">Agregar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     {% if order %}
@@ -101,77 +170,438 @@
     {% endif %}
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Tarjeta de producto: alto fijo para que el grid no se descuadre */
+    .product-btn {
+        min-height: 6.5rem;
+        /* Mas espacio horizontal para que el nombre no se apriete */
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    /* Nombre del producto: maximo 2 lineas con puntos suspensivos.
+       Evita que nombres largos corten la tarjeta o la deformen. */
+    .product-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.3;
+        color: var(--bs-btn-color);
+        /* Reserva el alto de 2 lineas para que todas las tarjetas queden iguales */
+        min-height: 2.6em;
+    }
+
+    /* Texto legible tambien en tema oscuro */
+    .product-btn.btn-primary .product-name,
+    .product-btn.btn-outline-primary .product-name {
+        color: inherit;
+    }
+
+    /* Teclado numerico tactil: botones grandes para uso con el dedo */
+    .qty-key {
+        min-height: 3.75rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        line-height: 1;
+        touch-action: manipulation;
+    }
+
+    /* Evita el zoom por doble toque y el menu de seleccion en toques rapidos */
+    .qty-key:active {
+        transform: scale(0.95);
+    }
+
+    /* Resumen lateral: nombre en 2 lineas con puntos suspensivos */
+    .summary-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        line-height: 1.25;
+    }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
+// Estado de los productos: id -> { name, price, qty }
 var productsData = {
 {% for product in products %}
-    {{ product.id }}: { name: '{{ product.name }}', price: {{ product.price }}, qty: 0 },
+    {{ product.id }}: { name: '{{ product.name|escapejs }}', price: {{ product.price }}, qty: 0 },
 {% endfor %}
 };
 
-var currentCategory = '';
+var currentProductId = null;
+var qtyModalInstance = null;
+/* Indica si el usuario ya tecleo un numero en el teclado del modal.
+   Sirve para que el primer toque reemplace el valor previo en lugar de concatenarlo. */
+var qtyUserTyped = false;
 
-function filterCategory(category) {
-    currentCategory = category;
-    document.getElementById('category-label').textContent = category || 'Todos los productos';
-
-    document.querySelectorAll('.product-row').forEach(function(row) {
-        var rowCat = row.dataset.category;
-        if (category === '' || rowCat === category) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
+function getProduct(id) {
+    return productsData[id];
 }
 
-function decreaseQty(id) {
-    var input = document.getElementById('qty_' + id);
-    if (productsData[id].qty > 0) {
-        productsData[id].qty--;
-        input.value = productsData[id].qty;
-        updateSummary();
+function formatMoney(value) {
+    return 'C$ ' + parseFloat(value || 0).toFixed(2);
+}
+
+/**
+ * Muestra u oculta los productos segun la categoria seleccionada.
+ */
+function filterCategory(category) {
+    var visibleCount = 0;
+
+    document.querySelectorAll('.product-cell').forEach(function(cell) {
+        if (cell.dataset.category === category) {
+            cell.classList.remove('d-none');
+            visibleCount++;
+        } else {
+            cell.classList.add('d-none');
+        }
+    });
+
+    document.getElementById('empty-products').classList.toggle('d-none', visibleCount > 0);
+
+    // Estado activo de las pestanas
+    document.querySelectorAll('#category-tabs button').forEach(function(tab) {
+        if (tab.dataset.category === category) {
+            tab.classList.remove('btn-outline-primary');
+            tab.classList.add('btn-primary');
+        } else {
+            tab.classList.remove('btn-primary');
+            tab.classList.add('btn-outline-primary');
+        }
+    });
+
+    // Muestra el nombre de la categoria activa
+    var activeTab = document.querySelector('#category-tabs button[data-category="' + category + '"]');
+    document.getElementById('category-label').textContent = activeTab
+        ? activeTab.textContent.trim()
+        : category;
+}
+
+/**
+ * Abre el modal de cantidad para el producto indicado.
+ */
+function openQtyModal(productId) {
+    var product = getProduct(productId);
+    if (!product) {
+        return;
+    }
+
+    currentProductId = productId;
+
+    document.getElementById('qtyModalLabel').textContent = product.name;
+    document.getElementById('modal-product-price').textContent = formatMoney(product.price);
+
+    var input = document.getElementById('qtyInput');
+
+    // Producto nuevo: campo vacio para teclear la cantidad desde cero.
+    // Producto ya agregado: muestra la cantidad actual (el primer toque la reemplaza).
+    if (product.qty > 0) {
+        input.value = product.qty;
+    } else {
+        input.value = '';
+        input.placeholder = 'Cantidad';
+    }
+
+    // El usuario aun no ha tecleado nada en esta apertura
+    qtyUserTyped = false;
+
+    updateModalSubtotal();
+
+    var confirmBtn = document.getElementById('qtyConfirmBtn');
+    confirmBtn.textContent = product.qty > 0 ? 'Actualizar' : 'Agregar';
+
+    if (qtyModalInstance) {
+        qtyModalInstance.show();
     }
 }
 
-function increaseQty(id) {
-    productsData[id].qty++;
-    document.getElementById('qty_' + id).value = productsData[id].qty;
+/**
+ * Procesa una pulsacion del teclado numerico.
+ * key: '0'-'9' | 'backspace' | 'clear'
+ *
+ * El primer numero tecleado reemplaza el valor previo (para evitar
+ * que "1" + "2" se lea como "12"); los siguientes se concatenan.
+ */
+function pressQtyKey(key) {
+    var input = document.getElementById('qtyInput');
+    var current = input.value;
+
+    if (key === 'clear') {
+        input.value = '';
+        qtyUserTyped = false;
+    } else if (key === 'backspace') {
+        input.value = current.length > 1 ? current.slice(0, -1) : '';
+        qtyUserTyped = true;
+    } else {
+        var next;
+
+        if (!qtyUserTyped) {
+            // Primer toque: reemplaza el valor anterior
+            next = key;
+            qtyUserTyped = true;
+        } else if (current === '0') {
+            // Evita ceros a la izquierda: "0" + "5" -> "5"
+            next = key;
+        } else {
+            // Continua escribiendo sobre lo ya tecleado
+            next = current === '' ? key : current + key;
+        }
+
+        // Maximo 3 digitos (999)
+        input.value = next.length > 3 ? next.slice(-3) : next;
+    }
+
+    updateModalSubtotal();
+}
+
+/**
+ * Actualiza el subtotal mostrado en el modal.
+ */
+function updateModalSubtotal() {
+    var product = getProduct(currentProductId);
+    if (!product) {
+        return;
+    }
+
+    var qty = parseInt(document.getElementById('qtyInput').value, 10) || 0;
+    var subtotalEl = document.getElementById('modal-subtotal');
+
+    if (qty === 0) {
+        subtotalEl.textContent = 'Sin cantidad';
+        subtotalEl.classList.add('text-body-secondary');
+        subtotalEl.classList.remove('fw-semibold');
+    } else {
+        subtotalEl.textContent = formatMoney(qty * product.price);
+        subtotalEl.classList.remove('text-body-secondary');
+        subtotalEl.classList.add('fw-semibold');
+    }
+}
+
+/**
+ * Aplica la cantidad seleccionada en el modal.
+ */
+function applyQty() {
+    if (currentProductId === null) {
+        return;
+    }
+
+    var product = getProduct(currentProductId);
+    var input = document.getElementById('qtyInput');
+    var qty = parseInt(input.value, 10) || 0;
+
+    if (qty < 1) {
+        qty = 1;
+        input.value = 1;
+    }
+
+    product.qty = qty;
+    syncHiddenInput(currentProductId, qty);
+    updateProductButton(currentProductId);
+    updateSummary();
+
+    if (qtyModalInstance) {
+        qtyModalInstance.hide();
+    }
+}
+
+/**
+ * Quita un producto de la comanda.
+ */
+function removeProduct(productId) {
+    var product = getProduct(productId);
+    if (!product) {
+        return;
+    }
+
+    product.qty = 0;
+    syncHiddenInput(productId, 0);
+    updateProductButton(productId);
     updateSummary();
 }
 
+/**
+ * Crea o actualiza el input oculto que envia el formulario al backend.
+ */
+function syncHiddenInput(productId, qty) {
+    var container = document.getElementById('order-items-container');
+    var input = document.getElementById('qty_' + productId);
+
+    if (qty > 0) {
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.id = 'qty_' + productId;
+            input.name = 'product_' + productId;
+            container.appendChild(input);
+        }
+        input.value = qty;
+    } else if (input) {
+        input.remove();
+    }
+}
+
+/**
+ * Pinta el boton del producto segun si esta seleccionado o no.
+ */
+function updateProductButton(productId) {
+    var product = getProduct(productId);
+    var button = document.querySelector('.product-btn[data-product-id="' + productId + '"]');
+    if (!product || !button) {
+        return;
+    }
+
+    if (product.qty > 0) {
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-primary');
+    } else {
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-primary');
+    }
+}
+
+/**
+ * Re-renderiza el resumen lateral y el total.
+ */
 function updateSummary() {
-    var tbody = document.getElementById('summary-body');
+    var list = document.getElementById('summary-list');
+    var emptyMsg = document.getElementById('summary-empty');
     var total = 0;
-    tbody.innerHTML = '';
+    var selected = 0;
+
+    list.innerHTML = '';
 
     Object.keys(productsData).forEach(function(id) {
-        var p = productsData[id];
-        if (p.qty > 0) {
-            var lineTotal = p.qty * p.price;
-            total += lineTotal;
-            tbody.innerHTML += '<tr>' +
-                '<td>' + p.name + '</td>' +
-                '<td>' + p.qty + '</td>' +
-                '<td>C$ ' + p.price.toFixed(2) + '</td>' +
-                '<td>C$ ' + lineTotal.toFixed(2) + '</td>' +
-                '</tr>';
+        var product = productsData[id];
+        if (product.qty <= 0) {
+            return;
         }
+
+        selected++;
+        var lineTotal = product.qty * product.price;
+        total += lineTotal;
+
+        var row = document.createElement('div');
+        row.className = 'd-flex justify-content-between align-items-start gap-2 py-2 border-bottom';
+
+        var info = document.createElement('div');
+        info.className = 'min-w-0';
+
+        var name = document.createElement('div');
+        name.className = 'fw-semibold summary-name';
+        name.textContent = product.name;
+        name.title = product.name;
+
+        var detail = document.createElement('div');
+        detail.className = 'small text-body-secondary';
+        detail.textContent = product.qty + ' x ' + formatMoney(product.price);
+
+        info.appendChild(name);
+        info.appendChild(detail);
+
+        var right = document.createElement('div');
+        right.className = 'd-flex align-items-center gap-2 flex-shrink-0';
+
+        var amount = document.createElement('span');
+        amount.className = 'fw-semibold';
+        amount.textContent = formatMoney(lineTotal);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-sm btn-outline-danger border-0 p-0';
+        removeBtn.setAttribute('aria-label', 'Quitar ' + product.name);
+        removeBtn.innerHTML = '<i class="material-icons">close</i>';
+        removeBtn.addEventListener('click', function() {
+            removeProduct(id);
+        });
+
+        right.appendChild(amount);
+        right.appendChild(removeBtn);
+
+        row.appendChild(info);
+        row.appendChild(right);
+        list.appendChild(row);
     });
 
+    emptyMsg.classList.toggle('d-none', selected > 0);
     document.getElementById('total-amount').textContent = total.toFixed(2);
 }
 
 // Init on load
 document.addEventListener('DOMContentLoaded', function() {
-    // Add change listeners to all qty inputs
-    document.querySelectorAll('input[id^="qty_"]').forEach(function(input) {
-        input.addEventListener('change', function() {
-            var id = this.id.replace('qty_', '');
-            productsData[id].qty = parseInt(this.value) || 0;
-            updateSummary();
+    var modalEl = document.getElementById('qtyModal');
+    if (typeof bootstrap !== 'undefined' && modalEl) {
+        qtyModalInstance = new bootstrap.Modal(modalEl);
+    }
+
+    // Botones de producto: abrir modal de cantidad
+    document.querySelectorAll('.product-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            openQtyModal(this.dataset.productId);
         });
     });
+
+    // Teclado numerico tactil
+    document.querySelectorAll('.qty-key').forEach(function(key) {
+        key.addEventListener('click', function() {
+            pressQtyKey(this.dataset.key);
+        });
+    });
+
+    // Confirmar cantidad
+    var confirmBtn = document.getElementById('qtyConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', applyQty);
+    }
+
+    // Teclado fisico (para uso con mouse/teclado en escritorio)
+    document.addEventListener('keydown', function(event) {
+        if (!document.getElementById('qtyModal').classList.contains('show')) {
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            applyQty();
+        } else if (event.key === 'Backspace') {
+            event.preventDefault();
+            pressQtyKey('backspace');
+        } else if (event.key === 'Escape') {
+            if (qtyModalInstance) {
+                qtyModalInstance.hide();
+            }
+        } else if (/^[0-9]$/.test(event.key)) {
+            pressQtyKey(event.key);
+        }
+    });
+
+    // Evitar envio con productos vacios
+    var form = document.getElementById('orderForm');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            var hasItems = document.querySelector('#order-items-container input[name^="product_"]');
+            if (!hasItems) {
+                event.preventDefault();
+                alert('Selecciona al menos un producto para crear la comanda.');
+            }
+        });
+    }
+
+    // Activa la primera categoria por defecto
+    var firstTab = document.querySelector('#category-tabs button');
+    if (firstTab) {
+        filterCategory(firstTab.dataset.category);
+    }
+
+    updateSummary();
 });
 </script>
 {% endblock %}

@@ -1,5 +1,5 @@
 """
-Definición de grupos y permisos fijos para el sistema Buffet San Patricio.
+Definición de grupos y permisos fijos para el sistema Asados Km9.
 
 Los grupos son fijos (no configurables) y tienen permisos predefinidos.
 """
@@ -197,7 +197,7 @@ PERMISSION_DESCRIPTIONS = {
     "add_product": {
         "name": "Crear Productos",
         "description": "Permite agregar nuevos platos o bebidas al menú del restaurante.",
-        "use_case": "Para incorporar nuevos platillos al buffet.",
+        "use_case": "Para incorporar nuevos platillos a la carta.",
         "group": "Menú",
         "group_order": 2,
     },
