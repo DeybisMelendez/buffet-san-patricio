@@ -1,9 +1,14 @@
 {% extends "layout.html" %}
+{% load static %}
 {% block body %}
     <div class="container d-flex align-items-center justify-content-center min-vh-100">
         <div class="card shadow" style="max-width: 400px; width: 100%;">
             <div class="card-header text-center bg-transparent border-0 pt-4">
-                <i class="material-icons text-primary" style="font-size: 3rem;">restaurant</i>
+                <img src="{% static 'logo.png' %}"
+                     alt="Asados Km9"
+                     width="200"
+                     height="162"
+                     class="mb-2">
                 <h2 class="h4 mt-2">Iniciar sesión</h2>
                 <p class="text-body-secondary small">Ingresa tus credenciales para acceder al sistema</p>
             </div>

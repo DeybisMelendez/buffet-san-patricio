@@ -1,6 +1,6 @@
-# Directrices Frontend - Buffet San Patricio
+# Directrices Frontend - Asados Km9
 
-Este documento establece las directrices para el desarrollo frontend del sistema Buffet San Patricio.
+Este documento establece las directrices para el desarrollo frontend del sistema Asados Km9.
 
 ---
 

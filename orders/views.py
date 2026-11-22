@@ -11,6 +11,7 @@ from django.db.models import Count, F, Q, Sum
 from django.forms import modelformset_factory
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from core.config import BUSINESS_INFO
@@ -2908,6 +2909,24 @@ def invoice_table(request, table_id):
                         },
                     )
 
+                # El monto recibido no puede ser menor que el total a pagar
+                if amount_received is not None and amount_received < total:
+                    messages.error(
+                        request,
+                        f" El monto recibido (C$ {amount_received:.2f}) es menor "
+                        f"que el total de la factura (C$ {total:.2f}).",
+                    )
+                    return render(
+                        request,
+                        "invoices/invoice_form.html",
+                        {
+                            "table": table,
+                            "items": items_list,
+                            "total": total,
+                            "is_cashier": is_cashier,
+                        },
+                    )
+
             manual_notes = request.POST.get("notes", "").strip()
             auto_notes = ""
             if payment_type == "PENDIENTE":
@@ -3186,7 +3205,12 @@ def print_invoice(request, invoice_id):
     return render(
         request,
         "invoices/print_invoice.html",
-        {"invoice": invoice, "items": items, "company": company},
+        {
+            "invoice": invoice,
+            "items": items,
+            "company": company,
+            "back_url": reverse("cash_register_list"),
+        },
     )
 
 
@@ -3214,6 +3238,7 @@ def print_cash_register(request, register_id):
             "company": company,
             "expected": expected,
             "total_cobrado": total_cobrado,
+            "back_url": reverse("cash_register_list"),
         },
     )
 

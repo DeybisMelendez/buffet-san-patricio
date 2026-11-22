@@ -40,7 +40,7 @@
             </div>
         </div>
         {% if is_cashier %}
-            <form method="post" class="card" data-invoice-form data-total="{{ total }}">
+            <form method="post" class="card" data-invoice-form data-invoice-custom data-total="{{ total }}">
                 {% csrf_token %}
                 <div class="card-body">
                     <h5 class="card-title">Confirmar Factura</h5>
@@ -51,22 +51,30 @@
                     <div class="mb-3">
                         <label class="form-label" for="payment_type">Tipo de Pago</label>
                         <select class="form-select" id="payment_type" name="payment_type" required>
-                            <option value="PENDIENTE">Pendiente (Credito)</option>
-                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="EFECTIVO" selected>Contado (Efectivo)</option>
                             <option value="TARJETA_CREDITO">Tarjeta Credito</option>
                             <option value="TARJETA_DEBITO">Tarjeta Debito</option>
                             <option value="TRANSFERENCIA">Transferencia</option>
                             <option value="OTRO">Otro</option>
+                            <option value="PENDIENTE">Pendiente (Credito)</option>
                         </select>
                         <div class="form-text">Selecciona "Pendiente" para guardar como credito (se imprimira voucher).</div>
                     </div>
-                    <div class="mb-3" data-show-if-efectivo style="display: none;">
+                    <div class="mb-3" data-show-if-efectivo>
                         <label class="form-label" for="amount_received">Monto Recibido (C$)</label>
-                        <input type="number" class="form-control" id="amount_received" name="amount_received" step="0.01" min="0" placeholder="0.00">
-                        <div class="form-text">Ingrese el monto recibido del cliente</div>
+                        <input type="text" class="form-control form-control-lg text-end fw-bold"
+                               id="amount_received" name="amount_received"
+                               value="{{ total|floatformat:2 }}" readonly
+                               inputmode="none" autocomplete="off"
+                               style="cursor: pointer;">
+                        <div class="form-text">Toca el monto para cambiarlo (por vuelto). Por defecto es el total de la factura.</div>
                     </div>
                     <div class="alert alert-secondary" id="change-container" style="display: none;">
                         <strong>Cambio:</strong> C$ <span id="change-amount">0.00</span>
+                    </div>
+                    <div class="alert alert-warning" id="amount-warning" style="display: none;">
+                        <i class="material-icons me-1">warning</i>
+                        <span id="amount-warning-text"></span>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success" data-submit-credit>
@@ -104,6 +112,102 @@
             </form>
         {% endif %}
     </div>
+
+    <!-- ==================== Modal de monto recibido ==================== -->
+    <div class="modal fade" id="amountModal" tabindex="-1" aria-labelledby="amountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="amountModalLabel">Monto Recibido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-body-secondary mb-3">
+                        Total a pagar: <strong>C$ {{ total|floatformat:2|intcomma }}</strong>
+                    </p>
+
+                    <!-- Monto (solo lectura, se cambia con el teclado numerico) -->
+                    <div class="text-center mb-3">
+                        <input type="text" class="form-control form-control-lg text-center fw-bold"
+                               id="amountInput" value="" placeholder="0.00" readonly
+                               inputmode="none" autocomplete="off" aria-live="polite">
+                    </div>
+
+                    <!-- Teclado numerico tactil con decimales -->
+                    <div class="row g-2" id="amount-keypad">
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="1">1</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="2">2</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="3">3</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="4">4</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="5">5</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="6">6</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="7">7</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="8">8</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="9">9</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="clear" aria-label="Borrar todo">C</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="0">0</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="dot" aria-label="Punto decimal">.</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-secondary w-100 amount-key" data-key="backspace" aria-label="Borrar ultimo digito">
+                                <i class="material-icons">backspace</i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <span class="text-body-secondary">Cambio</span>
+                        <span class="fs-5 fw-semibold" id="modal-change-amount">C$ 0.00</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-lg flex-grow-1" id="amountConfirmBtn">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Teclado numerico tactil: botones grandes para uso con el dedo */
+    .amount-key {
+        min-height: 3.75rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        line-height: 1;
+        touch-action: manipulation;
+    }
+
+    /* Evita el zoom por doble toque y el menu de seleccion en toques rapidos */
+    .amount-key:active {
+        transform: scale(0.95);
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -120,38 +224,205 @@ document.addEventListener('DOMContentLoaded', function() {
     var submitCredit = form.querySelector('[data-submit-credit]');
     var submitCash = form.querySelector('[data-submit-cash]');
 
+    // ---- Modal de monto recibido ----
+    var amountModalEl = document.getElementById('amountModal');
+    var amountModal = null;
+    var amountInput = document.getElementById('amountInput');
+    var modalChange = document.getElementById('modal-change-amount');
+    var amountTyped = false;
+
+    if (typeof bootstrap !== 'undefined' && amountModalEl) {
+        amountModal = new bootstrap.Modal(amountModalEl);
+    }
+
+    function formatMoney(value) {
+        return 'C$ ' + parseFloat(value || 0).toFixed(2);
+    }
+
+    /**
+     * Procesa una pulsacion del teclado numerico de montos.
+     * key: '0'-'9' | 'dot' | 'backspace' | 'clear'
+     */
+    function pressAmountKey(key) {
+        var current = amountInput.value;
+
+        if (key === 'clear') {
+            amountInput.value = '';
+            amountTyped = false;
+        } else if (key === 'backspace') {
+            amountInput.value = current.length > 1 ? current.slice(0, -1) : '';
+            amountTyped = true;
+        } else if (key === 'dot') {
+            // Solo un punto decimal
+            if (current.indexOf('.') === -1) {
+                amountInput.value = (current === '' ? '0' : current) + '.';
+                amountTyped = true;
+            }
+        } else {
+            var next;
+
+            if (!amountTyped) {
+                // Primer toque: reemplaza el valor previo
+                next = key;
+                amountTyped = true;
+            } else if (current === '0') {
+                next = key;
+            } else {
+                next = current === '' ? key : current + key;
+            }
+
+            // Maximo 7 digitos (incluye el punto decimal)
+            if (next.replace('.', '').length > 7) {
+                return;
+            }
+
+            // No se permiten mas de 2 decimales
+            var dotIndex = next.indexOf('.');
+            if (dotIndex !== -1 && next.length - dotIndex > 3) {
+                return;
+            }
+
+            amountInput.value = next;
+        }
+
+        updateModalChange();
+    }
+
+    function updateModalChange() {
+        var received = parseFloat(amountInput.value) || 0;
+        var change = received - total;
+
+        if (received === 0) {
+            modalChange.textContent = 'Sin monto';
+            modalChange.classList.add('text-body-secondary');
+            modalChange.classList.remove('fw-semibold');
+        } else {
+            modalChange.textContent = formatMoney(change);
+            modalChange.classList.remove('text-body-secondary');
+            modalChange.classList.add('fw-semibold');
+        }
+    }
+
+    /**
+     * Abre el modal de monto recibido con el total como valor inicial.
+     * amountTyped queda en false para que el primer toque REEMPLACE
+     * el total (si no, "2100.00" + "5" daria "2100.005").
+     */
+    function openAmountModal() {
+        if (!amountModal) return;
+
+        amountInput.value = total.toFixed(2);
+        amountTyped = false;
+        updateModalChange();
+
+        amountModal.show();
+    }
+
+    /**
+     * Aplica el monto digitado al formulario.
+     */
+    function applyAmount() {
+        var received = parseFloat(amountInput.value);
+
+        if (isNaN(received) || received <= 0) {
+            amountInput.value = total.toFixed(2);
+            received = total;
+        }
+
+        amountReceived.value = received.toFixed(2);
+        updateVisibility();
+
+        if (amountModal) {
+            amountModal.hide();
+        }
+    }
+
+    // ---- Visibilidad y logica existente ----
     function updateVisibility() {
         var type = paymentType ? paymentType.value : 'PENDIENTE';
         var received = parseFloat(amountReceived ? amountReceived.value : 0) || 0;
+        var isEfectivo = type === 'EFECTIVO';
 
         // Toggle efectivo fields
         var efectivoFields = form.querySelectorAll('[data-show-if-efectivo]');
         efectivoFields.forEach(function(el) {
-            el.style.display = type === 'EFECTIVO' ? '' : 'none';
+            el.style.display = isEfectivo ? '' : 'none';
         });
 
         // Toggle buttons
         if (submitCredit) submitCredit.style.display = type === 'PENDIENTE' ? '' : 'none';
         if (submitCash) {
             submitCash.style.display = type !== 'PENDIENTE' ? '' : 'none';
-            if (type === 'EFECTIVO' && received < total) {
-                submitCash.disabled = true;
-            } else {
-                submitCash.disabled = false;
-            }
+            submitCash.disabled = isEfectivo && received < total;
         }
 
         // Update change
-        if (type === 'EFECTIVO' && received > 0) {
+        if (isEfectivo && received > 0) {
             changeContainer.style.display = '';
             changeAmount.textContent = (received - total).toFixed(2);
         } else {
             changeContainer.style.display = 'none';
         }
+
+        // Aviso cuando el monto recibido no alcanza para el total
+        var warning = document.getElementById('amount-warning');
+        if (warning) {
+            if (isEfectivo && received > 0 && received < total) {
+                warning.style.display = '';
+                warning.textContent = 'El monto recibido es menor que el total de la factura (C$ ' +
+                    total.toFixed(2) + '). Faltan C$ ' + (total - received).toFixed(2) + '.';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
     }
 
     if (paymentType) paymentType.addEventListener('change', updateVisibility);
     if (amountReceived) amountReceived.addEventListener('input', updateVisibility);
+
+    // Abrir modal al tocar el campo de monto
+    if (amountReceived) {
+        amountReceived.addEventListener('click', openAmountModal);
+        amountReceived.addEventListener('focus', function(event) {
+            event.target.blur();
+            openAmountModal();
+        });
+    }
+
+    // Teclado numerico del modal
+    document.querySelectorAll('.amount-key').forEach(function(key) {
+        key.addEventListener('click', function() {
+            pressAmountKey(this.dataset.key);
+        });
+    });
+
+    var amountConfirmBtn = document.getElementById('amountConfirmBtn');
+    if (amountConfirmBtn) {
+        amountConfirmBtn.addEventListener('click', applyAmount);
+    }
+
+    // Teclado fisico (escritorio)
+    document.addEventListener('keydown', function(event) {
+        if (!amountModalEl || !amountModalEl.classList.contains('show')) {
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            applyAmount();
+        } else if (event.key === 'Backspace') {
+            event.preventDefault();
+            pressAmountKey('backspace');
+        } else if (event.key === 'Escape') {
+            if (amountModal) {
+                amountModal.hide();
+            }
+        } else if (event.key === '.') {
+            pressAmountKey('dot');
+        } else if (/^[0-9]$/.test(event.key)) {
+            pressAmountKey(event.key);
+        }
+    });
 
     updateVisibility();
 });
