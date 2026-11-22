@@ -1,0 +1,143 @@
+/* ==========================================================================
+   Barra de herramientas de impresión
+   Estilos para vistas de impresión (facturas, arqueos de caja).
+   Diseñado para uso táctil en tablets: botones grandes y homogéneos.
+   ========================================================================== */
+
+/* --- Contenedor de la barra --- */
+.print-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--bs-body-bg, #ffffff);
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.print-toolbar__group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+/* --- Botones homogéneos (button y anchor se ven idénticos) --- */
+.print-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 52px;
+    min-width: 160px;
+    padding: 0.7rem 1.5rem;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Icono de Material Icons dentro del botón */
+.print-btn .material-icons {
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    line-height: 1.5rem;
+    display: inline-block;
+}
+
+/* --- Variante primaria (Imprimir) --- */
+.print-btn--primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+}
+
+.print-btn--primary:hover,
+.print-btn--primary:focus-visible {
+    background-color: #0b5ed7;
+    border-color: #0b5ed7;
+    color: #ffffff;
+}
+
+/* --- Variante secundaria (Volver) --- */
+.print-btn--secondary {
+    background-color: transparent;
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.print-btn--secondary:hover,
+.print-btn--secondary:focus-visible {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+}
+
+/* --- Retroalimentación táctil --- */
+.print-btn:active {
+    transform: translateY(1px) scale(0.99);
+}
+
+.print-btn:focus-visible {
+    outline: 3px solid rgba(13, 110, 253, 0.4);
+    outline-offset: 2px;
+}
+
+/* --- Tema oscuro --- */
+[data-bs-theme="dark"] .print-toolbar {
+    background: var(--bs-body-bg, #1a1a2e);
+    border-bottom-color: var(--bs-border-color, #495057);
+}
+
+[data-bs-theme="dark"] .print-btn--secondary {
+    border-color: #adb5bd;
+    color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .print-btn--secondary:hover,
+[data-bs-theme="dark"] .print-btn--secondary:focus-visible {
+    background-color: #adb5bd;
+    border-color: #adb5bd;
+    color: #1a1a2e;
+}
+
+/* --- Tablets y móviles: barra apilada, botones a ancho completo --- */
+@media (max-width: 768px) {
+    .print-toolbar {
+        padding: 0.75rem;
+    }
+
+    .print-toolbar__group {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .print-btn {
+        width: 100%;
+        min-height: 56px;
+        font-size: 1.1rem;
+    }
+}
+
+/* --- Ocultar al imprimir --- */
+@media print {
+    .print-toolbar {
+        display: none !important;
+    }
+}

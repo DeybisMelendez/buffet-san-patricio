@@ -1,5 +1,5 @@
 /**
- * Buffet San Patricio - Global JavaScript
+ * Asados Km9 - Global JavaScript
  * Reemplaza AlpineJS con JavaScript vanilla simple y legible.
  */
 
@@ -109,6 +109,9 @@
     window.initInvoiceForm = function(total) {
         var form = document.querySelector('[data-invoice-form]');
         if (!form) return;
+
+        // Si el template trae su propia inicializacion (modal de monto), no se duplica
+        if (form.hasAttribute('data-invoice-custom')) return;
 
         var paymentType = form.querySelector('[name="payment_type"]');
         var amountReceived = form.querySelector('[name="amount_received"]');

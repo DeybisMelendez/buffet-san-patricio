@@ -1,7 +1,7 @@
 {
-  "name": "Buffet San Patricio",
-  "short_name": "San Patricio",
-  "description": "Sistema de pos para Buffet San Patricio",
+  "name": "Asados Km9",
+  "short_name": "Asados Km9",
+  "description": "Sistema de pos para Asados Km9",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#fdfdfd",

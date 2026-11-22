@@ -1,5 +1,5 @@
 /**
- * Grid.js utilities for Buffet San Patricio.
+ * Grid.js utilities for Asados Km9.
  * Provides reusable functions for data tables with GridJS.
  */
 

@@ -1,12 +1,12 @@
-# Sistema Buffet San Patricio
+# Sistema Asados Km9
 
-Sistema de gestión integral para el restaurante **Buffet San Patricio**, diseñado para manejar mesas, comandas, inventario, facturación y reportes de ventas.
+Sistema de gestión integral para el restaurante **Asados Km9**, diseñado para manejar mesas, comandas, inventario, facturación y reportes de ventas.
 
 ---
 
 ## Descripción General
 
-**Buffet San Patricio** es un sistema de punto de venta (POS) especializado para restaurantes tipo buffet. Maneja múltiples áreas de producción (cocina, bar, cafetería), control de inventario basado en recetas, y genera reportes detallados de ventas.
+**Asados Km9** es un sistema de punto de venta (POS) especializado para restaurantes tipo buffet. Maneja múltiples áreas de producción (cocina, bar, cafetería), control de inventario basado en recetas, y genera reportes detallados de ventas.
 
 ### Características Principales
 

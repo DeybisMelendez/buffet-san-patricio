@@ -1,5 +1,5 @@
 // ============================================
-// Buffet San Patricio - Common JavaScript
+// Asados Km9 - Common JavaScript
 // Funciones comunes para toda la aplicación
 // ============================================
 
